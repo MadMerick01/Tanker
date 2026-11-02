@@ -19,17 +19,19 @@ function M.new(environment)
   local env = environment or defaults()
   local v = {}
 
-  -- Asks the game to put the starter truck where the player's vehicle is. Returns true once the
-  -- game took the request; the new truck arrives a moment later (the game's onVehicleSpawned).
-  function v:spawnStarter()
+  -- Asks the game to put the starter truck where the player's vehicle is: Rowan's config, or a
+  -- saved config (the parts paid for) of the saved model. Returns true once the game took the
+  -- request; the new truck arrives a moment later (the game's onVehicleSpawned).
+  function v:spawnStarter(config, model)
     local okPlayer, player = pcall(env.player)
     if not okPlayer or not player then return false, 'vehicle_required' end
     local okVehicles, vehicles = pcall(env.vehicles)
     if not okVehicles or type(vehicles) ~= 'table' or type(vehicles.replaceVehicle) ~= 'function' then
       return false, 'spawn_unavailable'
     end
-    local ok, why = pcall(vehicles.replaceVehicle, M.STARTER_MODEL,
-      { config = M.STARTER_CONFIG, keepOtherVehRotation = true }, player)
+    local useSaved = type(config) == 'table' and type(model) == 'string' and model ~= ''
+    local ok, why = pcall(vehicles.replaceVehicle, useSaved and model or M.STARTER_MODEL,
+      { config = useSaved and config or M.STARTER_CONFIG, keepOtherVehRotation = true }, player)
     if not ok then return false, 'spawn_failed', tostring(why) end
     return true
   end

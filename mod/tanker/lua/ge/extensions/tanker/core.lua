@@ -21,6 +21,8 @@ local hoons = require('tanker/hoons')
 local hoonCar = require('tanker/hoonCar')
 local transfer = require('tanker/transfer')
 local bedTank = require('tanker/bedTank')
+local workshop = require('tanker/workshop')
+local parts = require('tanker/parts')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -55,6 +57,9 @@ function M.new(env)
     clock = 0, nextSample = 0, threat = 'clear', nearby = env.nearby,
   }
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
+  -- Parts paid for in fuel.
+  c.parts = env.parts
+  if c.parts then workshop.attach(c) end
   -- The bed tank: its litres are Tanker's own, its size comes from the truck.
   c.bed, c.bedLitres = env.bed, 0
   c.transfer = transfer.new(function(litres, serial)
@@ -299,6 +304,10 @@ function M.new(env)
     if self.here.vehicle and self.here.vehicle.model then p.vehicle.model = self.here.vehicle.model end
     if self.reading then p.vehicle.fuelLitres = self.reading.litres end
     if self.bed then p.vehicle.bedLitres = self.bedLitres end
+    -- The parts paid for, so the truck comes back with them.
+    if self.ownedParts and self.ownedParts.config then
+      p.vehicle.config, p.vehicle.model = parts.copy(self.ownedParts.config), self.ownedParts.model or p.vehicle.model
+    end
     local saved, why = self.store:save(p)
     if not saved then
       self.feedback = 'Saving failed. Your last save is untouched; try again.'
@@ -331,7 +340,9 @@ function M.new(env)
   function c:fetchTruck(kind)
     self.spawning = { kind = kind, at = self.clock }
     self:transition('SPAWNING', kind)
-    local ok, why, detail = self.vehicles and self.vehicles:spawnStarter()
+    -- Back at a save, the truck comes with the parts it was saved with.
+    local saved = kind == 'resume' and self.profile and self.profile.vehicle or nil
+    local ok, why, detail = self.vehicles and self.vehicles:spawnStarter(saved and saved.config, saved and saved.model)
     if not ok then
       self.diag:event('starter_truck', tostring(why) .. (detail and (': ' .. detail) or ''), 'W')
       self:truckArrived()
@@ -362,7 +373,9 @@ function M.new(env)
 
   -- The game's onVehicleSpawned: the starter truck has arrived when the player's vehicle respawns.
   function c:vehicleSpawned(id)
-    if self.state == 'SPAWNING' and self.vehicles and self.vehicles:isPlayer(id) then self:truckArrived() end
+    if not (self.vehicles and self.vehicles:isPlayer(id)) then return end
+    if self.state == 'SPAWNING' then self:truckArrived()
+    elseif self.state == 'RUNNING' and self.parts then self:truckRespawned() end
   end
 
   function c:follow()
@@ -407,6 +420,7 @@ function M.new(env)
     self:followSiphon()
     self:followHoons()
     self:followPump()
+    if self.parts then self:followWorkshop() end
     self.fuel:read()
     local distances = env.hoonDistances and env.hoonDistances() or (self.hoons and self.hoons:distances())
     self.threat = threat.level(distances)
@@ -415,6 +429,8 @@ function M.new(env)
   -- The truck's answer to fuel:read(). Litres going down while driving measure the range.
   function c:fuelReading(_, litres, capacity)
     if not (location.finite(litres) and location.finite(capacity)) or capacity <= 0 then return end
+    -- A respawned truck reads full until its fuel is put back.
+    if self.restoreFuel then return end
     local previous = self.reading
     self.reading = { litres = litres, capacity = capacity, km = self.profile and self.profile.run.drivenKm }
     if not (previous and self.profile and self.state == 'RUNNING' and previous.km) then return end
@@ -486,6 +502,7 @@ function M.new(env)
       v.fuel = { litres = self.reading.litres, capacity = self.reading.capacity,
         rangeKm = fuel.range(carried, r.usedLitres, r.rangeKm) }
     end
+    if self.parts then self:workshopView(v) end
     local gun = self.pistol:read()
     v.pistol = { installed = gun.installed, drawn = gun.drawn }
     if gun.loaded then v.ammo = { loaded = gun.loaded, spare = gun.spare } end
@@ -565,7 +582,7 @@ end
 local function ensure()
   if not active then
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
-      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(),
+      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(), parts = parts.new(),
       log = rawget(_G, 'log'), drawTri = drawTri,
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end
@@ -613,6 +630,8 @@ function M.bedRead(vehicleId, capacity) return safely(function() if active then 
 function M.pumpToTruck() return safely(function() return ensure():startPump('toTruck') end) end
 function M.pumpToBed() return safely(function() return ensure():startPump('toBed') end) end
 function M.pumpStop() return safely(function() return ensure():stopPump() end) end
+function M.payParts() return safely(function() return ensure():payParts() end) end
+function M.undoParts() return safely(function() return ensure():undoParts(false) end) end
 function M.sendHoon() return safely(function() return ensure():sendHoon() end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end

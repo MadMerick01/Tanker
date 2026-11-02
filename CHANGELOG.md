@@ -6,6 +6,13 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Your fuel is now your money.** The HUD strip shows what all the fuel you carry is worth, at $20 a litre, counting both the truck's tank and the bed tank.
+- **A new Garage tab lets you buy parts with fuel.** Press **Buy parts** to open BeamNG's parts menu and change what you like. When the truck comes back, a bill shows each new part's price, less a trade-in for the parts you took off, plus any repair the change mended, and how many litres that comes to. **Pay** takes the fuel from the bed tank first and then the truck's own tank. You can't pay a bill bigger than the fuel you carry, and the bill says how many litres you're short.
+- **Undo** on the bill puts your old parts back, and so does driving more than 25 metres away without paying.
+- Changing parts no longer refills your tank: the truck keeps the fuel it had.
+- Picking a different vehicle from the vehicle menu sends you back to your truck for now. Buying new vehicles with fuel comes in a later build.
+- Your save now keeps the parts you paid for, and going back to it brings your truck back with them. Saves from earlier builds still work and start with the truck's standard parts.
+
 ## Build 9 · 2 Nov 2026
 
 - **You can now pump fuel between the tank in your truck's bed and the truck's own tank.** The **Rig** tab shows the bed tank with how many litres it holds. **Bed tank → truck** pumps fuel into your truck, **Truck → bed tank** pumps it back the other way, and **Stop pumping** stops it. The pump moves 2 litres a second and stops by itself when one tank is empty or the other is full. Fuel in the bed tank weighs your truck down and sloshes, and the second bar on your VR wrist now shows it. Your range counts both tanks.
