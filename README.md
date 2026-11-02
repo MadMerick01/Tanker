@@ -1,6 +1,6 @@
 # Tanker
 
-A hardcore post-apocalyptic trucking game for BeamNG.drive, set across the real Australian outback on BeamNG.Earth. Start in a beat-up pickup with a fuel tank in the bed at Port Augusta, take fuel, ammo and parts from Hoons in rat rods and from other tankers, and make it about 1,250 km north to Pine Gap. One save, no restarts.
+A hardcore post-apocalyptic trucking game for BeamNG.drive, set in the real Australian outback on BeamNG.Earth. An AI has switched off the world's water, power and internet, and fuel is the only thing worth anything. Start in a ute with a fuel tank in the bed at Kulgera Roadhouse, take fuel from Hoons in muscle cars and from other tankers, and make it about 270 km north to Pine Gap for the codes that can stop the AI.
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the design.
 
@@ -8,7 +8,7 @@ See [docs/DESIGN.md](docs/DESIGN.md) for the design.
 
 The first skeleton. There are no Hoons or tankers yet.
 
-- **Start the run** teleports you to Yorkeys Crossing outside Port Augusta, where the Stuart Highway heads north into the desert, puts you in the Tanker starter truck and starts your one and only run.
+- **Start the run** teleports you to Kulgera Roadhouse on the Stuart Highway, just over the Northern Territory border, puts you in the Tanker starter truck with about 200 km of fuel and starts your one and only run.
 - The **HUD strip** shows the threat light, your fuel, the revolver's rounds and the road distance left to Pine Gap. Click it to open the **Road** and **Rig** tabs.
 - **Save here** saves where you are and how much fuel you have. You can't save with Hoons nearby. Next session, **Go to your save** takes you back and puts your tank back as it was.
 - In VR, a **wrist HUD** on your left hand shows the same strip, drawn from flat shapes like the revolver.

@@ -4,8 +4,8 @@
 -- means no Hoon, never an error.
 local M = {}
 
--- Vanilla cars tried for the Hoon, in order; the first one the game has is used.
-M.MODELS = { 'hotrod', 'burnside', 'moonhawk' }
+-- Vanilla muscle cars tried for the Hoon, in order; the first one the game has is used.
+M.MODELS = { 'barstow', 'moonhawk', 'burnside' }
 -- How high above the player the car waits while hidden, in metres.
 M.HIDE_LIFT = 2000
 -- A road point counts as solid when the ground under it is within this many metres of it.

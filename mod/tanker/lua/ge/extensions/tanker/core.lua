@@ -1,6 +1,6 @@
 -- The Tanker controller: ties the Earth position, the save, the fuel and the pistol together,
--- builds the HUD's state, and draws the wrist HUD. For now a run is: go to the start at Port
--- Augusta, drive north, fight off the Hoons, siphon fuel from cars you find, and save on the way.
+-- builds the HUD's state, and draws the wrist HUD. For now a run is: go to the start at Kulgera
+-- Roadhouse, drive north, fight off the Hoons, siphon fuel from cars you find, and save on the way.
 -- Tankers and looting come next.
 local location = require('tanker/location')
 local config = require('tanker/config')
@@ -32,6 +32,10 @@ M.TELEPORT_WAIT_SECONDS = TELEPORT_WAIT_SECONDS
 -- After asking for the starter truck, how long to wait for it before carrying on without it.
 local SPAWN_WAIT_SECONDS = 10
 M.SPAWN_WAIT_SECONDS = SPAWN_WAIT_SECONDS
+-- The fuel a new run starts with, in litres: about 200 km in the starter truck. Kulgera to Pine
+-- Gap is about 270 km, so you have to find fuel on the way.
+local START_FUEL_LITRES = 40
+M.START_FUEL_LITRES = START_FUEL_LITRES
 
 local LABELS = {
   STARTING = 'STARTING UP', NO_EARTH = 'WAITING FOR BEAMNG.EARTH', NEW = 'READY TO START',
@@ -262,6 +266,7 @@ function M.new(env)
     if kind == 'start' then
       self.profile = persistence.newProfile(self:start(), here,
         { model = vehicle.STARTER_MODEL, configuration = vehicle.STARTER_NAME })
+      self.fuel:set(START_FUEL_LITRES, self.profile.generation)
       self:transition('RUNNING', 'started')
       if self:write() then self.feedback = 'The run has started. Head north for Pine Gap.' end
     else

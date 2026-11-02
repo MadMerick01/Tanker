@@ -25,6 +25,7 @@ adapter:put(R.START.latitude, R.START.longitude)
 run(c, 1)
 T.eq(c.state, 'RUNNING', 'arriving starts the run')
 T.eq(env.io.writes, 1, 'the run is saved at the start')
+T.eq(env.fuel.sets[1] and env.fuel.sets[1].litres, require('tanker/core').START_FUEL_LITRES, 'a new run starts with about 200 km of fuel')
 T.eq(c:view().saveAllowed, true, 'saving allowed on the road')
 
 -- Driving north adds km; a teleport-sized jump does not.
@@ -61,7 +62,7 @@ T.eq(c2.state, 'AWAY', 'away from the save')
 T.eq(c2:view().startAllowed, false, 'no new run while a save exists')
 T.eq(c2:view().goToSaveAllowed, true, 'Go to your save offered')
 local saved = c2:view().save
-T.check(saved and saved.roadKm > 1000, 'the start page shows km to Pine Gap from the save')
+T.check(saved and saved.roadKm > 100, 'the start page shows km to Pine Gap from the save')
 T.eq(saved.fuelLitres, 298, 'and the fuel saved'); T.check(saved.metresAway > 100000, 'and how far away it is')
 T.eq(c2:goToSave(), true, 'go to the save')
 adapter2:put(c.profile.resume.latitude, c.profile.resume.longitude)

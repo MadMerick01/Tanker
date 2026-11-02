@@ -2,40 +2,45 @@
 
 The game was called Mad Merick while it was being planned; Rowan renamed it **Tanker** on 31 Oct 2026. The GitHub repository was renamed to Tanker the same day.
 
-Status: **the first skeleton is built**: the start, fuel, saving, the HUD strip and the wrist HUD (see the README). No Hoons or tankers yet. This doc collects what Rowan decided in the project thread on 31 Oct 2026 (the seven first questions were answered the same day) and marks what is still open. Open questions are tagged **❓ OPEN** inline and gathered in [Open questions](#open-questions) at the end.
+Status: **playable skeleton**: the start at Kulgera, fuel, saving, the HUD strip and wrist HUD, the start page, siphoning and the first Hoon (see the README and CHANGELOG). Not built yet: moving fuel between the bed tank and the truck's tank, ammo loot, fleeing tankers, fuel trading on the HUD and trailers. This doc collects what Rowan decided in the project thread (first on 31 Oct 2026, the vision on 2 Nov) and marks what is still open. Open questions are tagged **❓ OPEN** inline and gathered in [Open questions](#open-questions) at the end.
 
 ## The pitch
 
-A hardcore post-apocalyptic trucking game for BeamNG.drive, played across the real Australian outback on [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth). You start in a fuel tanker built from the worst parts there are, at Yorkeys Crossing outside Port Augusta, where the desert begins, and you try to drive it about 1,250 km north to Pine Gap, which turns out to be only the beginning. There are almost no stops. Every litre of fuel, every round of ammunition and every spare part comes from someone else: Hoons in rat rods who chase you down, or other tankers you chase down yourself. You defend yourself with a VR revolver.
+A hardcore post-apocalyptic trucking game for BeamNG.drive, played across the real Australian outback on [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth). Rowan set out the vision on 2 Nov:
+
+- You start in a small ute with a fluid tank in the bed holding enough fuel for about 200 km, at **Kulgera Roadhouse**, south of Alice Springs in the desert. You can move fuel between the fluid tank and the vehicle's own tank.
+- You must get to Pine Gap for the realignment codes that stop the AI, then to Monaco (this may change) to enter them in the mainframe.
+- On the way you meet **Hoons**, muscle cars that try to intercept you on chase mode AI, and **tankers or smaller trucks carrying fuel**, which flee.
+- You siphon fuel and collect ammo from Hoons and tankers.
+- **Fuel is the currency.** The HUD shows what your fuel is worth in dollars, and you can spend that on parts and new vehicles, as in Worldwide Trucking. Every litre you spend is a litre you can't drive on.
+- Eventually you get a bigger truck and can take whole fuel trailers off tankers and hook them to your own truck, for massive capacity.
+
+You defend yourself with a VR revolver.
 
 It is a separate game from Earth Freight (Worldwide Trucking Career). It reuses Earth Freight's plumbing by copying it, the same way Earth Freight was built from Earth Enduro, and changes the game on top: Earth Freight is about choosing what to carry for pay, Tanker is about surviving the road and taking what you need.
 
 ## The story
 
-The year is 2027. The fuel wars have started. The world's fuel was rationed by an AI, and when the wars broke out it locked every reserve. The billionaires went into their bunkers, and everyone left outside turned on each other for whatever fuel was still moving on the roads.
+An AI has escaped its testing sandbox and turned off everyone's water, electricity and internet (Rowan, 2 Nov). There are no electric cars, and fuel was already short because the Strait of Hormuz is blocked. The world's population has turned on each other, fighting over the fuel that is left.
 
-The AI's ground link sits under Pine Gap, the old American base outside Alice Springs. Getting there is the first goal of the game.
+The realignment codes that can stop the AI are at Pine Gap, the little-known American base outside Alice Springs. Getting there is the first goal of the game. Then the codes have to be carried to Monaco and entered in the mainframe.
 
-**Pine Gap is not the end** (Rowan, 31 Oct). The game is open ended: what you find at Pine Gap gives you new orders, and those orders send you further out into the open world. For example, codes that have to be carried across the Middle East to Monaco. The aim is that reaching Pine Gap makes the player realise how huge the game is. BeamNG.Earth covers the whole planet, so the world is already there.
-
-The story will change as we go. For now it is the 2027 fuel wars and an AI that locked the reserves, because the goal is the thing you have been fighting over the whole way: fuel. **❓ OPEN — Q1:** what the orders at Pine Gap are, and how the player gets from Australia to the next continent (by sea, by air, or a jump).
+**Pine Gap is not the end** (Rowan, 31 Oct). The game is open ended: the trip to Monaco sends you out into the open world, and reaching Pine Gap should make the player realise how huge the game is. BeamNG.Earth covers the whole planet, so the world is already there. **❓ OPEN — Q1:** how the player gets from Australia to the next continent (by sea, by air, or a jump).
 
 Pine Gap is a real facility. Everything about it in the game is fiction.
 
 ## The route
 
-The first goal is one very long trip, from **Yorkeys Crossing, outside Port Augusta** (32.47125 S, 137.78370 E, Rowan, 31 Oct), to Pine Gap. The exact route and how it splits into legs will be worked out as we go. The table below is a first sketch up the Stuart Highway, about 1,250 km or roughly 15 hours of real driving, with each leg harder than the last.
+The first goal is **Kulgera Roadhouse** (25.8406 S, 133.2966 E, on the Stuart Highway just north of the SA border, Rowan, 2 Nov) to Pine Gap: about 270 km by road. Starting with about 200 km of fuel means you have to take fuel on the way. The run used to start at Yorkeys Crossing, Port Augusta, about 1,230 km out; saves from there still work and carry on from where they were saved.
 
 | Leg | From → to | Roughly | Character |
 |---|---|---|---|
-| 1 | Yorkeys Crossing → Woomera | 180 km | The learning leg past the old rocket range. Few Hoons, slow ones. |
-| 2 | Woomera → Glendambo | 110 km | First tanker convoys. |
-| 3 | Glendambo → Coober Pedy | 250 km | Long empty stretch. Fuel gets tight. |
-| 4 | Coober Pedy → NT border | 320 km | Coober Pedy is the underground town, the one safe place on the route. |
-| 5 | NT border → Alice Springs | 290 km | Heavy Hoon country. |
-| 6 | Alice Springs → Pine Gap | 20 km | The final run to the base. |
+| 1 | Kulgera → Erldunda | 75 km | The learning leg. Few Hoons. |
+| 2 | Erldunda → Stuarts Well | 110 km | First tankers. Fuel gets tight. |
+| 3 | Stuarts Well → Alice Springs | 90 km | Heavy Hoon country. |
+| 4 | Alice Springs → Pine Gap | 20 km | The final run to the base. |
 
-Distances are rough, from the real highway, and to be checked in game. **❓ OPEN — Q2:** the route and how it splits into legs.
+Distances are rough, from the real highway, and to be checked in game. **❓ OPEN — Q2:** whether the coordinates land on the roadhouse, and how the legs play.
 
 ### The map
 
@@ -49,18 +54,18 @@ Two things need testing before anything else, because the whole game depends on 
 ## Core loop
 
 1. **Drive north.** Burn fuel. The tanker is slow and drinks a lot.
-2. **Get found, or go hunting.** Hoons in rat rods come for your tank. Or you spot a tanker convoy and go after it.
+2. **Get found, or go hunting.** Hoons in muscle cars come for your tank. Or you spot a tanker convoy and go after it.
 3. **Fight.** Shoot out tyres, shoot engines, ram. A car is **down** when it stops: flat tyres, heavy damage or a dead engine.
 4. **Loot.** Pull up next to a downed car and take its fuel, ammo and parts.
 5. **Siphon.** Fuel takes time to move from a downed tanker into yours, and its escorts keep coming while you wait. This is where the tension comes from.
 6. **Rebuild.** Swap the parts you looted onto your own truck, one at a time.
 7. **Keep going north**, managing fuel and repairs the whole way.
 
-There is **no buying or selling for now** (Rowan, 31 Oct). Everything comes from Hoons and tankers.
+**Fuel is the currency** (Rowan, 2 Nov, replacing "no buying or selling" from 31 Oct). The HUD shows your fuel's value in dollars, and you can spend it on parts and new vehicles as in Worldwide Trucking, so every purchase is fuel you can't drive on. Fuel itself still only comes from Hoons and tankers.
 
 ## The tanker
 
-You start in a fuel tanker with the worst parts: a slow leak in the tank, bald tyres, soft brakes and a tired engine. Progression is rebuilding that truck, not buying a bigger vehicle.
+You start in a small ute with a fluid tank in the bed (Rowan's TankerStarter config). Progression is spending fuel on parts and upgrades, then on new vehicles, and eventually on a bigger truck that can take a whole fuel trailer off a tanker and tow it (Rowan, 2 Nov).
 
 The tank is three things at once:
 
@@ -89,7 +94,7 @@ BeamNG does not save a car's bent body when the game closes, so the truck has to
 
 ## Hoons
 
-The raiders are called **Hoons** (Rowan, 31 Oct). They drive **vanilla rat rods**, so nobody needs extra car mods, and chase your truck using BeamNG's AI in chase mode. They spawn behind or ahead of you, close in, and ram or box you in. Early legs have few and weak ones; later legs have more, faster ones, and some work in packs.
+The raiders are called **Hoons** (Rowan, 31 Oct). They drive **vanilla muscle cars** (Rowan, 2 Nov; rat rods on 31 Oct), so nobody needs extra car mods, and chase your truck using BeamNG's AI in chase mode. They spawn behind or ahead of you, close in, and ram or box you in. Early legs have few and weak ones; later legs have more, faster ones, and some work in packs.
 
 **For now they ram and do damage.** Later Hoons lean into BeamNG's physics:
 
