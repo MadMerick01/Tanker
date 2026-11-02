@@ -15,6 +15,7 @@
     <span class="mm-dot" ng-style="{background: threatColour(data.threat)}" aria-label="threat {{data.threat}}"></span>
     <span title="Fuel in your tank"><span class="mm-bar"><span ng-style="{width: fuelShare(data.fuel) + '%', background: fuelColour(data.fuel)}"></span></span> {{whole(data.fuel.litres)}} L</span>
     <span title="Rounds loaded"><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span><span ng-if="data.ammo" class="mm-k"> +{{data.ammo.spare}}</span></span>
+    <span ng-if="data.fuelWorth != null" title="What your fuel is worth" style="color:#f2c94c;">${{whole(data.fuelWorth)}}</span>
     <span style="flex:1;text-align:right;" title="Road distance left to Pine Gap"><b>{{whole(data.goal.roadKm)}} km</b> <span class="mm-k">{{data.goal.letters}}</span></span>
   </button>
   <div ng-if="open && start" class="mm-panel" style="margin-top:6px;padding:12px 14px;">
@@ -109,6 +110,19 @@
       <div ng-if="data.hoon" style="margin-top:10px;">
         <button type="button" class="mm-tab" ng-disabled="!data.hoonTestAllowed" ng-click="send('sendHoon')" title="For testing: send the Hoon now instead of waiting for the km">Send a Hoon now (testing)</button>
         <div ng-if="data.hoon.state === 'UNAVAILABLE'" style="margin-top:4px;color:#f2c94c;">The Hoon's car could not be loaded, so no Hoons this session.</div>
+      </div>
+    </div>
+    <div ng-if="tab === 'garage'" style="margin-top:8px;">
+      <div><span class="mm-k">Your fuel is worth</span> <span class="mm-v" style="font-size:18px;color:#f2c94c;">${{whole(data.fuelWorth)}}</span></div>
+      <div class="mm-k">Fuel is money: ${{whole(data.fuelPrice)}} a litre, for the truck's tank and the bed tank together. Every litre you spend is a litre you can't drive on.</div>
+      <button type="button" class="mm-btn" ng-disabled="!data.buyPartsAllowed" ng-click="openPartsMenu()">Buy parts</button>
+      <div class="mm-k" style="margin-top:4px;">Change parts in the game's parts menu. The bill shows up here, paid in fuel from the bed tank first.</div>
+      <div ng-if="data.bill" ng-style="{borderColor: data.bill.short ? '#eb5757' : '#f2c94c'}" style="margin-top:10px;padding:10px;border:2px solid #f2c94c;border-radius:6px;">
+        <div class="mm-v">Parts bill: {{data.bill.total}} = {{data.bill.litresText}}</div>
+        <div ng-repeat="l in data.bill.lines" style="display:flex;gap:8px;"><span style="flex:1;">{{l.label}}</span><span>{{l.amount}}</span></div>
+        <div ng-if="data.bill.short" style="margin-top:4px;color:#eb5757;font-weight:bold;">You are {{whole(data.bill.short)}} L short.</div>
+        <button type="button" class="mm-btn" ng-disabled="!data.payPartsAllowed" ng-click="send('payParts')">Pay {{data.bill.litresText}}</button>
+        <button type="button" class="mm-btn" style="background:none;color:#e0823c;border:1px solid #e0823c;" ng-click="send('undoParts')">Undo changes</button>
       </div>
     </div>
     <div ng-if="data.feedback" role="status" style="margin-top:8px;color:#c8bfb2;">{{data.feedback}}</div>
