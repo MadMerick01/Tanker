@@ -116,6 +116,8 @@ Decided by Rowan, 31 Oct: **Hoons and tankers come from BeamNG's own traffic.** 
 - **An encounter.** When a Hoon attack or a tanker sighting is due, Tanker takes a pooled car that is out of sight, moves it into place, and switches its AI to chase (Hoons) or flee (tankers).
 - **After the fight.** A looted wreck goes back to traffic, which resets it and moves it away once you have driven off, ready to be used again.
 
+**First Hoon (2 Nov):** for now the Hoon has its own car instead of borrowing one from traffic. It loads once when the run is on the road, then is switched off (not drawn, not simulated) until an attack switches it back on, which does not hitch, the same trick traffic uses. This doesn't depend on traffic containing a rat rod, and leaves the player's traffic as they set it. The model is the first of `hotrod`, `burnside` and `moonhawk` the game has. Moving Hoons into the traffic pool is still open once more types exist. A Hoon only comes while the player is on a road (within 30 m), and is put on solid road 250 m behind or, failing that, ahead, since BeamNG.Earth's road further out may not have loaded (Rowan, 2 Nov). The chase uses BeamNG's own AI for now; Rowan is training an AI model of their own to drive Tanker's cars, which will take over later.
+
 Earth Freight already works with traffic on BeamNG.Earth: its traffic police chase and catch the player, and it takes the player's own car in and out of traffic. So traffic runs on Earth's roads, and the police chase is the model for the Hoons. Rowan has driven a lot with traffic on Earth and seen no problems (31 Oct).
 
 Things to check in game:

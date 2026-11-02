@@ -63,6 +63,8 @@
     <div ng-if="tab === 'road'" style="margin-top:8px;">
       <div ng-if="data.goal"><span class="mm-k">{{data.goalName}}</span> <span class="mm-v">{{whole(data.goal.roadKm)}} km</span> <span class="mm-k">by road, {{data.goal.letters}}</span></div>
       <div ng-if="data.progress != null"><span class="mm-k">Trip done</span> <span class="mm-v">{{whole(data.progress * 100)}}%</span><span ng-if="data.drivenKm != null" class="mm-k"> &middot; {{whole(data.drivenKm)}} km driven</span></div>
+      <div ng-if="data.hoon.state === 'HUNTING'" style="margin-top:4px;font-weight:bold;color:#eb5757;">A Hoon is hunting you<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span>.</div>
+      <div ng-if="data.hoon.state === 'DOWN'" style="margin-top:4px;font-weight:bold;color:#f2c94c;">The Hoon is down<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span>. Stop beside it to siphon its tank.</div>
       <div ng-if="data.goal.reached" style="margin-top:4px;font-weight:bold;color:#f2c94c;">You made it to Pine Gap.</div>
       <div ng-if="data.startAllowed">
         <div style="margin-top:6px;">One run, one save, no restarts. You start at {{data.startName}}, at the edge of the desert, and head north.</div>
@@ -91,7 +93,11 @@
       <div><span class="mm-k">Range</span> <span class="mm-v">{{data.fuel.rangeKm != null ? whole(data.fuel.rangeKm) + ' km' : 'measuring'}}</span></div>
       <div><span class="mm-k">Revolver</span> <span class="mm-v">{{data.pistol.installed ? (data.pistol.drawn ? 'drawn' : 'holstered') : 'not installed'}}</span></div>
       <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:4px;color:#f2c94c;">Tanker needs the BeamNG VR Controller Poses mod for the revolver.</div>
-      <div class="mm-k" style="margin-top:6px;">Repairs, spare parts and the tow come with the Hoons.</div>
+      <div class="mm-k" style="margin-top:6px;">Repairs, spare parts and the tow come next.</div>
+      <div ng-if="data.hoon" style="margin-top:10px;">
+        <button type="button" class="mm-tab" ng-disabled="!data.hoonTestAllowed" ng-click="send('sendHoon')" title="For testing: send the Hoon now instead of waiting for the km">Send a Hoon now (testing)</button>
+        <div ng-if="data.hoon.state === 'UNAVAILABLE'" style="margin-top:4px;color:#f2c94c;">The Hoon's car could not be loaded, so no Hoons this session.</div>
+      </div>
     </div>
     <div ng-if="data.feedback" role="status" style="margin-top:8px;color:#c8bfb2;">{{data.feedback}}</div>
   </div>

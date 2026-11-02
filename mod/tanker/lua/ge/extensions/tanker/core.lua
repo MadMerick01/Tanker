@@ -1,7 +1,7 @@
 -- The Tanker controller: ties the Earth position, the save, the fuel and the pistol together,
 -- builds the HUD's state, and draws the wrist HUD. For now a run is: go to the start at Port
--- Augusta, drive north, siphon fuel from cars you find, and save on the way. Hoons, tankers and
--- looting come next.
+-- Augusta, drive north, fight off the Hoons, siphon fuel from cars you find, and save on the way.
+-- Tankers and looting come next.
 local location = require('tanker/location')
 local config = require('tanker/config')
 local options = require('tanker/options')
@@ -17,6 +17,8 @@ local wrist = require('tanker/wrist')
 local vehicle = require('tanker/vehicle')
 local siphon = require('tanker/siphon')
 local nearby = require('tanker/nearby')
+local hoons = require('tanker/hoons')
+local hoonCar = require('tanker/hoonCar')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -43,6 +45,7 @@ function M.new(env)
     store = persistence.new(env.io), fuel = env.fuel, pistol = env.pistol, adapter = env.adapter, vehicles = env.vehicles,
     clock = 0, nextSample = 0, threat = 'clear', nearby = env.nearby,
   }
+  c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
   c.siphon = siphon.new(function(litres, serial, id)
     return env.fuel.change ~= nil and env.fuel:change(litres, serial, id)
   end)
@@ -55,6 +58,7 @@ function M.new(env)
   -- Loads the settings and the save, and decides where the player stands.
   function c:reload()
     self.profile, self.reading, self.teleport, self.feedback, self.error = nil, nil, nil, nil, nil
+    if self.hoons then self.hoons:remove() end
     local settings, why = config.load(env.io)
     if not settings then
       self.error, self.feedback = why, 'Your config.json can\'t be read. Fix it or delete it, then reload.'
@@ -179,6 +183,27 @@ function M.new(env)
     if line then self.feedback = line; self.diag:event('siphon', line) end
   end
 
+  -- The Hoons: their car is loaded once the run is on the road, then they come every few km.
+  function c:followHoons()
+    if not self.hoons or self.state ~= 'RUNNING' then return end
+    if self.hoons.state == 'NONE' then
+      local problem = self.hoons:load(self.profile.run.drivenKm)
+      self.diag:event('hoon', problem or ('loaded ' .. tostring(self.hoons.model)), problem and 'W' or nil)
+    end
+    local line = self.hoons:step(self.clock, self.profile.run.drivenKm)
+    if line then self.feedback = line; self.diag:event('hoon', line) end
+  end
+
+  -- For testing: sends the Hoon now instead of waiting for the km.
+  function c:sendHoon()
+    if self.state ~= 'RUNNING' or not self.hoons or self.hoons.state ~= 'HIDDEN' then return false end
+    local line, why = self.hoons:send(self.clock)
+    self.feedback = line or (why == 'off_road' and 'Hoons only come when you are on a road.'
+      or why == 'no_solid_road' and 'No solid road near you for a Hoon yet. Try further along.'
+      or 'The Hoon could not be sent: ' .. tostring(why))
+    return line ~= nil
+  end
+
   function c:saveBlocked()
     if self.state ~= 'RUNNING' or not self.profile then return 'not_running' end
     if not (self.here and self.here.valid) then return 'no_position' end
@@ -292,9 +317,10 @@ function M.new(env)
     end
     self:follow()
     self:followSiphon()
+    self:followHoons()
     self.fuel:read()
-    -- No Hoons yet: the light stays clear until they hunt you.
-    self.threat = threat.level(env.hoonDistances and env.hoonDistances() or nil)
+    local distances = env.hoonDistances and env.hoonDistances() or (self.hoons and self.hoons:distances())
+    self.threat = threat.level(distances)
   end
 
   -- The truck's answer to fuel:read(). Litres going down while driving measure the range.
@@ -344,6 +370,10 @@ function M.new(env)
       v.siphonNear = { metres = self.near.metres, moving = self.near.speed > siphon.STILL_MPS }
     end
     v.siphon = self.siphon:view(self.clock, self.reading)
+    if self.hoons then
+      v.hoonTestAllowed = self.state == 'RUNNING' and self.hoons.state == 'HIDDEN'
+      v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil }
+    end
     if v.siphon then
       v.siphon.hoons = self.threat ~= 'clear'
       v.siphon.blink = math.floor(self.clock) % 2 == 0
@@ -403,6 +433,7 @@ function M.new(env)
 
   -- Tanker going away puts back the rocks it hid.
   function c:shutdown()
+    if self.hoons then self.hoons:remove() end
     if self.adapter.restoreRocks then self.adapter:restoreRocks() end
   end
 
@@ -435,7 +466,7 @@ end
 local function ensure()
   if not active then
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
-      vehicles = vehicle.new(), nearby = nearby.new(),
+      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(),
       log = rawget(_G, 'log'), drawTri = drawTri,
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end
@@ -479,6 +510,7 @@ function M.fuelChanged(vehicleId, serial, before, after, capacity)
 end
 function M.siphonStart() return safely(function() return ensure():startSiphon() end) end
 function M.siphonStop() return safely(function() return ensure():stopSiphon() end) end
+function M.sendHoon() return safely(function() return ensure():sendHoon() end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end
 function M.reload() return safely(function() ensure():reload() end) end
