@@ -22,7 +22,7 @@
       <div style="font-size:11px;font-weight:bold;letter-spacing:3px;color:#c8bfb2;">BEAMNG.EARTH &middot; AUSTRALIA &middot; 2027</div>
       <div style="margin-top:2px;font-size:34px;font-weight:900;letter-spacing:4px;line-height:1.05;color:#e0823c;">TANKER</div>
       <div style="margin-top:4px;font-size:12px;font-weight:bold;letter-spacing:3px;color:#eb5757;">THE FUEL WARS</div>
-      <div aria-hidden="true" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:bold;color:#f2c94c;">PORT AUGUSTA <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> &#9654; <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> PINE GAP</div>
+      <div aria-hidden="true" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:bold;color:#f2c94c;">KULGERA <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> &#9654; <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> PINE GAP</div>
     </div>
     <div ng-if="data.save && data.state !== 'RUNNING'" style="margin-top:12px;padding:10px;border:2px solid #e0823c;border-radius:6px;">
       <div style="font-weight:bold;font-size:16px;color:#e0823c;">Welcome back, Tanker</div>
@@ -34,16 +34,17 @@
       <div class="mm-k" style="margin-top:6px;">Saved at {{coordinates(data.save)}}<span ng-if="data.save.metresAway != null">, {{km(data.save.metresAway)}} km from you</span>.</div>
       <button type="button" ng-if="data.goToSaveAllowed" class="mm-btn" ng-click="startCommand('goToSave')">Go to your save</button>
     </div>
-    <div style="margin-top:12px;">The billionaires went to their bunkers. An AI locked the world's fuel reserves, and people turned on each other for what was left. Somewhere past the red centre, the American base at Pine Gap holds a way to stop it.</div>
-    <div style="margin-top:6px;">You have a rusty dually, a tank of fuel and a revolver. Get to Pine Gap.</div>
+    <div style="margin-top:12px;">An AI has escaped its testing sandbox and switched off the world's water, power and internet. There are no electric cars left running, and fuel was already short with the Strait of Hormuz blocked. Now everyone is fighting over what's left.</div>
+    <div style="margin-top:6px;">The realignment codes that can stop the AI are at Pine Gap, the little-known American base outside Alice Springs. Get there, then get the codes to the mainframe in Monaco.</div>
+    <div style="margin-top:6px;">You have a ute, a tank of fuel for about 200 km and a revolver. Pine Gap is about 270 km up the road.</div>
     <div style="margin-top:12px;font-weight:bold;color:#e0823c;">The rules</div>
     <ul style="margin:4px 0 0;padding-left:18px;color:#c8bfb2;">
       <li>One run, one save, no restarts.</li>
-      <li>No shops. Fuel and ammo come from what you take: stop beside a car and siphon it.</li>
+      <li>Fuel is money. You take it from others: stop beside a car and siphon it.</li>
       <li>You can't save with Hoons nearby, and broken parts stay broken.</li>
     </ul>
     <div ng-if="data.startAllowed" style="margin-top:12px;padding:10px;border:2px solid #e0823c;border-radius:6px;">
-      <div>You start at {{data.startName}}, where the Stuart Highway heads north into the desert, in a white D15 longbed with a tank in the bed.</div>
+      <div>You start at {{data.startName}}, on the Stuart Highway just over the Northern Territory border, in a white D15 ute with a tank in the bed.</div>
       <button type="button" class="mm-btn" ng-click="startCommand('startRun')">Start the run</button>
     </div>
     <div ng-if="data.state === 'NO_EARTH'" style="margin-top:12px;color:#f2c94c;">Tanker needs BeamNG.Earth running. Load BeamNG.Earth, then come back here.</div>

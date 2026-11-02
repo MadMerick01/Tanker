@@ -3,15 +3,15 @@ local location = require('tanker/location')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
--- Yorkeys Crossing, outside Port Augusta, SA: Rowan's pick for where the run starts, at the head
--- of Spencer Gulf where the Stuart Highway heads north into the desert. config.json's start
--- moves it.
-M.START = { latitude = -32.47125, longitude = 137.78370 }
-M.START_NAME = 'Yorkeys Crossing, Port Augusta'
+-- Kulgera Roadhouse, NT, on the Stuart Highway just north of the South Australian border:
+-- Rowan's pick for where the run starts (2 Nov), the first stop in the desert south of Alice
+-- Springs. config.json's start moves it.
+M.START = { latitude = -25.8406, longitude = 133.2966 }
+M.START_NAME = 'Kulgera Roadhouse'
 -- Pine Gap, outside Alice Springs. Everything about it in the game is fiction.
 M.GOAL = { latitude = -23.7990, longitude = 133.7370 }
 M.GOAL_NAME = 'Pine Gap'
--- Roads are longer than the straight line. 1.18 puts Yorkeys Crossing to Pine Gap at about 1,230 km,
+-- Roads are longer than the straight line. 1.18 puts Kulgera to Pine Gap at about 270 km,
 -- close to the real drive up the Stuart Highway.
 M.ROAD_FACTOR = 1.18
 -- A new run starts once the truck is this close to the start, after the teleport there.
