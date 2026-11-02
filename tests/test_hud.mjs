@@ -129,6 +129,17 @@ test('the start page opens once by itself, and its buttons close it', () => {
   assert.equal(a.scope.km(12345), '12')
 })
 
+test('pump buttons only work when Lua allows them', () => {
+  const a = app()
+  a.scope.send('pumpToTruck')
+  assert.ok(!a.commands.includes(fixed('pumpToTruck()')))
+  a.state({ state: 'RUNNING', pumpAllowed: true, bed: { litres: 25, capacity: 800, fitted: true } })
+  a.scope.send('pumpToTruck'); assert.equal(a.commands.at(-1), fixed('pumpToTruck()'))
+  a.scope.send('pumpToBed'); assert.equal(a.commands.at(-1), fixed('pumpToBed()'))
+  a.state({ state: 'RUNNING', pumpStopAllowed: true, pumping: 'toTruck' })
+  a.scope.send('pumpStop'); assert.equal(a.commands.at(-1), fixed('pumpStop()'))
+})
+
 test('strip helpers show fuel, ammo and the threat light', () => {
   const a = app()
   assert.equal(a.scope.whole(1453.6), '1,454')

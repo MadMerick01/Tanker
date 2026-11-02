@@ -91,6 +91,17 @@
     </div>
     <div ng-if="tab === 'rig'" style="margin-top:8px;">
       <div><span class="mm-k">Your tank</span> <span class="mm-v">{{whole(data.fuel.litres)}} of {{whole(data.fuel.capacity)}} L</span></div>
+      <div ng-if="data.bed">
+        <span class="mm-k">Bed tank</span>
+        <span class="mm-bar"><span ng-style="{width: fuelShare(data.bed) + '%', background: '#c48448'}"></span></span>
+        <span class="mm-v">{{whole(data.bed.litres)}}<span ng-if="data.bed.capacity"> of {{whole(data.bed.capacity)}}</span> L</span>
+        <div ng-if="data.bed.fitted === false" class="mm-k" style="margin-top:2px;">No bed tank fitted.</div>
+        <div ng-if="data.bed.fitted" style="margin-top:4px;">
+          <button type="button" ng-if="!data.pumpStopAllowed" class="mm-tab" ng-disabled="!data.pumpAllowed" ng-click="send('pumpToTruck')" title="Pump fuel from the bed tank into your truck's tank">Bed tank &rarr; truck</button>
+          <button type="button" ng-if="!data.pumpStopAllowed" class="mm-tab" ng-disabled="!data.pumpAllowed" ng-click="send('pumpToBed')" title="Pump fuel from your truck's tank into the bed tank">Truck &rarr; bed tank</button>
+          <button type="button" ng-if="data.pumpStopAllowed" class="mm-tab on" ng-click="send('pumpStop')">Stop pumping ({{data.pumping === 'toTruck' ? 'into your truck' : 'into the bed tank'}})</button>
+        </div>
+      </div>
       <div><span class="mm-k">Range</span> <span class="mm-v">{{data.fuel.rangeKm != null ? whole(data.fuel.rangeKm) + ' km' : 'measuring'}}</span></div>
       <div><span class="mm-k">Revolver</span> <span class="mm-v">{{data.pistol.installed ? (data.pistol.drawn ? 'drawn' : 'holstered') : 'not installed'}}</span></div>
       <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:4px;color:#f2c94c;">Tanker needs the BeamNG VR Controller Poses mod for the revolver.</div>
