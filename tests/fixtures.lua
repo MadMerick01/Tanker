@@ -47,6 +47,14 @@ function F.fuel()
   return f
 end
 
+-- The bed tank: records what it was filled with and how often its size was asked for.
+function F.bed()
+  local b = { sets = {}, reads = 0 }
+  function b:set(litres) self.sets[#self.sets + 1] = litres; return true end
+  function b:read() self.reads = self.reads + 1; return true end
+  return b
+end
+
 -- Cars near the player: the test says which car is how far, and how fast the player goes.
 function F.nearby(cars, speed)
   local n = { cars = cars or {}, speed = speed or 0 }

@@ -76,7 +76,8 @@ function M.validate(s)
   local r = run(s.run)
   if not r then return nil, 'invalid_run' end
   if type(s.vehicle) ~= 'table' or not optionalString(s.vehicle.model)
-      or not optionalString(s.vehicle.configuration) or not amount(s.vehicle.fuelLitres) then return nil, 'invalid_vehicle' end
+      or not optionalString(s.vehicle.configuration) or not amount(s.vehicle.fuelLitres)
+      or not amount(s.vehicle.bedLitres) then return nil, 'invalid_vehicle' end
   local vehicleConfig = nil
   if s.vehicle.config ~= nil then
     vehicleConfig = plainConfig(s.vehicle.config)
@@ -86,7 +87,7 @@ function M.validate(s)
     schemaVersion = M.SCHEMA, profileId = 'default', generation = s.generation,
     start = location.copy(s.start), resume = resume, run = r,
     vehicle = { model = s.vehicle.model, configuration = s.vehicle.configuration, config = vehicleConfig,
-      fuelLitres = s.vehicle.fuelLitres },
+      fuelLitres = s.vehicle.fuelLitres, bedLitres = s.vehicle.bedLitres },
   }
 end
 

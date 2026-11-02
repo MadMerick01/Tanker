@@ -19,6 +19,8 @@ local siphon = require('tanker/siphon')
 local nearby = require('tanker/nearby')
 local hoons = require('tanker/hoons')
 local hoonCar = require('tanker/hoonCar')
+local transfer = require('tanker/transfer')
+local bedTank = require('tanker/bedTank')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -32,10 +34,13 @@ M.TELEPORT_WAIT_SECONDS = TELEPORT_WAIT_SECONDS
 -- After asking for the starter truck, how long to wait for it before carrying on without it.
 local SPAWN_WAIT_SECONDS = 10
 M.SPAWN_WAIT_SECONDS = SPAWN_WAIT_SECONDS
--- The fuel a new run starts with, in litres: about 200 km in the starter truck. Kulgera to Pine
--- Gap is about 270 km, so you have to find fuel on the way.
-local START_FUEL_LITRES = 40
-M.START_FUEL_LITRES = START_FUEL_LITRES
+-- The fuel a new run starts with, in litres, about 200 km in the starter truck all told: a little
+-- in the truck's own tank and the rest in the bed tank, to pump across. Kulgera to Pine Gap is
+-- about 270 km, so you have to find fuel on the way.
+local START_FUEL_LITRES, START_BED_LITRES = 15, 25
+M.START_FUEL_LITRES, M.START_BED_LITRES = START_FUEL_LITRES, START_BED_LITRES
+-- How often the bed tank's weight is updated while the pump runs, and its size asked for.
+local BED_APPLY_SECONDS, BED_READ_SECONDS = 2, 5
 
 local LABELS = {
   STARTING = 'STARTING UP', NO_EARTH = 'WAITING FOR BEAMNG.EARTH', NEW = 'READY TO START',
@@ -50,6 +55,15 @@ function M.new(env)
     clock = 0, nextSample = 0, threat = 'clear', nearby = env.nearby,
   }
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
+  -- The bed tank: its litres are Tanker's own, its size comes from the truck.
+  c.bed, c.bedLitres = env.bed, 0
+  c.transfer = transfer.new(function(litres, serial)
+    return env.fuel.change ~= nil and env.fuel:change(litres, serial)
+  end, function(litres)
+    c.bedLitres = math.max(0, c.bedLitres + litres)
+    if c.bedCapacity and c.bedCapacity > 0 then c.bedLitres = math.min(c.bedLitres, c.bedCapacity) end
+    c.bedDirty = true
+  end)
   c.siphon = siphon.new(function(litres, serial, id)
     return env.fuel.change ~= nil and env.fuel:change(litres, serial, id)
   end)
@@ -180,7 +194,13 @@ function M.new(env)
   function c:fuelChanged(id, serial, before, after, capacity)
     local donor = self.siphon.run and self.siphon.run.donor
     local handled, line = self.siphon:answer(serial, before, after, capacity, self.clock)
-    if not handled then return end
+    if not handled then
+      handled = self.transfer:answer(serial, before, after)
+      if handled and location.finite(after) and location.finite(capacity) and capacity > 0 then
+        self.reading = { litres = after, capacity = capacity, km = self.profile and self.profile.run.drivenKm }
+      end
+      return
+    end
     if id ~= donor and location.finite(after) and location.finite(capacity) and capacity > 0 then
       self.reading = { litres = after, capacity = capacity, km = self.profile and self.profile.run.drivenKm }
     end
@@ -208,6 +228,65 @@ function M.new(env)
     return line ~= nil
   end
 
+  -- The pump between the bed tank and the truck's tank.
+  function c:pumpBlocked()
+    if self.state ~= 'RUNNING' then return 'not_running' end
+    if self.transfer:active() then return 'pumping' end
+    if not (self.bedCapacity and self.bedCapacity > 0) then return 'no_bed_tank' end
+    if not self.reading then return 'no_reading' end
+  end
+
+  function c:startPump(dir)
+    if self:pumpBlocked() then return false end
+    if not self.transfer:start(dir, self.clock) then return false end
+    self.feedback = dir == 'toTruck' and 'Pumping from the bed tank into your truck.' or 'Pumping from your truck into the bed tank.'
+    return true
+  end
+
+  function c:stopPump()
+    if not self.transfer:active() then return false end
+    self.feedback = self.transfer:finish('stopped', self.clock)
+    self:applyBed(true)
+    return true
+  end
+
+  -- Pours the bed tank's litres into the truck so it carries the weight; at most every few
+  -- seconds while the pump runs, unless now.
+  function c:applyBed(now)
+    if not self.bed then return end
+    if not (self.bedDirty or now) then return end
+    if not now and self.bedAppliedAt and self.clock - self.bedAppliedAt < BED_APPLY_SECONDS then return end
+    self.bedAppliedAt, self.bedDirty = self.clock, false
+    self.bed:set(self.bedLitres)
+  end
+
+  -- Fills the bed tank with this many litres, at the start or back at a save.
+  function c:fillBed(litres)
+    self.bedLitres = location.finite(litres) and math.max(0, litres) or 0
+    self:applyBed(true)
+  end
+
+  function c:followPump()
+    if self.state ~= 'RUNNING' then
+      if self.transfer:active() then self.feedback = self.transfer:finish('stopped', self.clock) end
+      return
+    end
+    if self.bed and not (self.bedCapacity and self.bedCapacity > 0)
+        and (not self.bedAskedAt or self.clock - self.bedAskedAt >= BED_READ_SECONDS) then
+      self.bedAskedAt = self.clock
+      self.bed:read()
+    end
+    local line = self.transfer:step(self.clock, self.reading, { litres = self.bedLitres, capacity = self.bedCapacity })
+    if line then self.feedback = line; self:applyBed(true) else self:applyBed(false) end
+  end
+
+  -- The truck's answer: how much its bed tank holds (0 with none fitted).
+  function c:bedRead(_, capacity)
+    if not location.finite(capacity) or capacity < 0 then return end
+    self.bedCapacity = capacity
+    if capacity > 0 and self.bedLitres > capacity then self.bedLitres = capacity end
+  end
+
   function c:saveBlocked()
     if self.state ~= 'RUNNING' or not self.profile then return 'not_running' end
     if not (self.here and self.here.valid) then return 'no_position' end
@@ -219,6 +298,7 @@ function M.new(env)
     p.resume = { latitude = self.here.latitude, longitude = self.here.longitude, heading = self.here.heading }
     if self.here.vehicle and self.here.vehicle.model then p.vehicle.model = self.here.vehicle.model end
     if self.reading then p.vehicle.fuelLitres = self.reading.litres end
+    if self.bed then p.vehicle.bedLitres = self.bedLitres end
     local saved, why = self.store:save(p)
     if not saved then
       self.feedback = 'Saving failed. Your last save is untouched; try again.'
@@ -267,12 +347,14 @@ function M.new(env)
       self.profile = persistence.newProfile(self:start(), here,
         { model = vehicle.STARTER_MODEL, configuration = vehicle.STARTER_NAME })
       self.fuel:set(START_FUEL_LITRES, self.profile.generation)
+      self:fillBed(START_BED_LITRES)
       self:transition('RUNNING', 'started')
       if self:write() then self.feedback = 'The run has started. Head north for Pine Gap.' end
     else
       -- The tank goes back to what was saved, so quitting never refills it.
       local litres = self.profile.vehicle.fuelLitres
       if litres then self.fuel:set(litres, self.profile.generation) end
+      self:fillBed(self.profile.vehicle.bedLitres)
       self.feedback = 'Back where you saved.'
       self:transition('RUNNING', 'resumed')
     end
@@ -298,6 +380,7 @@ function M.new(env)
       local metres = location.distance(here, self.profile.resume)
       if metres and metres <= self.config.resumeRadiusMetres then
         self.last = location.copy(here)
+        self:fillBed(self.profile.vehicle.bedLitres)
         self:transition('RUNNING', 'at_save')
       end
     elseif (self.state == 'TO_START' or self.state == 'TO_SAVE') and self.clock - self.teleport.sentAt > TELEPORT_WAIT_SECONDS then
@@ -323,6 +406,7 @@ function M.new(env)
     self:follow()
     self:followSiphon()
     self:followHoons()
+    self:followPump()
     self.fuel:read()
     local distances = env.hoonDistances and env.hoonDistances() or (self.hoons and self.hoons:distances())
     self.threat = threat.level(distances)
@@ -375,6 +459,14 @@ function M.new(env)
       v.siphonNear = { metres = self.near.metres, moving = self.near.speed > siphon.STILL_MPS }
     end
     v.siphon = self.siphon:view(self.clock, self.reading)
+    if self.bed and self.state == 'RUNNING' then
+      v.bed = { litres = self.bedLitres, capacity = self.bedCapacity }
+      if self.bedCapacity ~= nil then v.bed.fitted = self.bedCapacity > 0 end
+      v.cargo = { litres = self.bedLitres, capacity = self.bedCapacity }
+      v.pumpAllowed = self:pumpBlocked() == nil
+      v.pumpStopAllowed = self.transfer:active()
+      v.pumping = self.transfer:direction()
+    end
     if self.hoons then
       v.hoonTestAllowed = self.state == 'RUNNING' and self.hoons.state == 'HIDDEN'
       v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil }
@@ -389,8 +481,10 @@ function M.new(env)
     end
     if self.reading then
       local r = self.profile and self.profile.run or {}
+      -- The range counts the bed tank too: it is fuel you carry.
+      local carried = self.reading.litres + (self.bed and self.bedLitres or 0)
       v.fuel = { litres = self.reading.litres, capacity = self.reading.capacity,
-        rangeKm = fuel.range(self.reading.litres, r.usedLitres, r.rangeKm) }
+        rangeKm = fuel.range(carried, r.usedLitres, r.rangeKm) }
     end
     local gun = self.pistol:read()
     v.pistol = { installed = gun.installed, drawn = gun.drawn }
@@ -471,7 +565,7 @@ end
 local function ensure()
   if not active then
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
-      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(),
+      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(),
       log = rawget(_G, 'log'), drawTri = drawTri,
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end
@@ -515,6 +609,10 @@ function M.fuelChanged(vehicleId, serial, before, after, capacity)
 end
 function M.siphonStart() return safely(function() return ensure():startSiphon() end) end
 function M.siphonStop() return safely(function() return ensure():stopSiphon() end) end
+function M.bedRead(vehicleId, capacity) return safely(function() if active then active:bedRead(vehicleId, capacity) end end) end
+function M.pumpToTruck() return safely(function() return ensure():startPump('toTruck') end) end
+function M.pumpToBed() return safely(function() return ensure():startPump('toBed') end) end
+function M.pumpStop() return safely(function() return ensure():stopPump() end) end
 function M.sendHoon() return safely(function() return ensure():sendHoon() end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end

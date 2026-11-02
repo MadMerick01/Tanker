@@ -6,6 +6,10 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **You can now pump fuel between the tank in your truck's bed and the truck's own tank.** The **Rig** tab shows the bed tank with how many litres it holds. **Bed tank → truck** pumps fuel into your truck, **Truck → bed tank** pumps it back the other way, and **Stop pumping** stops it. The pump moves 2 litres a second and stops by itself when one tank is empty or the other is full. Fuel in the bed tank weighs your truck down and sloshes, and the second bar on your VR wrist now shows it. Your range counts both tanks.
+- A new run now starts with 15 litres in the truck and 25 litres in the bed tank. That's still about 200 km in all, so pump some across before you run dry.
+- The bed tank's fuel is kept when you save. A save from an earlier build starts with an empty bed tank, and the rest of that save still works.
+
 ## Build 8 · 2 Nov 2026
 
 - **The run now starts at Kulgera Roadhouse,** on the Stuart Highway just over the Northern Territory border, instead of Port Augusta. Pine Gap is now about 270 km up the road.

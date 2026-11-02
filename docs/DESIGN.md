@@ -2,7 +2,7 @@
 
 The game was called Mad Merick while it was being planned; Rowan renamed it **Tanker** on 31 Oct 2026. The GitHub repository was renamed to Tanker the same day.
 
-Status: **playable skeleton**: the start at Kulgera, fuel, saving, the HUD strip and wrist HUD, the start page, siphoning and the first Hoon (see the README and CHANGELOG). Not built yet: moving fuel between the bed tank and the truck's tank, ammo loot, fleeing tankers, fuel trading on the HUD and trailers. This doc collects what Rowan decided in the project thread (first on 31 Oct 2026, the vision on 2 Nov) and marks what is still open. Open questions are tagged **❓ OPEN** inline and gathered in [Open questions](#open-questions) at the end.
+Status: **playable skeleton**: the start at Kulgera, fuel, saving, the HUD strip and wrist HUD, the start page, siphoning, the first Hoon and the pump between the bed tank and the truck's tank (see the README and CHANGELOG). Not built yet: ammo loot, fleeing tankers, fuel trading on the HUD and trailers. This doc collects what Rowan decided in the project thread (first on 31 Oct 2026, the vision on 2 Nov) and marks what is still open. Open questions are tagged **❓ OPEN** inline and gathered in [Open questions](#open-questions) at the end.
 
 ## The pitch
 
