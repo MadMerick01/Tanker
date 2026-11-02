@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 8 · 2 Nov 2026
+
 - **The run now starts at Kulgera Roadhouse,** on the Stuart Highway just over the Northern Territory border, instead of Port Augusta. Pine Gap is now about 270 km up the road.
 - **A new run starts with about 200 km of fuel** (40 litres), so you'll have to take fuel from others to reach Pine Gap.
 - **The start page tells the new story.** An AI has escaped its testing sandbox and switched off the world's water, power and internet, fuel was already short with the Strait of Hormuz blocked, and the codes to stop it are at Pine Gap and then go to Monaco.
