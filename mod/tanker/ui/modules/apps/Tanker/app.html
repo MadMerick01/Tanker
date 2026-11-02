@@ -11,48 +11,79 @@
     .mm-btn { margin-top: 8px; padding: 7px 12px; background: #e0823c; color: #1a140f; font-weight: bold; border: none; border-radius: 4px; cursor: pointer }
     .mm-btn[disabled] { opacity: .45; cursor: default }
     .mm-k { color: #c8bfb2 } .mm-v { font-weight: bold }</style>
-  <button type="button" class="mm-panel mm-strip" ng-click="toggle()" title="{{open ? 'Hide the panel' : 'Show the panel'}}">
+  <button type="button" ng-if="!start" class="mm-panel mm-strip" ng-click="toggle()" title="{{open ? 'Hide the panel' : 'Show the panel'}}">
     <span class="mm-dot" ng-style="{background: threatColour(data.threat)}" aria-label="threat {{data.threat}}"></span>
     <span title="Fuel in your tank"><span class="mm-bar"><span ng-style="{width: fuelShare(data.fuel) + '%', background: fuelColour(data.fuel)}"></span></span> {{whole(data.fuel.litres)}} L</span>
     <span title="Rounds loaded"><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span><span ng-if="data.ammo" class="mm-k"> +{{data.ammo.spare}}</span></span>
     <span ng-if="data.fuelWorth != null" title="What your fuel is worth" style="color:#f2c94c;">${{whole(data.fuelWorth)}}</span>
     <span style="flex:1;text-align:right;" title="Road distance left to Pine Gap"><b>{{whole(data.goal.roadKm)}} km</b> <span class="mm-k">{{data.goal.letters}}</span></span>
   </button>
-  <div ng-if="open && start" class="mm-panel" style="margin-top:6px;padding:12px 14px;">
-    <div style="padding-bottom:10px;border-bottom:1px solid rgba(168,82,42,.6);">
-      <div style="font-size:11px;font-weight:bold;letter-spacing:3px;color:#c8bfb2;">BEAMNG.EARTH &middot; AUSTRALIA &middot; 2027</div>
-      <div style="margin-top:2px;font-size:34px;font-weight:900;letter-spacing:4px;line-height:1.05;color:#e0823c;">TANKER</div>
-      <div style="margin-top:4px;font-size:12px;font-weight:bold;letter-spacing:3px;color:#eb5757;">THE FUEL WARS</div>
-      <div aria-hidden="true" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:bold;color:#f2c94c;">KULGERA <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> &#9654; <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> PINE GAP</div>
-    </div>
-    <div ng-if="data.save && data.state !== 'RUNNING'" style="margin-top:12px;padding:10px;border:2px solid #e0823c;border-radius:6px;">
-      <div style="font-weight:bold;font-size:16px;color:#e0823c;">Welcome back, Tanker</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:6px;color:#c8bfb2;">
-        <div><div class="mm-v" style="font-size:16px;color:#f1ece4;">{{whole(data.save.roadKm)}} km</div>to Pine Gap</div>
-        <div><div class="mm-v" style="font-size:16px;color:#f1ece4;">{{whole(data.save.fuelLitres)}} L</div>in your tank</div>
-        <div><div class="mm-v" style="font-size:16px;color:#f1ece4;">{{whole(data.save.drivenKm)}} km</div>driven</div>
+  <div class="tk-start" ng-show="start" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:rgba(8,6,4,.6);color:#f1ece4;font:15px/1.45 sans-serif;pointer-events:auto;">
+    <div role="dialog" aria-label="Tanker start page" style="width:880px;max-width:94vw;max-height:90vh;overflow:auto;box-sizing:border-box;padding:20px 24px;background:rgba(20,16,12,.97);border:3px solid #a8522a;border-radius:12px;box-shadow:0 0 40px rgba(0,0,0,.8);">
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 16px;padding-bottom:12px;border-bottom:1px solid rgba(168,82,42,.6);">
+        <div style="flex:1;min-width:240px;">
+          <div style="font-size:11px;font-weight:bold;letter-spacing:3px;color:#c8bfb2;">BEAMNG.EARTH &middot; AUSTRALIA &middot; 2027</div>
+          <div style="margin-top:2px;font-size:46px;font-weight:900;letter-spacing:6px;line-height:1.05;color:#e0823c;">TANKER</div>
+          <div style="margin-top:4px;font-size:13px;font-weight:bold;letter-spacing:3px;color:#eb5757;">THE FUEL WARS</div>
+        </div>
+        <div aria-hidden="true" style="flex:1;min-width:240px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:bold;color:#f2c94c;">KULGERA <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> &#9654; <span style="flex:1;border-top:2px dashed rgba(242,201,76,.6);"></span> PINE GAP</div>
       </div>
-      <div class="mm-k" style="margin-top:6px;">Saved at {{coordinates(data.save)}}<span ng-if="data.save.metresAway != null">, {{km(data.save.metresAway)}} km from you</span>.</div>
-      <button type="button" ng-if="data.goToSaveAllowed" class="mm-btn" ng-click="startCommand('goToSave')">Go to your save</button>
+      <div style="display:flex;flex-wrap:wrap;gap:20px;margin-top:14px;">
+        <div style="flex:1 1 360px;min-width:0;">
+          <div ng-if="data.save && data.state !== 'RUNNING'" style="padding:10px;border:2px solid #e0823c;border-radius:6px;margin-bottom:12px;">
+            <div style="font-weight:bold;font-size:17px;color:#e0823c;">Welcome back, Tanker</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:6px;color:#c8bfb2;">
+              <div><div class="mm-v" style="font-size:17px;color:#f1ece4;">{{whole(data.save.roadKm)}} km</div>to Pine Gap</div>
+              <div><div class="mm-v" style="font-size:17px;color:#f1ece4;">{{whole(data.save.fuelLitres)}} L</div>in your tank</div>
+              <div><div class="mm-v" style="font-size:17px;color:#f1ece4;">{{whole(data.save.drivenKm)}} km</div>driven</div>
+            </div>
+            <div class="mm-k" style="margin-top:6px;">Saved at {{coordinates(data.save)}}<span ng-if="data.save.metresAway != null">, {{km(data.save.metresAway)}} km from you</span>.</div>
+            <button type="button" ng-if="data.goToSaveAllowed" class="mm-btn" ng-click="startCommand('goToSave')">Go to your save</button>
+          </div>
+          <div>An AI has escaped its testing sandbox and switched off the world's water, power and internet. There are no electric cars left running, and fuel was already short with the Strait of Hormuz blocked. Now everyone is fighting over what's left.</div>
+          <div style="margin-top:6px;">The realignment codes that can stop the AI are at Pine Gap, the little-known American base outside Alice Springs. Get there, then get the codes to the mainframe in Monaco.</div>
+          <div style="margin-top:6px;">You have a ute, a tank of fuel for about 200 km and a revolver. Pine Gap is about 270 km up the road.</div>
+          <div style="margin-top:12px;font-weight:bold;color:#e0823c;">The rules</div>
+          <ul style="margin:4px 0 0;padding-left:18px;color:#c8bfb2;">
+            <li>One run and one save. A new game replaces your save.</li>
+            <li>Fuel is money. You take it from others: stop beside a car and siphon it.</li>
+            <li>You can't save with Hoons nearby, and broken parts stay broken.</li>
+          </ul>
+          <div ng-if="data.startAllowed" style="margin-top:12px;padding:10px;border:2px solid #e0823c;border-radius:6px;">
+            <div>You start at {{data.startName}}, on the Stuart Highway just over the Northern Territory border, in a white D15 ute with a tank in the bed.</div>
+            <button type="button" class="mm-btn" ng-click="startCommand('startRun')">Start the run</button>
+          </div>
+          <div ng-if="data.state === 'NO_EARTH'" style="margin-top:12px;color:#f2c94c;">Tanker needs BeamNG.Earth running. Load BeamNG.Earth, then come back here.</div>
+          <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:12px;color:#f2c94c;">VR revolver not found. Install the BeamNG VR Controller Poses mod to shoot back.</div>
+        </div>
+        <div style="flex:1 1 300px;min-width:0;">
+          <div style="font-size:12px;font-weight:bold;letter-spacing:2px;color:#c8bfb2;">YOUR TRUCK</div>
+          <div ng-if="!data.truck" class="mm-k" style="margin-top:6px;">Get in a vehicle to see it here.</div>
+          <div ng-if="data.truck" style="margin-top:6px;padding:10px;border:1px solid #a8522a;border-radius:8px;background:rgba(0,0,0,.25);">
+            <img ng-if="data.truck.preview" ng-src="{{data.truck.preview}}" alt="" style="display:block;width:100%;max-height:200px;object-fit:cover;border-radius:6px;background:#2a231d;">
+            <div style="margin-top:8px;font-size:20px;font-weight:bold;">{{data.truck.brand ? data.truck.brand + ' ' : ''}}{{data.truck.name}}</div>
+            <div ng-if="data.truck.configuration" class="mm-k">{{data.truck.configuration}}<span ng-if="data.truck.transmission"> &middot; {{data.truck.transmission}}</span><span ng-if="data.truck.drivetrain"> &middot; {{data.truck.drivetrain}}</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:10px;">
+              <div><div class="mm-k">Fuel in the truck</div><div class="mm-v" style="font-size:17px;">{{whole(data.fuel ? data.fuel.litres : data.save.fuelLitres)}} L</div></div>
+              <div ng-if="data.bed"><div class="mm-k">Bed tank</div><div class="mm-v" style="font-size:17px;">{{whole(data.bed.litres)}} L</div></div>
+              <div ng-if="data.fuelWorth != null"><div class="mm-k">Fuel worth</div><div class="mm-v" style="font-size:17px;color:#f2c94c;">${{whole(data.fuelWorth)}}</div></div>
+              <div ng-if="data.fuel"><div class="mm-k">Range</div><div class="mm-v" style="font-size:17px;">{{data.fuel.rangeKm != null ? whole(data.fuel.rangeKm) + ' km' : 'measuring'}}</div></div>
+              <div ng-if="data.drivenKm != null"><div class="mm-k">Driven</div><div class="mm-v" style="font-size:17px;">{{whole(data.drivenKm)}} km</div></div>
+              <div ng-if="data.truck.repair != null"><div class="mm-k">Condition</div><div class="mm-v" style="font-size:17px;" ng-style="{color: data.truck.repair > 0 ? '#eb5757' : '#6fcf97'}">{{data.truck.repair > 0 ? 'Damaged, $' + whole(data.truck.repair) + ' to fix' : 'In good shape'}}</div></div>
+              <div ng-if="data.truck.value != null"><div class="mm-k">Value new</div><div class="mm-v" style="font-size:17px;">${{whole(data.truck.value)}}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div ng-if="data.feedback" role="status" style="margin-top:12px;color:#c8bfb2;">{{data.feedback}}</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;">
+        <button type="button" class="mm-btn" style="font-size:16px;padding:9px 18px;" ng-if="data.state === 'RUNNING'" ng-click="closeStart()">Back to the road</button>
+        <button type="button" class="mm-btn" style="background:none;color:#e0823c;border:1px solid #e0823c;" ng-if="data.state !== 'RUNNING'" ng-click="closeStart()">Close</button>
+        <button type="button" class="mm-btn" ng-if="data.newGameAllowed" ng-style="{background: askNewGame ? '#eb5757' : 'none', color: askNewGame ? '#1a140f' : '#eb5757'}" style="border:1px solid #eb5757;" ng-click="newGame()">{{askNewGame ? 'Yes, start over. Your save will be replaced' : 'Start a new game'}}</button>
+        <span ng-if="askNewGame" class="mm-k">Press again to start a new game, or <a href="" ng-click="cancelNewGame()" style="color:#e0823c;">keep this one</a>.</span>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:#8a8278;">Built on BeamNG.Earth, with plumbing from Worldwide Trucking Career. Revolver from BeamNG VR Controller Poses.</div>
     </div>
-    <div style="margin-top:12px;">An AI has escaped its testing sandbox and switched off the world's water, power and internet. There are no electric cars left running, and fuel was already short with the Strait of Hormuz blocked. Now everyone is fighting over what's left.</div>
-    <div style="margin-top:6px;">The realignment codes that can stop the AI are at Pine Gap, the little-known American base outside Alice Springs. Get there, then get the codes to the mainframe in Monaco.</div>
-    <div style="margin-top:6px;">You have a ute, a tank of fuel for about 200 km and a revolver. Pine Gap is about 270 km up the road.</div>
-    <div style="margin-top:12px;font-weight:bold;color:#e0823c;">The rules</div>
-    <ul style="margin:4px 0 0;padding-left:18px;color:#c8bfb2;">
-      <li>One run, one save, no restarts.</li>
-      <li>Fuel is money. You take it from others: stop beside a car and siphon it.</li>
-      <li>You can't save with Hoons nearby, and broken parts stay broken.</li>
-    </ul>
-    <div ng-if="data.startAllowed" style="margin-top:12px;padding:10px;border:2px solid #e0823c;border-radius:6px;">
-      <div>You start at {{data.startName}}, on the Stuart Highway just over the Northern Territory border, in a white D15 ute with a tank in the bed.</div>
-      <button type="button" class="mm-btn" ng-click="startCommand('startRun')">Start the run</button>
-    </div>
-    <div ng-if="data.state === 'NO_EARTH'" style="margin-top:12px;color:#f2c94c;">Tanker needs BeamNG.Earth running. Load BeamNG.Earth, then come back here.</div>
-    <div ng-if="data.feedback" role="status" style="margin-top:8px;color:#c8bfb2;">{{data.feedback}}</div>
-    <button type="button" class="mm-btn" style="background:none;color:#e0823c;border:1px solid #e0823c;" ng-click="closeStart()">{{data.state === 'RUNNING' ? 'Back to the road' : 'Close'}}</button>
-    <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:12px;color:#f2c94c;">VR revolver not found. Install the BeamNG VR Controller Poses mod to shoot back.</div>
-    <div style="margin-top:12px;font-size:12px;color:#8a8278;">Built on BeamNG.Earth, with plumbing from Worldwide Trucking Career. Revolver from BeamNG VR Controller Poses.</div>
   </div>
   <div ng-if="open && !start" class="mm-panel" style="margin-top:6px;padding:10px 12px;">
     <div style="display:flex;align-items:center;gap:8px;">
@@ -69,7 +100,7 @@
       <div ng-if="data.hoon.state === 'DOWN'" style="margin-top:4px;font-weight:bold;color:#f2c94c;">The Hoon is down<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span>. Stop beside it to siphon its tank.</div>
       <div ng-if="data.goal.reached" style="margin-top:4px;font-weight:bold;color:#f2c94c;">You made it to Pine Gap.</div>
       <div ng-if="data.startAllowed">
-        <div style="margin-top:6px;">One run, one save, no restarts. You start at {{data.startName}}, at the edge of the desert, and head north.</div>
+        <div style="margin-top:6px;">One run and one save. You start at {{data.startName}}, at the edge of the desert, and head north.</div>
         <button type="button" class="mm-btn" ng-click="send('startRun')">Start the run</button>
       </div>
       <button type="button" ng-if="data.goToSaveAllowed" class="mm-btn" ng-click="send('goToSave')">Go to your save</button>

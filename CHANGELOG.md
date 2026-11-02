@@ -6,6 +6,10 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **The start page now opens in a big window in the middle of the screen,** like a real game's title screen. The HUD strip stays hidden while it's open and comes back when you press **Back to the road**.
+- **Your truck is on the start page,** like a character in a role-playing game: its picture, make and model, the fuel in its tank and bed tank, what that fuel is worth, its range, the km it has driven, its condition and what it costs new.
+- **You can now start a new game.** **Start a new game** on the start page asks once more, then takes you back to Kulgera Roadhouse in a fresh starter truck with a new run's fuel. Your old save is only replaced once the new run has started, so if the teleport fails you keep your run. Your save still works.
+
 ## Build 10 · 2 Nov 2026
 
 - **Your fuel is now your money.** The HUD strip shows what all the fuel you carry is worth, at $20 a litre, counting both the truck's tank and the bed tank.

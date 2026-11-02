@@ -7,7 +7,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   var COMMANDS = { startRun: 'startAllowed', goToSave: 'goToSaveAllowed', save: 'saveAllowed', rocksOn: 'rocksAllowed', rocksOff: 'rocksAllowed',
     siphonStart: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed',
     pumpToTruck: 'pumpAllowed', pumpToBed: 'pumpAllowed', pumpStop: 'pumpStopAllowed',
-    payParts: 'payPartsAllowed', undoParts: 'undoPartsAllowed' }
+    payParts: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed' }
   // The game's own parts menu, as Earth Freight opens it.
   var PARTS_MENU = "if core_vehicles and core_vehicles.openPartsSelectorUI then core_vehicles.openPartsSelectorUI() " +
     "elseif guihooks then guihooks.trigger('ChangeState', {state = 'menu.vehicleconfig.parts'}) end"
@@ -137,7 +137,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   return {
     templateUrl: '/ui/modules/apps/Tanker/app.html',
     replace: true,
-    link: function (scope) {
+    link: function (scope, element) {
       'use strict'
       var disposed = false
       var lastMessage = Date.now()
@@ -162,10 +162,22 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
       scope.toggle = function () { scope.open = kept.open = !scope.open }
       // The start page: opens by itself once each time the game loads with a run to start or a
       // save to go back to, and from the Start page button.
+      // It fills a big window in the middle of the screen, so the page is moved onto the page body,
+      // out of the small app box, and the HUD strip is hidden until Back to the road.
       scope.start = kept.start
+      scope.askNewGame = false
       scope.openStart = function () { scope.start = kept.start = true; scope.open = kept.open = true }
-      scope.closeStart = function () { scope.start = kept.start = false }
+      scope.closeStart = function () { scope.start = kept.start = false; scope.askNewGame = false }
       scope.startCommand = function (name) { scope.send(name); scope.closeStart() }
+      // A new game replaces the save, so it asks once more first.
+      scope.newGame = function () {
+        if (scope.data.newGameAllowed !== true) return
+        if (!scope.askNewGame) { scope.askNewGame = true; return }
+        scope.startCommand('newGame')
+      }
+      scope.cancelNewGame = function () { scope.askNewGame = false }
+      var startPage = element && element[0] && element[0].querySelector ? element[0].querySelector('.tk-start') : null
+      if (startPage && typeof document !== 'undefined' && document.body) document.body.appendChild(startPage)
       scope.km = function (metres) { return typeof metres === 'number' && isFinite(metres) ? whole(metres / 1000) : '–' }
       scope.coordinates = function (s) {
         if (!s || typeof s.latitude !== 'number' || typeof s.longitude !== 'number') return ''
@@ -225,6 +237,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
         clearInterval(heartbeat)
         closeBox()
         closeBill()
+        if (startPage && startPage.parentNode) startPage.parentNode.removeChild(startPage)
         mount(false)
       })
     }

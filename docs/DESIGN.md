@@ -77,7 +77,7 @@ The tank is three things at once:
 
 ## Hardcore rules
 
-Decided by Rowan, 31 Oct: **hardcore from the start, no restarts.** You manage your own fuel and repairs. If you run dry or wreck the truck, you have to get yourself out of it with what you are carrying.
+Decided by Rowan, 31 Oct: **hardcore from the start, no restarts.** You manage your own fuel and repairs. If you run dry or wreck the truck, you have to get yourself out of it with what you are carrying. Rowan added **Start a new game** on 2 Nov: it throws away the run and its save and starts again at Kulgera, so there is still only ever one run on the go.
 
 **One save.** The game saves where you are, so you can stop playing and carry on later from the same spot. There is no going back to an earlier save. What the truck keeps between play sessions is in [Damage between sessions](#damage-between-sessions).
 
