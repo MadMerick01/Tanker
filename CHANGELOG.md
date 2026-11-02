@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 10 · 2 Nov 2026
+
 - **Your fuel is now your money.** The HUD strip shows what all the fuel you carry is worth, at $20 a litre, counting both the truck's tank and the bed tank.
 - **A new Garage tab lets you buy parts with fuel.** Press **Buy parts** to open BeamNG's parts menu and change what you like. When the truck comes back, a bill shows each new part's price, less a trade-in for the parts you took off, plus any repair the change mended, and how many litres that comes to. **Pay** takes the fuel from the bed tank first and then the truck's own tank. You can't pay a bill bigger than the fuel you carry, and the bill says how many litres you're short.
 - **Undo** on the bill puts your old parts back, and so does driving more than 25 metres away without paying.
