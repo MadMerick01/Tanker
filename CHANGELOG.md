@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 7 · 2 Nov 2026
+
 - **The first Hoon is here.** About 3 km into the run, and then every 6 to 14 km you drive, a Hoon in a vanilla hot rod appears on the road about 250 m behind you, or ahead of you if the road behind isn't solid yet, and hunts you, ramming your truck. The threat light turns amber when it's within 600 m and red when it's on you, and the **Road** tab tells you how far away it is. You can't save while it's close. It's over when the Hoon is down: stuck or wrecked for 12 seconds, after which you can stop beside it and siphon its tank. It's also over when you get away, staying more than 1.5 km ahead for 30 seconds, or when it has chased you for 5 minutes. Hoons only come while you're driving on a road, never when you're off road, so heading out into the dirt is one way to lose them. To try it straight away, use **Send a Hoon now (testing)** on the **Rig** tab. The Hoon's car loads once, as you set off, so it doesn't stutter the game when it appears. Your normal traffic is left as it is. Your save still works.
 
 ## Build 6 · 2 Nov 2026
