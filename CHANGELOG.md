@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 14 · 3 Nov 2026
+
 - **Pressing Pay on the parts bill now closes the parts menu and puts you back in your truck,** ready to drive. If you don't carry enough fuel to pay, the menu stays open so you can change your parts or undo them. Paying on the Garage tab works as before. Your save still works.
 
 ## Build 13 · 3 Nov 2026
