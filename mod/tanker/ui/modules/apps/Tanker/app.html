@@ -1,4 +1,4 @@
-<div class="bngApp" style="width:100%;box-sizing:border-box;color:#f1ece4;font:14px/1.4 sans-serif;pointer-events:auto;">
+<div class="bngApp" ng-mouseenter="hover(true)" ng-mouseleave="hover(false)" style="width:100%;box-sizing:border-box;color:#f1ece4;font:14px/1.4 sans-serif;pointer-events:auto;">
   <style>.mm-panel { background: rgba(20,16,12,.92); border: 1px solid #a8522a; border-radius: 6px }
     .mm-strip { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; box-sizing: border-box; color: #f1ece4; text-align: left; font: 14px/1.3 sans-serif; cursor: pointer }
     .mm-bar { display: inline-block; width: 48px; height: 8px; border-radius: 4px; background: #3c403c; overflow: hidden; vertical-align: middle }
@@ -18,7 +18,7 @@
     <span ng-if="data.fuelWorth != null" title="What your fuel is worth" style="color:#f2c94c;">${{whole(data.fuelWorth)}}</span>
     <span style="flex:1;text-align:right;" title="Road distance left to Pine Gap"><b>{{whole(data.goal.roadKm)}} km</b> <span class="mm-k">{{data.goal.letters}}</span></span>
   </button>
-  <div class="tk-start" ng-show="start" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:rgba(8,6,4,.6);color:#f1ece4;font:15px/1.45 sans-serif;pointer-events:auto;">
+  <div class="tk-start" ng-show="start" ng-mouseenter="hover(true)" ng-mouseleave="hover(false)" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:rgba(8,6,4,.6);color:#f1ece4;font:15px/1.45 sans-serif;pointer-events:auto;">
     <div role="dialog" aria-label="Tanker start page" style="width:880px;max-width:94vw;max-height:90vh;overflow:auto;box-sizing:border-box;padding:20px 24px;background:rgba(20,16,12,.97);border:3px solid #a8522a;border-radius:12px;box-shadow:0 0 40px rgba(0,0,0,.8);">
       <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 16px;padding-bottom:12px;border-bottom:1px solid rgba(168,82,42,.6);">
         <div style="flex:1;min-width:240px;">
@@ -54,7 +54,7 @@
             <button type="button" class="mm-btn" ng-click="startCommand('startRun')">Start the run</button>
           </div>
           <div ng-if="data.state === 'NO_EARTH'" style="margin-top:12px;color:#f2c94c;">Tanker needs BeamNG.Earth running. Load BeamNG.Earth, then come back here.</div>
-          <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:12px;color:#f2c94c;">VR revolver not found. Install the BeamNG VR Controller Poses mod to shoot back.</div>
+          <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:12px;color:#f2c94c;">Playing in VR? Install the BeamNG VR Controller Poses mod for the VR revolver. On a flat screen, the revolver aims with the mouse.</div>
         </div>
         <div style="flex:1 1 300px;min-width:0;">
           <div style="font-size:12px;font-weight:bold;letter-spacing:2px;color:#c8bfb2;">YOUR TRUCK</div>
@@ -82,7 +82,7 @@
         <button type="button" class="mm-btn" ng-if="data.newGameAllowed" ng-style="{background: askNewGame ? '#eb5757' : 'none', color: askNewGame ? '#1a140f' : '#eb5757'}" style="border:1px solid #eb5757;" ng-click="newGame()">{{askNewGame ? 'Yes, start over. Your save will be replaced' : 'Start a new game'}}</button>
         <span ng-if="askNewGame" class="mm-k">Press again to start a new game, or <a href="" ng-click="cancelNewGame()" style="color:#e0823c;">keep this one</a>.</span>
       </div>
-      <div style="margin-top:12px;font-size:12px;color:#8a8278;">Built on BeamNG.Earth, with plumbing from Worldwide Trucking Career. Revolver from BeamNG VR Controller Poses.</div>
+      <div style="margin-top:12px;font-size:12px;color:#8a8278;">Built on BeamNG.Earth, with plumbing from Worldwide Trucking Career. VR revolver from BeamNG VR Controller Poses, mouse aiming from Bolides The Cut.</div>
     </div>
   </div>
   <div ng-if="open && !start" class="mm-panel" style="margin-top:6px;padding:10px 12px;">
@@ -113,6 +113,14 @@
         <span class="mm-k" style="margin-left:6px;">{{data.siphonNear.moving ? 'Stop next to the car to siphon' : 'A car ' + whole(data.siphonNear.metres) + ' m away'}}</span>
       </div>
       <button type="button" ng-if="data.siphonStopAllowed" class="mm-btn" ng-click="send('siphonStop')">Stop siphoning</button>
+      <div ng-if="data.revolverAllowed" style="margin-top:10px;">
+        <span class="mm-k">Revolver</span> <span class="mm-v">{{whole(data.ammo.loaded)}} of 6</span> <span class="mm-k">loaded, {{whole(data.ammo.spare)}} spare</span>
+        <div>
+          <button type="button" class="mm-tab" ng-class="{on: data.gun.drawn}" ng-click="send('toggleRevolver')">{{data.gun.drawn ? 'Holster' : 'Draw revolver'}}</button>
+          <button type="button" class="mm-tab" ng-disabled="!data.reloadAllowed" ng-click="send('reloadRevolver')">{{data.gun.reloading ? 'Reloading' : 'Reload'}}</button>
+        </div>
+        <div ng-if="data.gun.drawn" class="mm-k" style="margin-top:2px;">Aim with the mouse and click to shoot. A shot through the driver, or four hits, stops a Hoon.</div>
+      </div>
       <div ng-if="data.rocksAllowed" style="margin-top:10px;" title="Off clears BeamNG.Earth's scattered rocks for fast desert chases">
         <span class="mm-k">Desert rocks</span>
         <button type="button" class="mm-tab" ng-class="{on: data.rocks.on}" ng-click="send('rocksOn')">On</button>
@@ -135,8 +143,9 @@
         </div>
       </div>
       <div><span class="mm-k">Range</span> <span class="mm-v">{{data.fuel.rangeKm != null ? whole(data.fuel.rangeKm) + ' km' : 'measuring'}}</span></div>
-      <div><span class="mm-k">Revolver</span> <span class="mm-v">{{data.pistol.installed ? (data.pistol.drawn ? 'drawn' : 'holstered') : 'not installed'}}</span></div>
-      <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:4px;color:#f2c94c;">Tanker needs the BeamNG VR Controller Poses mod for the revolver.</div>
+      <div ng-if="!data.revolverAllowed"><span class="mm-k">VR revolver</span> <span class="mm-v">{{data.pistol.installed ? (data.pistol.drawn ? 'drawn' : 'holstered') : 'not installed'}}</span></div>
+      <div ng-if="data.revolverAllowed"><span class="mm-k">Revolver</span> <span class="mm-v">{{data.gun.drawn ? 'drawn' : 'holstered'}}</span> <span class="mm-k">(mouse aiming, on the Road tab)</span></div>
+      <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:4px;color:#f2c94c;">In VR, the revolver needs the BeamNG VR Controller Poses mod.</div>
       <div class="mm-k" style="margin-top:6px;">Repairs, spare parts and the tow come next.</div>
       <div ng-if="data.hoon" style="margin-top:10px;">
         <button type="button" class="mm-tab" ng-disabled="!data.hoonTestAllowed" ng-click="send('sendHoon')" title="For testing: send the Hoon now instead of waiting for the km">Send a Hoon now (testing)</button>

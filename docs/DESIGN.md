@@ -147,7 +147,7 @@ What it needs for Tanker (two small changes in the pistol mod, so Tanker never t
 1. **Ammo.** It currently fires without limit, every 0.12 s. It needs a six-round cylinder, a reload, and a way for Tanker to refuse a shot when you are out of ammo.
 2. **A hit event** other mods can listen to, so Tanker hears every hit and decides when a Hoon is down.
 
-Tanker needs the pistol installed. **VR first** (Rowan, 31 Oct). A non-VR way to shoot comes later; it should be easy, since the pistol can already fire from the camera.
+Tanker needs the pistol installed. **VR first** (Rowan, 31 Oct). **Flatscreen** (Rowan, 3 Nov): without VR, Tanker has its own revolver that aims with the mouse (from Rowan's Bolides The Cut, `FirstPersonShoot.lua`). Its shot is the VR revolver's own (Rowan: "the same as our existing VR one"): `vrPistol.shoot` when the VR mod is installed, or Tanker's copy of `vrPistolHit.lua` (`tankerHit.lua`) when it is not, so tyres and driver shots work the same. It has six rounds, a reload and spare rounds kept in the save. Tanker listens to `onVrPistolHit` and `onVrPistolDriverHit` from both guns: a driver shot, or four hits, stops a Hoon.
 
 ## The HUD
 
