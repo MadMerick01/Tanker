@@ -147,9 +147,11 @@
       <div ng-if="data.revolverAllowed"><span class="mm-k">Revolver</span> <span class="mm-v">{{data.gun.drawn ? 'drawn' : 'holstered'}}</span> <span class="mm-k">(mouse aiming, on the Road tab)</span></div>
       <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:4px;color:#f2c94c;">In VR, the revolver needs the BeamNG VR Controller Poses mod.</div>
       <div class="mm-k" style="margin-top:6px;">Repairs, spare parts and the tow come next.</div>
-      <div ng-if="data.hoon" style="margin-top:10px;">
-        <button type="button" class="mm-tab" ng-disabled="!data.hoonTestAllowed" ng-click="send('sendHoon')" title="For testing: send the Hoon now instead of waiting for the km">Send a Hoon now (testing)</button>
-        <div ng-if="data.hoon.state === 'UNAVAILABLE'" style="margin-top:4px;color:#f2c94c;">The Hoon's car could not be loaded, so no Hoons this session.</div>
+      <div style="margin-top:10px;">
+        <span class="mm-k">Spawn (testing):</span>
+        <button type="button" ng-if="data.hoon" class="mm-tab" ng-disabled="!data.hoonTestAllowed" ng-click="send('sendHoon')" title="Send the Hoon now, road or no road">Spawn a Hoon</button>
+        <button type="button" class="mm-tab" ng-disabled="!data.tankerSpawnAllowed" ng-click="send('spawnTanker')" title="A fuel tanker ahead of you that drives away">Spawn the TankerMob</button>
+        <div ng-if="data.hoon && data.hoon.state === 'UNAVAILABLE'" style="margin-top:4px;color:#f2c94c;">The Hoon's car could not be loaded, so no Hoons this session.</div>
       </div>
     </div>
     <div ng-if="tab === 'garage'" style="margin-top:8px;">

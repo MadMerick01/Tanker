@@ -32,6 +32,19 @@ if energyStorage and energyStorage.getStorages then
     end
   end
 end
+-- Sets every tank to the same share of full so the total is target, and returns the litres now
+-- in them. A tank's remainingVolume only catches up on the car's next frame, so the litres set are
+-- counted from the share given to each tank, not read back: reading them back right away saw no
+-- change, and the bed tank pump then moved nothing into the bed tank.
+local function setTanks(target)
+  local ratio = capacity > 0 and target / capacity or 0
+  local after = 0
+  for _, s in ipairs(tanks) do
+    if s.setRemainingRatio then s:setRemainingRatio(ratio) elseif s.setRemainingVolume then s:setRemainingVolume(ratio * s.capacity) end
+    after = after + ratio * s.capacity
+  end
+  return after
+end
 ]]
 -- The outer string.format fills in the car's id; %% escapes the car's own format string.
 local READ = TANKS .. [[
@@ -42,12 +55,7 @@ obj:queueGameEngineLua(string.format('if tanker_core then tanker_core.fuelReadin
 -- car's own format string.
 local SET = TANKS .. [[
 local before, target = litres, math.max(0, math.min(capacity, %.3f))
-for _, s in ipairs(tanks) do
-  local ratio = capacity > 0 and target / capacity or 0
-  if s.setRemainingRatio then s:setRemainingRatio(ratio) elseif s.setRemainingVolume then s:setRemainingVolume(ratio * s.capacity) end
-end
-local after = 0
-for _, s in ipairs(tanks) do after = after + (s.remainingVolume or 0) end
+local after = setTanks(target)
 obj:queueGameEngineLua(string.format('if tanker_core then tanker_core.fuelSet(%%d, %%d, %%.3f, %%.3f, %%.3f) end', %d, %d, before, after, capacity))
 ]]
 -- Adds litres to the tanks (or takes them, when negative), never past empty or full, and reports
@@ -55,13 +63,7 @@ obj:queueGameEngineLua(string.format('if tanker_core then tanker_core.fuelSet(%%
 -- string.format fills in the change, the car's id and the serial.
 local CHANGE = TANKS .. [[
 local before = litres
-local target = math.max(0, math.min(capacity, litres + %.3f))
-for _, s in ipairs(tanks) do
-  local ratio = capacity > 0 and target / capacity or 0
-  if s.setRemainingRatio then s:setRemainingRatio(ratio) elseif s.setRemainingVolume then s:setRemainingVolume(ratio * s.capacity) end
-end
-local after = 0
-for _, s in ipairs(tanks) do after = after + (s.remainingVolume or 0) end
+local after = setTanks(math.max(0, math.min(capacity, litres + %.3f)))
 obj:queueGameEngineLua(string.format('if tanker_core then tanker_core.fuelChanged(%%d, %%d, %%.3f, %%.3f, %%.3f) end', %d, %d, before, after, capacity))
 ]]
 

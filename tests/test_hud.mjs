@@ -207,3 +207,10 @@ test('revolver buttons only work on a flat screen on the road, and HUD clicks ar
   a.scope.hover(true); assert.equal(a.commands.at(-1), fixed('hudHover(true)'))
   a.handlers.$destroy(); assert.ok(a.commands.includes(fixed('hudHover(false)')), 'the hover ends with the app')
 })
+
+test('the TankerMob spawn button only works when Lua allows it', () => {
+  const a = app()
+  a.scope.send('spawnTanker'); assert.ok(!a.commands.includes(fixed('spawnTanker()')))
+  a.state({ state: 'RUNNING', tankerSpawnAllowed: true })
+  a.scope.send('spawnTanker'); assert.equal(a.commands.at(-1), fixed('spawnTanker()'))
+})
