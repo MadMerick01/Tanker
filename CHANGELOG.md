@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 12 · 3 Nov 2026
+
 - **You can now shoot on a flat screen, without VR.** On the **Road** tab, press **Draw revolver**, aim with the mouse and click to shoot. An amber crosshair follows the mouse, and a dot shows where it meets the ground. **A hit works exactly like the VR revolver's:** the round has to actually reach the car, walls stop it, it shoves and dents the car, a hit near a wheel flattens that tyre, and a shot through the driver switches the car off and brakes it. With the VR revolver mod installed you also hear its gunshot. Clicking on the HUD never fires.
 - **One shot through the driver, or four hits anywhere, stops a Hoon,** with either revolver, in VR or on a flat screen. It comes to a halt so you can pull up beside it and siphon its tank.
 - The revolver holds six rounds, and a new run starts with 12 spare. **Reload** refills the cylinder from your spares, which takes a second and a half, and clicking with an empty cylinder starts a reload too. The strip's six pips now show your rounds on a flat screen.
