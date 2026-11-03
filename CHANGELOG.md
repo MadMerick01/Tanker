@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Pressing Pay on the parts bill now closes the parts menu and puts you back in your truck,** ready to drive. If you don't carry enough fuel to pay, the menu stays open so you can change your parts or undo them. Paying on the Garage tab works as before. Your save still works.
+
 ## Build 13 · 3 Nov 2026
 
 - **New: the TankerMob,** Rowan's fuel tanker truck. For now it comes from a spawn button: **Spawn the TankerMob** on the **Rig** tab puts it about 60 m ahead of you, and it drives off away from you. Catch it, stop it and siphon its tank. Pressing the button again puts the same truck back in front of you. It's also in BeamNG's vehicle menu under the truck.

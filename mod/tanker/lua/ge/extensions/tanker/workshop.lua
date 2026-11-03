@@ -100,6 +100,14 @@ function M.attach(c)
     return true
   end
 
+  -- Pay on the parts bill box, which shows over the game's parts menu. Once paid, the menu closes
+  -- and the player is back driving the truck. Paying on the Garage tab leaves the game as it is.
+  function c:payPartsBill()
+    local ok = self:payParts()
+    if ok and self.trigger then pcall(self.trigger, 'ChangeState', { state = 'play', params = {} }) end
+    return ok
+  end
+
   -- Puts the paid parts back. The truck respawns, and the next check finds nothing to pay.
   function c:undoParts(droveOff)
     if not (self.pendingParts and self.ownedParts) then return false end

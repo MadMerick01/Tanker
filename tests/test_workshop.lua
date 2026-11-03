@@ -44,8 +44,11 @@ local expected = 600 - math.floor(100 * Pr.PART_TRADE_IN_SHARE + 0.5)
 T.eq(v.bill.cost, expected, 'new tyres less the old ones traded in')
 T.near(v.bill.litres, expected / Pr.FUEL_PRICE, 1e-9, 'billed in litres'); T.eq(v.payPartsAllowed, true, 'you carry enough')
 T.eq(#v.bill.lines, 2, 'one line each')
--- Paying takes the bed tank first.
-T.eq(c:payParts(), true, 'paid')
+-- Paying on the bill box takes the bed tank first, then closes the parts menu.
+local states = {}
+c.trigger = function(event, data) if event == 'ChangeState' then states[#states + 1] = data end end
+T.eq(c:payPartsBill(), true, 'paid')
+T.eq(states[1] and states[1].state, 'play', 'paying on the bill box closes the parts menu, back to the truck')
 local billL = expected / Pr.FUEL_PRICE
 T.near(c.bedLitres, math.max(0, 25 - billL), 1e-9, 'from the bed tank first')
 T.near(c.reading.litres, 15 - math.max(0, billL - 25), 1e-9, 'then the truck')
@@ -57,6 +60,7 @@ parts.snap.values.v8 = 9000; parts.snap.names.v8 = 'V8'; parts.snap.parts.engine
 c:vehicleSpawned(7); run(0.5)
 T.eq(c:view().payPartsAllowed, false, 'a V8 is more fuel than you carry')
 T.check(c:view().bill.short > 0, 'and says how short'); T.eq(c:payParts(), false, 'cannot pay')
+T.eq(c:payPartsBill(), false, 'cannot pay on the bill box either'); T.eq(#states, 1, 'and the parts menu stays open')
 -- Undo puts the paid parts back.
 T.eq(c:undoParts(false), true, 'undo'); T.eq(parts.restores, 1, 'the truck respawns with the paid parts')
 parts.snap.parts.engine = 'i6'
