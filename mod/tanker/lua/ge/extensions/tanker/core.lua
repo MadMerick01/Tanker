@@ -59,6 +59,8 @@ function M.new(env)
     state = 'STARTING', diag = diagnostics.new(env.log), hud = hud.new(env.trigger),
     store = persistence.new(env.io), fuel = env.fuel, pistol = env.pistol, adapter = env.adapter, vehicles = env.vehicles,
     clock = 0, nextSample = 0, threat = 'clear', nearby = env.nearby, trigger = env.trigger,
+    -- Leaves the free camera for the truck's own camera; without it the camera is left as it is.
+    camera = env.camera,
   }
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
   -- The flatscreen revolver: mouse aiming when there is no VR.
@@ -657,6 +659,7 @@ function M.new(env)
       self:sample()
       self:publish()
     end
+    if self.watchCamera then self:watchCamera() end
     self:drawWrist()
   end
 
@@ -677,6 +680,18 @@ end
 -- --------------------------------------------------------------- the game's side ---
 
 local active
+-- The game's camera: from the free camera back to the truck's own (driver, chase, orbit...).
+local function gameCamera()
+  return {
+    backToCar = function()
+      local cmd = rawget(_G, 'commands')
+      if type(cmd) ~= 'table' or type(cmd.isFreeCamera) ~= 'function' or type(cmd.setGameCamera) ~= 'function' then return false end
+      if not cmd.isFreeCamera() then return false end
+      cmd.setGameCamera()
+      return true
+    end,
+  }
+end
 local function gameIO()
   return {
     read = function(path) return jsonReadFile(path) end,
@@ -702,7 +717,7 @@ local function ensure()
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
       vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(), parts = parts.new(),
       aim = aim.new(), tankerMob = tankerMob.new(hoonCar.new()),
-      log = rawget(_G, 'log'), drawTri = drawTri,
+      log = rawget(_G, 'log'), drawTri = drawTri, camera = gameCamera(),
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end
   return active

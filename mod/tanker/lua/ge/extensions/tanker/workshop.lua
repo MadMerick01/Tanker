@@ -12,6 +12,8 @@ local M = {}
 M.DRIVE_OFF_METRES = 25
 -- Serials for taking fuel to pay, far from the siphon's and the pump's.
 M.SERIAL_BASE = 2000000
+-- After paying on the parts bill box, how long until the camera is checked once more.
+M.CAMERA_CHECK_SECONDS = 0.5
 
 local function dollars(n) return pricing.dollars(math.max(0, math.floor((n or 0) + 0.5))) end
 
@@ -104,8 +106,26 @@ function M.attach(c)
   -- and the player is back driving the truck. Paying on the Garage tab leaves the game as it is.
   function c:payPartsBill()
     local ok = self:payParts()
-    if ok and self.trigger then pcall(self.trigger, 'ChangeState', { state = 'play', params = {} }) end
+    if ok then
+      if self.trigger then pcall(self.trigger, 'ChangeState', { state = 'play', params = {} }) end
+      -- The parts menu uses the free camera, and closing it ourselves leaves it on: back to the
+      -- truck's own camera now, and once more a moment later in case closing the menu turns it on.
+      self:cameraBackToCar()
+      self.cameraCheckAt = self.clock + M.CAMERA_CHECK_SECONDS
+    end
     return ok
+  end
+
+  function c:cameraBackToCar()
+    if self.camera and self.camera.backToCar then pcall(self.camera.backToCar) end
+  end
+
+  -- Called every tick: the second camera check after paying on the bill box.
+  function c:watchCamera()
+    if self.cameraCheckAt and self.clock >= self.cameraCheckAt then
+      self.cameraCheckAt = nil
+      self:cameraBackToCar()
+    end
   end
 
   -- Puts the paid parts back. The truck respawns, and the next check finds nothing to pay.
