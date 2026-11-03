@@ -6,6 +6,13 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **You can now shoot on a flat screen, without VR.** On the **Road** tab, press **Draw revolver**, aim with the mouse and click to shoot. An amber crosshair follows the mouse, and a dot shows where the round will land on a car. A hit shoves the car and dents it where the round lands. Clicking on the HUD never fires.
+- **Four hits stop a Hoon.** It comes to a halt so you can pull up beside it and siphon its tank.
+- The revolver holds six rounds, and a new run starts with 12 spare. **Reload** refills the cylinder from your spares, which takes two seconds, and clicking with an empty cylinder starts a reload too. The strip's six pips now show your rounds on a flat screen.
+- You can bind keys for **Tanker: draw or holster the revolver** and **Tanker: reload the revolver** in BeamNG's Controls settings, under Gameplay. They don't have keys until you set them.
+- In VR nothing changes: the VR revolver mod still does the shooting, and the mouse revolver stays away.
+- Your save now keeps your rounds. A save from an earlier build starts with a full cylinder and 12 spare, and the rest of it still works.
+
 ## Build 11 · 3 Nov 2026
 
 - **The start page now opens in a big window in the middle of the screen,** like a real game's title screen. The HUD strip stays hidden while it's open and comes back when you press **Back to the road**.

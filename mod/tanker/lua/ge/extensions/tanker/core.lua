@@ -24,6 +24,8 @@ local bedTank = require('tanker/bedTank')
 local workshop = require('tanker/workshop')
 local parts = require('tanker/parts')
 local pricing = require('tanker/pricing')
+local revolver = require('tanker/revolver')
+local aim = require('tanker/aim')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -58,6 +60,8 @@ function M.new(env)
     clock = 0, nextSample = 0, threat = 'clear', nearby = env.nearby,
   }
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
+  -- The flatscreen revolver: mouse aiming when there is no VR.
+  c.aim, c.gun = env.aim, revolver.new()
   -- Parts paid for in fuel.
   c.parts = env.parts
   if c.parts then workshop.attach(c) end
@@ -318,6 +322,49 @@ function M.new(env)
     if capacity > 0 and self.bedLitres > capacity then self.bedLitres = capacity end
   end
 
+  -- The flatscreen revolver is yours on the road when there is no VR session (in VR, the VR
+  -- revolver mod shoots).
+  function c:flatGun()
+    return self.aim ~= nil and self.state == 'RUNNING' and not self.aim:vr()
+  end
+
+  function c:toggleRevolver()
+    if not self:flatGun() then return false end
+    self.gun:setDrawn(not self.gun.drawn)
+    self.feedback = self.gun.drawn and 'Revolver drawn. Aim with the mouse and click to shoot.' or 'Revolver holstered.'
+    return true
+  end
+
+  function c:reloadRevolver()
+    if not self:flatGun() then return false end
+    local ok, why = self.gun:reload(self.clock)
+    self.feedback = ok and 'Reloading.' or why == 'full' and 'The cylinder is full.' or 'No spare rounds left.'
+    return ok
+  end
+
+  -- Each frame: the crosshair while the revolver is drawn, and a shot on each click.
+  function c:followAim()
+    if self.gun.drawn and not self:flatGun() then self.gun:setDrawn(false) end
+    if not self.gun.drawn then return end
+    local shot = self.aim:aim()
+    self.aim:draw(shot)
+    -- A click on the HUD is not a shot.
+    if self.hudHover or not self.aim:clicked() then return end
+    local fired, why = self.gun:fire(self.clock)
+    if not fired then
+      if why == 'empty' then
+        self.feedback = self.gun:reloading() and 'Click. Empty, reloading.' or 'Click. You are out of rounds.'
+      end
+      return
+    end
+    if not (shot and shot.targetId) then self.feedback = 'Missed.' return end
+    self.aim:hit(shot)
+    local line, wasHoon = nil, false
+    if self.hoons then line, wasHoon = self.hoons:shot(shot.targetId) end
+    self.feedback = line or (wasHoon and 'Hit the Hoon.' or 'Hit.')
+    if line then self.diag:event('hoon', 'shot down') end
+  end
+
   function c:saveBlocked()
     if self.state ~= 'RUNNING' or not self.profile then return 'not_running' end
     if not (self.here and self.here.valid) then return 'no_position' end
@@ -330,6 +377,7 @@ function M.new(env)
     if self.here.vehicle and self.here.vehicle.model then p.vehicle.model = self.here.vehicle.model end
     if self.reading then p.vehicle.fuelLitres = self.reading.litres end
     if self.bed then p.vehicle.bedLitres = self.bedLitres end
+    p.vehicle.ammo = self.gun:ammo()
     -- The parts paid for, so the truck comes back with them.
     if self.ownedParts and self.ownedParts.config then
       p.vehicle.config, p.vehicle.model = parts.copy(self.ownedParts.config), self.ownedParts.model or p.vehicle.model
@@ -384,6 +432,7 @@ function M.new(env)
       self.profile = persistence.newProfile(self:start(), here,
         { model = vehicle.STARTER_MODEL, configuration = vehicle.STARTER_NAME })
       self.fuel:set(START_FUEL_LITRES, self.profile.generation)
+      self.gun = revolver.new()
       self:fillBed(START_BED_LITRES)
       self:transition('RUNNING', 'started')
       if self:write() then self.feedback = 'The run has started. Head north for Pine Gap.' end
@@ -391,6 +440,7 @@ function M.new(env)
       -- The tank goes back to what was saved, so quitting never refills it.
       local litres = self.profile.vehicle.fuelLitres
       if litres then self.fuel:set(litres, self.profile.generation) end
+      self.gun = revolver.new(self.profile.vehicle.ammo)
       self:fillBed(self.profile.vehicle.bedLitres)
       self.feedback = 'Back where you saved.'
       self:transition('RUNNING', 'resumed')
@@ -420,6 +470,7 @@ function M.new(env)
       if metres and metres <= self.config.resumeRadiusMetres then
         self.last = location.copy(here)
         self:fillBed(self.profile.vehicle.bedLitres)
+        self.gun = revolver.new(self.profile.vehicle.ammo)
         self:transition('RUNNING', 'at_save')
       end
     elseif (self.state == 'TO_START' or self.state == 'TO_SAVE') and self.clock - self.teleport.sentAt > TELEPORT_WAIT_SECONDS then
@@ -447,6 +498,7 @@ function M.new(env)
     self:followHoons()
     self:followPump()
     if self.parts then self:followWorkshop() end
+    if self.gun:step(self.clock) then self.feedback = 'Reloaded.' end
     self.fuel:read()
     local distances = env.hoonDistances and env.hoonDistances() or (self.hoons and self.hoons:distances())
     self.threat = threat.level(distances)
@@ -542,6 +594,13 @@ function M.new(env)
     local gun = self.pistol:read()
     v.pistol = { installed = gun.installed, drawn = gun.drawn }
     if gun.loaded then v.ammo = { loaded = gun.loaded, spare = gun.spare } end
+    -- Without VR, the flatscreen revolver's rounds are the ones that count.
+    if self:flatGun() then
+      v.ammo = self.gun:ammo()
+      v.gun = { drawn = self.gun.drawn, reloading = self.gun:reloading() }
+      v.revolverAllowed = true
+      v.reloadAllowed = not self.gun:reloading() and self.gun.loaded < revolver.CYLINDER and self.gun.spare > 0
+    end
     return v
   end
 
@@ -619,6 +678,7 @@ local function ensure()
   if not active then
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
       vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(), parts = parts.new(),
+      aim = aim.new(),
       log = rawget(_G, 'log'), drawTri = drawTri,
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end
@@ -669,6 +729,11 @@ function M.pumpToBed() return safely(function() return ensure():startPump('toBed
 function M.pumpStop() return safely(function() return ensure():stopPump() end) end
 function M.payParts() return safely(function() return ensure():payParts() end) end
 function M.undoParts() return safely(function() return ensure():undoParts(false) end) end
+function M.toggleRevolver() return safely(function() return ensure():toggleRevolver() end) end
+function M.reloadRevolver() return safely(function() return ensure():reloadRevolver() end) end
+-- The crosshair and the shots, each frame (ImGui draws here).
+function M.hudHover(on) return safely(function() ensure().hudHover = on == true end) end
+function M.onDrawDebug() return safely(function() if active and active.aim then active:followAim() end end) end
 function M.sendHoon() return safely(function() return ensure():sendHoon() end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end

@@ -7,7 +7,8 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   var COMMANDS = { startRun: 'startAllowed', goToSave: 'goToSaveAllowed', save: 'saveAllowed', rocksOn: 'rocksAllowed', rocksOff: 'rocksAllowed',
     siphonStart: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed',
     pumpToTruck: 'pumpAllowed', pumpToBed: 'pumpAllowed', pumpStop: 'pumpStopAllowed',
-    payParts: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed' }
+    payParts: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed',
+    toggleRevolver: 'revolverAllowed', reloadRevolver: 'reloadAllowed' }
   // The game's own parts menu, as Earth Freight opens it.
   var PARTS_MENU = "if core_vehicles and core_vehicles.openPartsSelectorUI then core_vehicles.openPartsSelectorUI() " +
     "elseif guihooks then guihooks.trigger('ChangeState', {state = 'menu.vehicleconfig.parts'}) end"
@@ -147,6 +148,8 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
         if (typeof bngApi !== 'undefined' && bngApi.engineLua) bngApi.engineLua('if tanker_core then tanker_core.' + body + ' end')
       }
       var mount = function (on) { core('uiMounted(' + (on ? 'true' : 'false') + ')') }
+      // While the mouse is over the HUD, a click is for the HUD, not a shot from the revolver.
+      scope.hover = function (on) { core('hudHover(' + (on ? 'true' : 'false') + ')') }
 
       scope.tabs = [{ id: 'road', label: 'Road' }, { id: 'rig', label: 'Rig' }, { id: 'garage', label: 'Garage' }]
       // Opens the game's own parts menu (Ctrl+W); the bill then shows up over it and on the Garage tab.
@@ -238,6 +241,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
         closeBox()
         closeBill()
         if (startPage && startPage.parentNode) startPage.parentNode.removeChild(startPage)
+        scope.hover(false)
         mount(false)
       })
     }

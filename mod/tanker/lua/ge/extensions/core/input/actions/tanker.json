@@ -1,0 +1,14 @@
+{
+  "tankerToggleRevolver": {
+    "cat": "gameplay", "order": 90, "ctx": "tlua",
+    "onDown": "if tanker_core then tanker_core.toggleRevolver() end",
+    "title": "Tanker: draw or holster the revolver",
+    "desc": "Without VR, draws the revolver so you can aim with the mouse and click to shoot, or puts it away"
+  },
+  "tankerReloadRevolver": {
+    "cat": "gameplay", "order": 91, "ctx": "tlua",
+    "onDown": "if tanker_core then tanker_core.reloadRevolver() end",
+    "title": "Tanker: reload the revolver",
+    "desc": "Fills the revolver's cylinder from your spare rounds"
+  }
+}

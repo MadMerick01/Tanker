@@ -167,7 +167,7 @@ test('ignores malformed state and keeps the tab across rebuilds', () => {
 
 test('template uses only the helpers the app defines', () => {
   for (const name of ['toggle', 'send', 'whole', 'fuelShare', 'fuelColour', 'pips', 'threatColour', 'setTab',
-    'openStart', 'closeStart', 'startCommand', 'coordinates', 'km', 'newGame', 'cancelNewGame']) {
+    'openStart', 'closeStart', 'startCommand', 'coordinates', 'km', 'newGame', 'cancelNewGame', 'hover']) {
     assert.ok(html.includes(name + '('), name)
   }
   assert.ok(!/bngApi|engineLua/.test(html), 'no direct Lua from the template')
@@ -196,4 +196,14 @@ test('start a new game asks twice, and the start page is a centre window', () =>
   assert.equal(a.commands.at(-1), fixed('newGame()'), 'then starts over'); assert.equal(a.scope.start, false, 'and closes the page')
   a.handlers.$destroy()
   assert.equal(startPage.parentNode, null, 'the page goes with the app')
+})
+
+test('revolver buttons only work on a flat screen on the road, and HUD clicks are not shots', () => {
+  const a = app()
+  a.scope.send('toggleRevolver'); assert.ok(!a.commands.includes(fixed('toggleRevolver()')))
+  a.state({ state: 'RUNNING', revolverAllowed: true, reloadAllowed: false, ammo: { loaded: 6, spare: 12 } })
+  a.scope.send('toggleRevolver'); assert.equal(a.commands.at(-1), fixed('toggleRevolver()'))
+  a.scope.send('reloadRevolver'); assert.equal(a.commands.at(-1), fixed('toggleRevolver()'), 'nothing to reload')
+  a.scope.hover(true); assert.equal(a.commands.at(-1), fixed('hudHover(true)'))
+  a.handlers.$destroy(); assert.ok(a.commands.includes(fixed('hudHover(false)')), 'the hover ends with the app')
 })

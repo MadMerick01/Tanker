@@ -31,11 +31,14 @@ M.HUNT_SECONDS = 300
 M.LEAVE_METRES = 600
 -- If a Hoon can't be placed, try again after this many seconds.
 M.RETRY_SECONDS = 10
+-- This many hits from your revolver stop a hunting Hoon.
+M.SHOTS_TO_STOP = 4
 
 local LINES = {
   coming = 'A Hoon is coming up behind you.',
   ahead = 'A Hoon is coming at you from up the road.',
   down = 'The Hoon is down. Siphon its tank before more come.',
+  shotDown = 'You shot the Hoon to a stop. Siphon its tank before more come.',
   escaped = 'You lost the Hoon.',
   tired = 'The Hoon gave up.',
   gone = 'The Hoon is gone.',
@@ -89,7 +92,7 @@ function M.new(car, random)
     if not road then return nil, 'no_solid_road' end
     local ok, why = car:attack(self.id, road.x, road.y, road.z, me.id)
     if not ok then return nil, why end
-    self.state, self.since, self.far, self.slow = 'HUNTING', clock, nil, nil
+    self.state, self.since, self.far, self.slow, self.hits = 'HUNTING', clock, nil, nil, 0
     return line
   end
 
@@ -140,6 +143,17 @@ function M.new(car, random)
       self:putAway(drivenKm)
       return LINES.tired
     end
+  end
+
+  -- A round from your revolver hit car id. Returns a line when it stops the Hoon, and whether
+  -- the car was the Hoon.
+  function s:shot(id)
+    if self.state ~= 'HUNTING' or id ~= self.id then return nil, false end
+    self.hits = (self.hits or 0) + 1
+    if self.hits < M.SHOTS_TO_STOP then return nil, true end
+    self.state = 'DOWN'
+    car:calm(self.id)
+    return LINES.shotDown, true
   end
 
   -- Distances of the Hoons hunting you, for the threat light.

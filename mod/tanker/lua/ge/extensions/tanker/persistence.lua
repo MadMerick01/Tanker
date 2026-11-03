@@ -78,6 +78,15 @@ function M.validate(s)
   if type(s.vehicle) ~= 'table' or not optionalString(s.vehicle.model)
       or not optionalString(s.vehicle.configuration) or not amount(s.vehicle.fuelLitres)
       or not amount(s.vehicle.bedLitres) then return nil, 'invalid_vehicle' end
+  -- The flatscreen revolver's rounds, when saved.
+  local ammo = nil
+  if s.vehicle.ammo ~= nil then
+    local a = s.vehicle.ammo
+    if type(a) ~= 'table' or not integer(a.loaded, 0) or a.loaded > 6 or not integer(a.spare, 0) or a.spare > 999 then
+      return nil, 'invalid_vehicle'
+    end
+    ammo = { loaded = a.loaded, spare = a.spare }
+  end
   local vehicleConfig = nil
   if s.vehicle.config ~= nil then
     vehicleConfig = plainConfig(s.vehicle.config)
@@ -87,7 +96,7 @@ function M.validate(s)
     schemaVersion = M.SCHEMA, profileId = 'default', generation = s.generation,
     start = location.copy(s.start), resume = resume, run = r,
     vehicle = { model = s.vehicle.model, configuration = s.vehicle.configuration, config = vehicleConfig,
-      fuelLitres = s.vehicle.fuelLitres, bedLitres = s.vehicle.bedLitres },
+      fuelLitres = s.vehicle.fuelLitres, bedLitres = s.vehicle.bedLitres, ammo = ammo },
   }
 end
 
