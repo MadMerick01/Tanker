@@ -26,6 +26,7 @@ local parts = require('tanker/parts')
 local pricing = require('tanker/pricing')
 local revolver = require('tanker/revolver')
 local aim = require('tanker/aim')
+local tankerMob = require('tanker/tankerMob')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -62,6 +63,7 @@ function M.new(env)
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
   -- The flatscreen revolver: mouse aiming when there is no VR.
   c.aim, c.gun = env.aim, revolver.new()
+  c.tankerMob = env.tankerMob
   -- Parts paid for in fuel.
   c.parts = env.parts
   if c.parts then workshop.attach(c) end
@@ -253,14 +255,22 @@ function M.new(env)
     if line then self.feedback = line; self.diag:event('hoon', line) end
   end
 
-  -- For testing: sends the Hoon now instead of waiting for the km.
+  -- The spawn button: sends the Hoon now instead of waiting for the km, road or no road.
   function c:sendHoon()
     if self.state ~= 'RUNNING' or not self.hoons or self.hoons.state ~= 'HIDDEN' then return false end
-    local line, why = self.hoons:send(self.clock)
-    self.feedback = line or (why == 'off_road' and 'Hoons only come when you are on a road.'
-      or why == 'no_solid_road' and 'No solid road near you for a Hoon yet. Try further along.'
-      or 'The Hoon could not be sent: ' .. tostring(why))
+    local line, why = self.hoons:send(self.clock, true)
+    self.feedback = line or ('The Hoon could not be sent: ' .. tostring(why))
     return line ~= nil
+  end
+
+  -- The spawn button for the TankerMob: a fuel tanker ahead of you that drives away.
+  function c:spawnTanker()
+    if self.state ~= 'RUNNING' or not self.tankerMob then return false end
+    local ok, why = self.tankerMob:spawn()
+    self.feedback = ok and 'A TankerMob is up ahead and running from you. Stop it and siphon its tank.'
+      or ('The TankerMob could not be spawned: ' .. tostring(why))
+    if not ok then self.diag:event('tanker_mob', tostring(why), 'W') end
+    return ok
   end
 
   -- The pump between the bed tank and the truck's tank.
@@ -573,6 +583,7 @@ function M.new(env)
       v.pumpStopAllowed = self.transfer:active()
       v.pumping = self.transfer:direction()
     end
+    v.tankerSpawnAllowed = self.tankerMob ~= nil and self.state == 'RUNNING'
     if self.hoons then
       v.hoonTestAllowed = self.state == 'RUNNING' and self.hoons.state == 'HIDDEN'
       v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil }
@@ -656,6 +667,7 @@ function M.new(env)
   -- Tanker going away puts back the rocks it hid.
   function c:shutdown()
     if self.hoons then self.hoons:remove() end
+    if self.tankerMob then self.tankerMob:remove() end
     if self.adapter.restoreRocks then self.adapter:restoreRocks() end
   end
 
@@ -689,7 +701,7 @@ local function ensure()
   if not active then
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
       vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(), parts = parts.new(),
-      aim = aim.new(),
+      aim = aim.new(), tankerMob = tankerMob.new(hoonCar.new()),
       log = rawget(_G, 'log'), drawTri = drawTri,
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end
@@ -748,6 +760,7 @@ function M.onVrPistolHit(vehId) return safely(function() if active then active:v
 function M.onVrPistolDriverHit(vehId) return safely(function() if active then active:vrHit(vehId, true) end end) end
 function M.hudHover(on) return safely(function() ensure().hudHover = on == true end) end
 function M.onDrawDebug() return safely(function() if active and active.aim then active:followAim() end end) end
+function M.spawnTanker() return safely(function() return ensure():spawnTanker() end) end
 function M.sendHoon() return safely(function() return ensure():sendHoon() end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end

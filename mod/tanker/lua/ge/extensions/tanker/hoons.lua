@@ -31,6 +31,8 @@ M.HUNT_SECONDS = 300
 M.LEAVE_METRES = 600
 -- If a Hoon can't be placed, try again after this many seconds.
 M.RETRY_SECONDS = 10
+-- The spawn button puts the Hoon this far behind you when there is no road to put it on.
+M.SPAWN_METRES = 40
 -- This many hits from your revolver stop a hunting Hoon.
 M.SHOTS_TO_STOP = 4
 
@@ -74,12 +76,14 @@ function M.new(car, random)
   function s:hunting() return self.state == 'HUNTING' end
 
   -- Sends the Hoon now, if it can be placed. Returns the line to show, or nil and why not.
-  function s:send(clock)
+  -- anywhere (the spawn button) sends it even off road: on a road nearby if there is one, or
+  -- else straight behind you on the ground.
+  function s:send(clock, anywhere)
     if self.state ~= 'HIDDEN' then return nil, 'not_ready' end
     local me = car:player()
     if not me then return nil, 'no_player' end
     local near = car:road(me.x, me.y, me.z)
-    if not near or near.metres > M.ROAD_METRES then return nil, 'off_road' end
+    if not anywhere and (not near or near.metres > M.ROAD_METRES) then return nil, 'off_road' end
     -- Behind first, then ahead: a road point near the spot, far enough away, with solid ground.
     local road, line
     for _, side in ipairs({ { -1, LINES.coming }, { 1, LINES.ahead } }) do
@@ -89,6 +93,11 @@ function M.new(car, random)
         road, line = r, side[2]
         break
       end
+    end
+    if not road and anywhere then
+      local x, y = me.x - me.dx * M.SPAWN_METRES, me.y - me.dy * M.SPAWN_METRES
+      local z = car.ground and car:ground(x, y, me.z) or me.z
+      road, line = { x = x, y = y, z = z or me.z }, LINES.coming
     end
     if not road then return nil, 'no_solid_road' end
     local ok, why = car:attack(self.id, road.x, road.y, road.z, me.id)

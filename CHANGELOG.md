@@ -6,6 +6,9 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **New: the TankerMob,** Rowan's fuel tanker truck. For now it comes from a spawn button: **Spawn the TankerMob** on the **Rig** tab puts it about 60 m ahead of you, and it drives off away from you. Catch it, stop it and siphon its tank. Pressing the button again puts the same truck back in front of you. It's also in BeamNG's vehicle menu under the truck.
+- **Spawn a Hoon** on the **Rig** tab (it was called "Send a Hoon now (testing)") now works anywhere, road or no road. Off road, the Hoon appears on the ground about 40 m behind you. Hoons that come by themselves still only come while you're on a road.
+
 - **Fixed: pumping now changes the bed tank.** Pumping between the bed tank and the truck moved fuel in and out of the truck's own tank, but the bed tank's litres stayed the same. The bed tank now goes down as you pump into the truck and up as you pump back. The same fault could make siphoning stop straight away with "There is no fuel to siphon in that car" while still taking a litre, and that's fixed too. Your save still works.
 - The starter truck has a new picture, on the start page's **Your truck** card and in BeamNG's vehicle menu.
 

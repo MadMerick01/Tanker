@@ -155,6 +155,12 @@ function M.new(environment)
     return math.abs(ground - z) <= M.SOLID_METRES
   end
 
+  -- The height of the ground under x, y (looking from a few metres above z), or nil.
+  function h:ground(x, y, z)
+    local ok, g = pcall(env.ground, x, y, z)
+    if ok and finite(g) then return g end
+  end
+
   -- Puts the Hoon on the road at x, y, z facing the player, switches it on and sets it hunting.
   function h:attack(id, x, y, z, targetId)
     local c = car(id)

@@ -1,0 +1,33 @@
+{
+  "Body Style":"Tanker Truck",
+  "Commercial Class":"Class 8 Truck",
+  "Config Type":"Service",
+  "Configuration":"TankerMob",
+  "Population":3200,
+  "Value":338000,
+  "Years":{
+    "max":1986,
+    "min":1978
+  },
+  "defaultMultiPaintSetup":{
+    "name":"tankermob Multi Paint Setup",
+    "paint1":{
+      "baseColor":[
+        1,
+        1,
+        1,
+        1.2000000476837
+      ],
+      "class":"hidden",
+      "clearcoat":0,
+      "clearcoatRoughness":0,
+      "metallic":0,
+      "name":"tankermob Paint 1",
+      "roughness":0.0700000003
+    },
+    "paint2":"Black",
+    "paint3":"Butterscotch"
+  },
+  "vehicleSelectorSubCluster":"vehiclesData.us_semi.tc82_base.vehicleSelectorSubCluster",
+  "vehicleSelectorSubGroup":"vehiclesData.us_semi.tc82_base.vehicleSelectorSubGroup"
+}
