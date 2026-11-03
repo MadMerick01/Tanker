@@ -7,6 +7,7 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
 - **Fixed: pumping now changes the bed tank.** Pumping between the bed tank and the truck moved fuel in and out of the truck's own tank, but the bed tank's litres stayed the same. The bed tank now goes down as you pump into the truck and up as you pump back. The same fault could make siphoning stop straight away with "There is no fuel to siphon in that car" while still taking a litre, and that's fixed too. Your save still works.
+- The starter truck has a new picture, on the start page's **Your truck** card and in BeamNG's vehicle menu.
 
 ## Build 12 · 3 Nov 2026
 
