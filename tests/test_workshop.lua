@@ -47,8 +47,14 @@ T.eq(#v.bill.lines, 2, 'one line each')
 -- Paying on the bill box takes the bed tank first, then closes the parts menu.
 local states = {}
 c.trigger = function(event, data) if event == 'ChangeState' then states[#states + 1] = data end end
+local freeCamera, cameraCalls = true, 0
+c.camera = { backToCar = function() cameraCalls = cameraCalls + 1; local was = freeCamera; freeCamera = false; return was end }
 T.eq(c:payPartsBill(), true, 'paid')
 T.eq(states[1] and states[1].state, 'play', 'paying on the bill box closes the parts menu, back to the truck')
+T.eq(cameraCalls, 1, 'and leaves the free camera'); T.check(not freeCamera, 'for the truck\'s own camera')
+freeCamera = true; run(1)
+T.eq(cameraCalls, 2, 'checked once more a moment later'); T.check(not freeCamera, 'in case closing the menu turned it back on')
+run(2); T.eq(cameraCalls, 2, 'and only once')
 local billL = expected / Pr.FUEL_PRICE
 T.near(c.bedLitres, math.max(0, 25 - billL), 1e-9, 'from the bed tank first')
 T.near(c.reading.litres, 15 - math.max(0, billL - 25), 1e-9, 'then the truck')
@@ -60,7 +66,7 @@ parts.snap.values.v8 = 9000; parts.snap.names.v8 = 'V8'; parts.snap.parts.engine
 c:vehicleSpawned(7); run(0.5)
 T.eq(c:view().payPartsAllowed, false, 'a V8 is more fuel than you carry')
 T.check(c:view().bill.short > 0, 'and says how short'); T.eq(c:payParts(), false, 'cannot pay')
-T.eq(c:payPartsBill(), false, 'cannot pay on the bill box either'); T.eq(#states, 1, 'and the parts menu stays open')
+T.eq(c:payPartsBill(), false, 'cannot pay on the bill box either'); T.eq(#states, 1, 'and the parts menu stays open'); T.eq(cameraCalls, 2, 'with the camera alone')
 -- Undo puts the paid parts back.
 T.eq(c:undoParts(false), true, 'undo'); T.eq(parts.restores, 1, 'the truck respawns with the paid parts')
 parts.snap.parts.engine = 'i6'
