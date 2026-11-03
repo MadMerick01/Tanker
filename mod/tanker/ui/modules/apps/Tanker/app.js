@@ -7,7 +7,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   var COMMANDS = { startRun: 'startAllowed', goToSave: 'goToSaveAllowed', save: 'saveAllowed', rocksOn: 'rocksAllowed', rocksOff: 'rocksAllowed',
     siphonStart: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed', spawnTanker: 'tankerSpawnAllowed',
     pumpToTruck: 'pumpAllowed', pumpToBed: 'pumpAllowed', pumpStop: 'pumpStopAllowed',
-    payParts: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed',
+    payParts: 'payPartsAllowed', payPartsBill: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed',
     toggleRevolver: 'revolverAllowed', reloadRevolver: 'reloadAllowed' }
   // The game's own parts menu, as Earth Freight opens it.
   var PARTS_MENU = "if core_vehicles and core_vehicles.openPartsSelectorUI then core_vehicles.openPartsSelectorUI() " +
@@ -59,7 +59,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
       var pay = button(box, 'Pay ' + b.litresText, '#f2c94c', function () {
         if (!asked) { asked = true; pay.textContent = 'Yes, pay ' + b.litresText; return }
         pay.disabled = true
-        send('payParts')
+        send('payPartsBill')
       })
     }
     button(box, 'Undo changes', '#c8bfb2', function () { send('undoParts') })

@@ -58,7 +58,7 @@ function M.new(env)
   local c = {
     state = 'STARTING', diag = diagnostics.new(env.log), hud = hud.new(env.trigger),
     store = persistence.new(env.io), fuel = env.fuel, pistol = env.pistol, adapter = env.adapter, vehicles = env.vehicles,
-    clock = 0, nextSample = 0, threat = 'clear', nearby = env.nearby,
+    clock = 0, nextSample = 0, threat = 'clear', nearby = env.nearby, trigger = env.trigger,
   }
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
   -- The flatscreen revolver: mouse aiming when there is no VR.
@@ -751,6 +751,7 @@ function M.pumpToTruck() return safely(function() return ensure():startPump('toT
 function M.pumpToBed() return safely(function() return ensure():startPump('toBed') end) end
 function M.pumpStop() return safely(function() return ensure():stopPump() end) end
 function M.payParts() return safely(function() return ensure():payParts() end) end
+function M.payPartsBill() return safely(function() return ensure():payPartsBill() end) end
 function M.undoParts() return safely(function() return ensure():undoParts(false) end) end
 function M.toggleRevolver() return safely(function() return ensure():toggleRevolver() end) end
 function M.reloadRevolver() return safely(function() return ensure():reloadRevolver() end) end
