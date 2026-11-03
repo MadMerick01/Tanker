@@ -27,10 +27,11 @@ T.eq(dry:addRounds(4), 4, 'loot adds rounds')
 local function fakeAim()
   local a = { vrOn = false, target = 42, clicks = 0, hits = {}, draws = 0 }
   function a:vr() return self.vrOn end
-  function a:aim() return { targetId = self.target, point = { x = 0, y = 0, z = 0 }, dir = { x = 0, y = 1, z = 0 } } end
+  function a:aim() return { origin = { x = 0, y = 0, z = 0 }, dir = { x = 0, y = 1, z = 0 } } end
   function a:draw() self.draws = self.draws + 1 end
   function a:clicked() if self.clicks > 0 then self.clicks = self.clicks - 1; return true end return false end
-  function a:hit(shot) self.hits[#self.hits + 1] = shot.targetId; return true end
+  -- The car answers like the VR revolver's hit code: here at once, when the aim is on a car.
+  function a:shoot() self.hits[#self.hits + 1] = self.target; if self.target and self.onHit then self.onHit(self.target, self.driver) end return true end
   return a
 end
 local function fakeHoonCar()
@@ -51,6 +52,7 @@ local adapter = F.adapter(-31.0, 140.0)
 local shooter = fakeAim()
 local hoonCar = fakeHoonCar()
 local c, env = F.controller(adapter, { aim = shooter, hoonCar = hoonCar, vehicles = F.vehicles() })
+shooter.onHit = function(id, driver) c:vrHit(id, driver) end
 local function run(seconds) for _ = 1, math.floor(seconds * 2) do c:tick(0.5) end end
 run(1)
 T.eq(c:view().revolverAllowed, nil, 'no revolver before the run'); T.eq(c:toggleRevolver(), false, 'none to draw')
@@ -68,13 +70,20 @@ T.eq(c:sendHoon(), true, 'a Hoon comes'); T.eq(c.hoons.state, 'HUNTING', 'huntin
 for i = 1, H.SHOTS_TO_STOP do
   shooter.clicks = 1; c.clock = c.clock + 1; c:followAim()
 end
-T.eq(#shooter.hits, H.SHOTS_TO_STOP, 'each shot hits'); T.eq(c.hoons.state, 'DOWN', 'the Hoon is stopped')
+T.eq(#shooter.hits, H.SHOTS_TO_STOP, 'each shot fired'); T.eq(c.hoons.state, 'DOWN', 'the Hoon is stopped')
 T.check(c.feedback:find('shot the Hoon'), 'and the HUD says so'); T.eq(hoonCar.calmed, 1, 'its engine stops')
 T.eq(c.gun.loaded, 6 - H.SHOTS_TO_STOP, 'rounds used')
 -- A miss.
 shooter.target = nil; shooter.clicks = 1; c.clock = c.clock + 1; c:followAim()
 T.eq(c.feedback, 'Missed.', 'a miss'); T.eq(c.gun.loaded, 1, 'still costs a round')
+-- A shot through the driver stops the next Hoon at once, from either revolver.
+c.hoons:putAway(0); T.eq(c:sendHoon(), true, 'another Hoon')
+c:vrHit(42, true)
+T.eq(c.hoons.state, 'DOWN', 'one shot through the driver stops it'); T.check(c.feedback:find('driver'), 'and says so')
+c:vrHit(42, false); T.eq(c.hoons.state, 'DOWN', 'the body hit from the same shot changes nothing')
+c:vrHit(99, false); T.eq(c.hoons.state, 'DOWN', 'other cars are just cars')
 -- Reloading, and the save keeps the rounds.
+c.hoons:putAway(0)
 T.eq(c:reloadRevolver(), true, 'reload'); run(G.RELOAD_SECONDS + 0.5)
 T.eq(c.gun.loaded, 6, 'reloaded')
 c.hoons:putAway(0)
@@ -91,4 +100,38 @@ T.eq(c2.gun.spare, G.START_SPARE - 5, 'back at the save, the same rounds')
 shooter.vrOn = true
 T.eq(c:view().revolverAllowed, nil, 'no mouse revolver in VR')
 c:followAim(); T.eq(c.gun.drawn, false, 'and it is holstered')
+
+-- The game side, with pretend vectors: the VR revolver's shot when it is there, Tanker's copy without.
+local V = {}
+V.__index = V
+local function vec(x, y, z) return setmetatable({ x = x, y = y, z = z }, V) end
+V.__add = function(a, b) return vec(a.x + b.x, a.y + b.y, a.z + b.z) end
+V.__sub = function(a, b) return vec(a.x - b.x, a.y - b.y, a.z - b.z) end
+V.__mul = function(a, k) return vec(a.x * k, a.y * k, a.z * k) end
+function V.dot(a, b) return a.x * b.x + a.y * b.y + a.z * b.z end
+local A = require('tanker/aim')
+local shotWith
+local vrAim = A.new({
+  mouseRay = function() return vec(0, 0, 0), vec(0, 1, 0) end,
+  wall = function() return 300 end,
+  vrPistol = function() return { shoot = function(o, d) shotWith = { o, d } end, testSound = function() end } end,
+})
+local shot = vrAim:aim()
+T.eq(vrAim:shoot(shot), true, 'fired'); T.eq(shotWith and shotWith[2].y, 1, 'with the VR revolver\'s own shot')
+local queued
+local car = { queueLuaCommand = function(_, cmd) queued = cmd end }
+_G.vec3 = function(x, y, z) if type(x) == 'table' then return vec(x.x, x.y, x.z) end return vec(x, y, z) end
+car.getSpawnWorldOOBB = function() return {
+  getHalfExtents = function() return { x = 1, y = 2, z = 1 } end, getCenter = function() return { x = 0, y = 50, z = 0 } end,
+  getAxis = function(_, i) return ({ [0] = { x = 1, y = 0, z = 0 }, { x = 0, y = 1, z = 0 }, { x = 0, y = 0, z = 1 } })[i] end } end
+local ownAim = A.new({
+  mouseRay = function() return vec(0, 0, 0), vec(0, 1, 0) end, wall = function() return 300 end,
+  vehicles = function() return { car } end, player = function() return nil end,
+})
+ownAim:shoot(ownAim:aim())
+T.check(queued and queued:find('tankerHit') ~= nil, 'without the VR mod, Tanker\'s copy of its hit code runs in the car')
+queued = nil
+local walled = A.new({ mouseRay = function() return vec(0, 0, 0), vec(0, 1, 0) end, wall = function() return 20 end,
+  vehicles = function() return { car } end, player = function() return nil end })
+walled:shoot(walled:aim()); T.eq(queued, nil, 'a wall in the way stops the round')
 T.done('revolver')

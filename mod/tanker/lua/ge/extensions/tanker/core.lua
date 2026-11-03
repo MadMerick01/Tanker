@@ -357,12 +357,23 @@ function M.new(env)
       end
       return
     end
-    if not (shot and shot.targetId) then self.feedback = 'Missed.' return end
-    self.aim:hit(shot)
-    local line, wasHoon = nil, false
-    if self.hoons then line, wasHoon = self.hoons:shot(shot.targetId) end
-    self.feedback = line or (wasHoon and 'Hit the Hoon.' or 'Hit.')
-    if line then self.diag:event('hoon', 'shot down') end
+    -- The hit, if any, comes back from the car a moment later (vrHit below).
+    self.feedback, self.shotAt = 'Missed.', self.clock
+    self.aim:shoot(shot)
+  end
+
+  -- A hit from either revolver, the VR one or the flatscreen one: they send the same events. A
+  -- shot through the driver stops a Hoon at once; otherwise four hits do.
+  function c:vrHit(vehId, driver)
+    if not self.hoons then return end
+    local line, wasHoon
+    if driver then line, wasHoon = self.hoons:driverShot(vehId) else line, wasHoon = self.hoons:shot(vehId) end
+    if line then
+      self.feedback = line
+      self.diag:event('hoon', driver and 'driver shot' or 'shot down')
+    elseif self.shotAt and self.clock - self.shotAt < 2 then
+      self.feedback = wasHoon and 'Hit the Hoon.' or 'Hit.'
+    end
   end
 
   function c:saveBlocked()
@@ -732,6 +743,9 @@ function M.undoParts() return safely(function() return ensure():undoParts(false)
 function M.toggleRevolver() return safely(function() return ensure():toggleRevolver() end) end
 function M.reloadRevolver() return safely(function() return ensure():reloadRevolver() end) end
 -- The crosshair and the shots, each frame (ImGui draws here).
+-- The VR revolver's hit events (the flatscreen revolver sends the same ones).
+function M.onVrPistolHit(vehId) return safely(function() if active then active:vrHit(vehId, false) end end) end
+function M.onVrPistolDriverHit(vehId) return safely(function() if active then active:vrHit(vehId, true) end end) end
 function M.hudHover(on) return safely(function() ensure().hudHover = on == true end) end
 function M.onDrawDebug() return safely(function() if active and active.aim then active:followAim() end end) end
 function M.sendHoon() return safely(function() return ensure():sendHoon() end) end

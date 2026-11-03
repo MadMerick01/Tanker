@@ -39,6 +39,7 @@ local LINES = {
   ahead = 'A Hoon is coming at you from up the road.',
   down = 'The Hoon is down. Siphon its tank before more come.',
   shotDown = 'You shot the Hoon to a stop. Siphon its tank before more come.',
+  driverShot = 'You shot the Hoon\'s driver. Siphon its tank before more come.',
   escaped = 'You lost the Hoon.',
   tired = 'The Hoon gave up.',
   gone = 'The Hoon is gone.',
@@ -154,6 +155,14 @@ function M.new(car, random)
     self.state = 'DOWN'
     car:calm(self.id)
     return LINES.shotDown, true
+  end
+
+  -- A shot through the Hoon's driver: its AI is already off, so it is down at once.
+  function s:driverShot(id)
+    if self.state ~= 'HUNTING' or id ~= self.id then return nil, false end
+    self.state = 'DOWN'
+    car:calm(self.id)
+    return LINES.driverShot, true
   end
 
   -- Distances of the Hoons hunting you, for the threat light.

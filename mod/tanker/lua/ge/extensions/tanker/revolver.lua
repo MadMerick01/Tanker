@@ -7,8 +7,8 @@ local M = {}
 M.CYLINDER = 6
 -- A new run starts with a full cylinder and this many spare rounds.
 M.START_SPARE = 12
--- Seconds between shots, and how long a reload takes.
-M.SHOT_SECONDS, M.RELOAD_SECONDS = 0.35, 2
+-- Seconds between shots, and how long a reload takes: the VR revolver's.
+M.SHOT_SECONDS, M.RELOAD_SECONDS = 0.12, 1.5
 M.MAX_SPARE = 999
 
 local function count(n, most)

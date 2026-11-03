@@ -1,30 +1,28 @@
--- The game's side of the flatscreen revolver: aiming with the mouse, the crosshair, the shot and
--- the hit. Adapted from Rowan's Bolides The Cut (FirstPersonShoot.lua and BulletDamage.lua): the
--- shot is a ray from the camera through the mouse, snapped to a nearby car, and a hit pushes and
--- dents the car where the round lands. Every game call is guarded: a missing or changed one means
--- no shot, never an error.
+-- The game's side of the flatscreen revolver: aiming with the mouse, the crosshair and the shot.
+-- The mouse and crosshair come from Rowan's Bolides The Cut (FirstPersonShoot.lua). The shot is
+-- the VR revolver's own (BeamngVRcontrollerPoses), so a hit is exactly the same as in VR: the
+-- bullet must pass within 0.3 m of the car's body, walls stop it, it shoves and dents the car,
+-- flattens a tyre it hits near the hub, and a shot through the driver switches the car's AI off.
+-- With the VR revolver mod installed its vrPistol.shoot is called; without it Tanker's copy of the
+-- same code runs (tankerHit.lua in the car). Every game call is guarded: a missing or changed one
+-- means no shot, never an error.
 local M = {}
 
--- One-line settings. Tune these after testing in game.
--- How far a round reaches, in metres.
-M.RANGE_METRES = 250
--- A shot that passes within this many metres of a car's centre hits it.
-M.SNAP_METRES = 6
--- Hits ignore anything this close to the camera (your own truck's cab).
-M.NEAR_METRES = 2
--- How hard a round hits: the push on the nearest point of the car, and the dent around it.
-M.IMPACT_FORCE, M.DENT_RADIUS, M.DENT_FORCE = 6000, 1.3, 70
+-- One-line settings, the VR revolver's own defaults. Tune these after testing in game.
+M.RANGE_METRES = 300
+M.HIT_RADIUS = 0.3
+M.IMPACT_FORCE, M.BLAST_RADIUS, M.BLAST_FORCE, M.BLAST_INVERSION = 6000, 1.3, 70, 0.3
+M.DEFLATE_TYRES = true
+M.DRIVER_BOX, M.DRIVER_DROP, M.DRIVER_BRAKE = 0.5, 0.15, 0.5
 -- The crosshair: half its size and its thickness, in pixels, and its colour (amber, ImGui ABGR).
 M.CROSSHAIR_SIZE, M.CROSSHAIR_THICKNESS, M.CROSSHAIR_COLOUR = 14, 3, 0xFF00BFFF
-
-local function finite(n) return type(n) == 'number' and n == n and n > -math.huge and n < math.huge end
 
 local function defaults()
   return {
     imgui = function() return rawget(_G, 'ui_imgui') end,
+    vrPistol = function() return rawget(_G, 'vrPistol') or (extensions and extensions.vrPistol) end,
     player = function() return getPlayerVehicle(0) end,
-    byId = function(id) return be and be:getObjectByID(id) end,
-    -- Whether a VR session is running: then the VR revolver mod does the shooting.
+    -- Whether a VR session is running: then the VR revolver does the shooting.
     vr = function()
       local xr = rawget(_G, 'render_openxr')
       if xr and xr.isSessionRunning then
@@ -47,14 +45,15 @@ local function defaults()
       if dir:length() < 0.001 then return nil end
       return vec3(pos), dir:normalized()
     end,
-    castRay = function(from, to) return castRay and castRay(from, to) end,
+    -- How far the ray goes before it meets the ground or a building.
+    wall = function(origin, dir, range)
+      local d = castRayStatic and castRayStatic(origin, dir, range)
+      return type(d) == 'number' and d < range and d or range
+    end,
     vehicles = function()
       local out = {}
-      if not (scenetree and scenetree.findClassObjects) then return out end
-      for _, name in ipairs(scenetree.findClassObjects('BeamNGVehicle') or {}) do
-        local car = scenetree.findObject(name)
-        if car and car.getID then out[#out + 1] = car end
-      end
+      if not (be and be.getObjectCount) then return out end
+      for i = 0, be:getObjectCount() - 1 do out[#out + 1] = be:getObject(i) end
       return out
     end,
     drawSphere = function(pos, radius)
@@ -63,37 +62,42 @@ local function defaults()
   }
 end
 
--- Runs inside the car that was hit: pushes the node nearest the impact along the shot, and dents
--- the car around it. From Bolides The Cut's BulletDamage.
-local IMPACT = [[
-local impact = vec3(%0.4f, %0.4f, %0.4f) - obj:getPosition()
-local dir = vec3(%0.5f, %0.5f, %0.5f)
-local best, bestD = nil, math.huge
-for i = 0, #v.data.nodes do
-  local n = v.data.nodes[i]
-  if n then
-    local d = (obj:getNodePosition(n.cid) - impact):squaredLength()
-    if d < bestD then best, bestD = n.cid, d end
-  end
-end
-if best then
-  local mass = obj.getNodeMass and obj:getNodeMass(best) or 1
-  obj:applyForceVector(best, dir * %0.1f * (mass or 1))
-end
-local r2, r1, push = %0.3f, %0.3f * 0.5, %0.3f * 2000
-for i = 0, #v.data.nodes do
-  local n = v.data.nodes[i]
-  if n then
-    local offset = obj:getNodePosition(n.cid) - impact
-    local d = offset:length()
-    if d <= r2 and d > 1e-4 then
-      local share = math.max(0, math.min(1, 1 - (d - r1) / (r2 - r1)))
-      local sign = math.random() < 0.3 and -1 or 1
-      obj:applyForceVector(n.cid, offset:normalized() * sign * push * share)
+-- Ray against an oriented box; the entry distance or nil. From vrPistol.lua.
+local function rayBox(origin, dir, center, axes, half, maxDist)
+  local tMin, tMax = 0, maxDist
+  local d = center - origin
+  for i = 1, 3 do
+    local e, f = axes[i]:dot(d), axes[i]:dot(dir)
+    if math.abs(f) > 1e-9 then
+      local t1, t2 = (e + half[i]) / f, (e - half[i]) / f
+      if t1 > t2 then t1, t2 = t2, t1 end
+      tMin, tMax = math.max(tMin, t1), math.min(tMax, t2)
+      if tMin > tMax then return nil end
+    elseif -e - half[i] > 0 or -e + half[i] < 0 then
+      return nil
     end
   end
+  return tMin
 end
-]]
+M.rayBox = rayBox
+
+-- A car's box: centre, axes and half sizes. From vrPistol.lua.
+local function vehicleBox(veh)
+  local ok, box = pcall(function() return veh:getSpawnWorldOOBB() end)
+  if ok and box then
+    local h = box:getHalfExtents()
+    return vec3(box:getCenter()), { vec3(box:getAxis(0)), vec3(box:getAxis(1)), vec3(box:getAxis(2)) }, { h.x, h.y, h.z }
+  end
+  local okW, wb = pcall(function() return veh:getWorldBox() end)
+  if okW and wb then
+    local mn, mx = vec3(wb.minExtents), vec3(wb.maxExtents)
+    return (mn + mx) * 0.5, { vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1) },
+      { (mx.x - mn.x) / 2, (mx.y - mn.y) / 2, (mx.z - mn.z) / 2 }
+  end
+end
+
+-- The car-side hit, as vrPistol sends it.
+local HIT = "extensions.load('tankerHit'); extensions.tankerHit.hit(%.4f,%.4f,%.4f,%.6f,%.6f,%.6f,%.2f,%.3f,%.1f,%.3f,%.1f,%.3f,%s,%.3f,%.3f,%.3f)"
 
 function M.new(environment)
   local env = environment or defaults()
@@ -108,52 +112,46 @@ function M.new(environment)
 
   function a:vr() return call('vr') == true end
 
-  local function playerId()
-    local car = call('player')
-    if not car then return nil end
-    local ok, id = pcall(function() return car:getID() end)
-    return ok and id or nil
+  local function vrPistol()
+    local p = call('vrPistol')
+    return type(p) == 'table' and type(p.shoot) == 'function' and p or nil
   end
 
-  -- Where the mouse is aiming: { origin, dir, point, targetId }. point is where the ray meets
-  -- something (or nil), targetId the car it hits or passes close to (never your own).
+  -- Where the mouse aims: { origin, dir, point }, point being where it meets the ground or a wall.
   function a:aim()
     local origin, dir = call('mouseRay')
     if not (origin and dir) then return nil end
-    local start = origin + dir * M.NEAR_METRES
-    local hit = call('castRay', start, origin + dir * M.RANGE_METRES)
-    local point
-    if type(hit) == 'table' then
-      if hit.pos then point = vec3(hit.pos)
-      elseif finite(hit.dist) then point = start + dir * hit.dist end
-    end
-    local me = playerId()
-    local best, bestMiss, bestAlong
-    for _, car in ipairs(call('vehicles') or {}) do
-      local okId, id = pcall(function() return car:getID() end)
-      local okPos, pos = pcall(function() return car:getPosition() end)
-      if okId and okPos and pos and id ~= me then
-        local to = vec3(pos) - origin
-        local along = to:dot(dir)
-        if along > M.NEAR_METRES and along <= M.RANGE_METRES and (not point or along <= (point - origin):length() + M.SNAP_METRES) then
-          local miss = (to - dir * along):length()
-          if miss <= M.SNAP_METRES and (not bestMiss or miss < bestMiss) then best, bestMiss, bestAlong = id, miss, along end
-        end
-      end
-    end
-    local target = best
-    if target and not point then point = origin + dir * bestAlong end
-    return { origin = origin, dir = dir, point = point, targetId = target }
+    local wall = call('wall', origin, dir, M.RANGE_METRES) or M.RANGE_METRES
+    return { origin = origin, dir = dir, point = wall < M.RANGE_METRES and origin + dir * wall or nil }
   end
 
-  -- Hits the car: a push and a dent where the round lands.
-  function a:hit(shot)
-    if not (shot and shot.targetId and shot.point) then return false end
-    local car = call('byId', shot.targetId)
-    if not car then return false end
-    local p, d = shot.point, shot.dir
-    local cmd = string.format(IMPACT, p.x, p.y, p.z, d.x, d.y, d.z, M.IMPACT_FORCE, M.DENT_RADIUS, M.DENT_RADIUS, M.DENT_FORCE)
-    return (pcall(function() car:queueLuaCommand(cmd) end))
+  -- Fires along the aim: the VR revolver's shot and sound when that mod is there, or Tanker's copy
+  -- of the same shot. The hit comes back later, through onVrPistolHit and onVrPistolDriverHit.
+  function a:shoot(shot)
+    if not (shot and shot.origin and shot.dir) then return false end
+    local pistol = vrPistol()
+    if pistol then
+      local ok = pcall(pistol.shoot, shot.origin, shot.dir)
+      if type(pistol.testSound) == 'function' then pcall(pistol.testSound, 'shot') end
+      return ok
+    end
+    local origin, dir = shot.origin, shot.dir
+    local wall = call('wall', origin, dir, M.RANGE_METRES) or M.RANGE_METRES
+    local player = call('player')
+    local nearest, nearestT
+    for _, veh in ipairs(call('vehicles') or {}) do
+      if veh and veh ~= player then
+        local center, axes, half = vehicleBox(veh)
+        local t = center and rayBox(origin, dir, center, axes, half, wall)
+        if t and (not nearestT or t < nearestT) then nearest, nearestT = veh, t end
+      end
+    end
+    if not nearest then return true end
+    local cmd = string.format(HIT, origin.x, origin.y, origin.z, dir.x, dir.y, dir.z, wall, M.HIT_RADIUS,
+      M.IMPACT_FORCE, M.BLAST_RADIUS, M.BLAST_FORCE, M.BLAST_INVERSION, tostring(M.DEFLATE_TYRES),
+      M.DRIVER_BOX, M.DRIVER_DROP, M.DRIVER_BRAKE)
+    pcall(function() nearest:queueLuaCommand(cmd) end)
+    return true
   end
 
   -- The crosshair at the mouse, and a dot where the shot would land. Hides the mouse pointer.
@@ -170,7 +168,7 @@ function M.new(environment)
       imgui.ImDrawList_AddLine(list, imgui.ImVec2(mouse.x - s, mouse.y), imgui.ImVec2(mouse.x + s, mouse.y), colour, t)
       imgui.ImDrawList_AddLine(list, imgui.ImVec2(mouse.x, mouse.y - s), imgui.ImVec2(mouse.x, mouse.y + s), colour, t)
     end)
-    if shot and shot.point and shot.targetId then call('drawSphere', shot.point, 0.15) end
+    if shot and shot.point then call('drawSphere', shot.point, 0.06) end
   end
 
   -- Whether the left mouse button was clicked this frame on the game (not on a game menu).
