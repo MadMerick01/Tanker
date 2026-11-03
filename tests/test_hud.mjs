@@ -33,7 +33,7 @@ function app(document) {
     document
   })
   definition.link(scope)
-  const a = { scope, commands, handlers, state: data => handlers.TankerState({}, data),
+  const a = { scope, commands, handlers, relink: (s, el) => definition.link(s, el), state: data => handlers.TankerState({}, data),
     advance: ms => { clock += ms; for (const tick of timers.values()) tick() } }
   // BeamNG rebuilds the app when a menu closes: the old one is destroyed and a new one linked.
   a.remount = () => {
@@ -167,8 +167,33 @@ test('ignores malformed state and keeps the tab across rebuilds', () => {
 
 test('template uses only the helpers the app defines', () => {
   for (const name of ['toggle', 'send', 'whole', 'fuelShare', 'fuelColour', 'pips', 'threatColour', 'setTab',
-    'openStart', 'closeStart', 'startCommand', 'coordinates', 'km']) {
+    'openStart', 'closeStart', 'startCommand', 'coordinates', 'km', 'newGame', 'cancelNewGame']) {
     assert.ok(html.includes(name + '('), name)
   }
   assert.ok(!/bngApi|engineLua/.test(html), 'no direct Lua from the template')
+})
+
+test('start a new game asks twice, and the start page is a centre window', () => {
+  const doc = page()
+  const startPage = { tag: 'div', children: [], parentNode: null }
+  const a = app(doc)
+  a.handlers.$destroy()
+  a.scope = { $on: (name, fn) => { a.handlers[name] = fn }, $evalAsync: fn => fn() }
+  // Linked again with the template's element, whose start page moves onto the page body.
+  const element = [{ querySelector: sel => sel === '.tk-start' ? startPage : null }]
+  const definitionLink = a.relink
+  assert.equal(typeof definitionLink, 'function')
+  definitionLink(a.scope, element)
+  assert.equal(startPage.parentNode, doc.body, 'the start page sits over the whole screen')
+  a.state({ state: 'RUNNING', newGameAllowed: false })
+  a.scope.newGame(); assert.equal(a.scope.askNewGame, false, 'not offered, nothing happens')
+  a.state({ state: 'RUNNING', newGameAllowed: true })
+  a.scope.openStart()
+  a.scope.newGame()
+  assert.equal(a.scope.askNewGame, true, 'asks first'); assert.ok(!a.commands.includes(fixed('newGame()')))
+  a.scope.cancelNewGame(); assert.equal(a.scope.askNewGame, false, 'keep this one')
+  a.scope.newGame(); a.scope.newGame()
+  assert.equal(a.commands.at(-1), fixed('newGame()'), 'then starts over'); assert.equal(a.scope.start, false, 'and closes the page')
+  a.handlers.$destroy()
+  assert.equal(startPage.parentNode, null, 'the page goes with the app')
 })

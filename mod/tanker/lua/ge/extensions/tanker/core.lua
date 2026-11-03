@@ -23,6 +23,7 @@ local transfer = require('tanker/transfer')
 local bedTank = require('tanker/bedTank')
 local workshop = require('tanker/workshop')
 local parts = require('tanker/parts')
+local pricing = require('tanker/pricing')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -128,6 +129,31 @@ function M.new(env)
   function c:startRun()
     if self.state ~= 'NEW' then return false end
     return self:sendTo(self:start(), route.START_NAME, 'TO_START')
+  end
+
+  -- Start a new game: drops the run you are on and heads for the start. The old save stays on
+  -- disk until the new run has started and saved over it, so a failed teleport loses nothing.
+  function c:newGameAllowed()
+    return (self.state == 'AWAY' or self.state == 'RUNNING') and self.profile ~= nil
+  end
+
+  function c:newGame()
+    if not self:newGameAllowed() then return false end
+    local was, profile = self.state, self.profile
+    if self.siphon:active() then self:stopSiphon() end
+    if self.transfer:active() then self:stopPump() end
+    if self.hoons and self.hoons:outId() then self.hoons:putAway(profile.run.drivenKm) end
+    self.profile, self.state = nil, 'NEW'
+    if not self:startRun() then
+      self.profile, self.state = profile, was
+      return false
+    end
+    self.ownedParts, self.pendingParts, self.fittedParts, self.lastDamage = nil, nil, nil, nil
+    self.restoreFuel, self.partsCheckDue = nil, nil
+    -- The new run's km start from nought, so the first Hoon comes as early as in any new run.
+    if self.hoons and self.hoons.state == 'HIDDEN' then self.hoons.nextKm = hoons.FIRST_KM end
+    self.diag:event('new_game', was)
+    return true
   end
 
   function c:goToSave()
@@ -453,6 +479,7 @@ function M.new(env)
       state = self.state, stateLabel = LABELS[self.state], feedback = self.feedback, threat = self.threat,
       startName = route.START_NAME, goalName = route.GOAL_NAME,
       startAllowed = self.state == 'NEW', goToSaveAllowed = self.state == 'AWAY',
+      newGameAllowed = self:newGameAllowed(),
       saveAllowed = self:saveBlocked() == nil, saveBlockedBy = self:saveBlocked() == 'hoons_near' and 'hoons' or nil,
     }
     if here.valid then
@@ -503,6 +530,15 @@ function M.new(env)
         rangeKm = fuel.range(carried, r.usedLitres, r.rangeKm) }
     end
     if self.parts then self:workshopView(v) end
+    -- Your truck on the start page, like a character sheet.
+    local card = self.vehicles and self.vehicles.describe and self.vehicles:describe()
+    if card then
+      local truck = {}
+      for k, x in pairs(card) do truck[k] = x end
+      local damage = self.lastDamage and self.lastDamage.damage
+      if damage then truck.repair = pricing.repairCost(damage, self.ownedParts and self.ownedParts.value or card.value) end
+      v.truck = truck
+    end
     local gun = self.pistol:read()
     v.pistol = { installed = gun.installed, drawn = gun.drawn }
     if gun.loaded then v.ammo = { loaded = gun.loaded, spare = gun.spare } end
@@ -610,6 +646,7 @@ function M.onExtensionLoaded()
 end
 function M.onPreRender(dtReal) return safely(function() ensure():tick(dtReal) end) end
 function M.startRun() return safely(function() return ensure():startRun() end) end
+function M.newGame() return safely(function() return ensure():newGame() end) end
 function M.goToSave() return safely(function() return ensure():goToSave() end) end
 function M.save() return safely(function() return ensure():manualSave() end) end
 function M.rocksOn() return safely(function() return ensure():setDesertRocks(true) end) end
