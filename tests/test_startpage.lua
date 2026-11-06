@@ -28,7 +28,14 @@ adapter.refuse = 'teleport_refused'
 T.eq(c:newGame(), false, 'a failed teleport keeps the run')
 T.eq(c.state, 'RUNNING', 'still on the road'); T.check(c.profile ~= nil, 'with its save')
 adapter.refuse = nil
+local freed = 0
+function vehicles:freeDriver() freed = freed + 1; return true end
 T.eq(c:newGame(), true, 'new game')
+T.eq(freed, 1, 'and your vehicle is freed of any Hoon driver or AI')
+T.check((loadstring or load)(V.FREE) ~= nil, 'with a valid command')
+local sent = {}
+local realV = V.new({ player = function() return { queueLuaCommand = function(_, cmd) sent[#sent + 1] = cmd end } end })
+T.eq(realV:freeDriver(), true, 'sent to your vehicle'); T.check(sent[1]:find('tankerDriver.stop', 1, true) ~= nil, 'stopping the Hoon driver')
 T.eq(c.state, 'TO_START', 'heading back to the start')
 T.eq(adapter.teleports[#adapter.teleports].name, R.START_NAME, 'to Lake Eyre')
 adapter:put(R.START.latitude, R.START.longitude); run(c, 1)

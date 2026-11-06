@@ -159,6 +159,8 @@ function M.new(env)
     if self.transfer:active() then self:stopPump() end
     if self.hoons and self.hoons:outId() then self.hoons:putAway(profile.run.drivenKm) end
     if self.pack then self.pack:clear() end
+    -- If the game had put you in a Hoon's car, nothing of the Hoon stays driving it.
+    if self.vehicles and self.vehicles.freeDriver then self.vehicles:freeDriver() end
     self.profile, self.state = nil, 'NEW'
     if not self:startRun() then
       self.profile, self.state = profile, was

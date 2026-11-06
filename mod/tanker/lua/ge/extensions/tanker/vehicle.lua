@@ -7,6 +7,11 @@ local M = {}
 M.STARTER_MODEL = 'pickup'
 M.STARTER_CONFIG = 'vehicles/pickup/tankerstarter.pc'
 M.STARTER_NAME = 'TankerStarter'
+-- Runs in the player's vehicle: no Hoon driver and no AI.
+M.FREE = [[
+if extensions and extensions.tankerDriver then extensions.tankerDriver.stop() end
+if ai then pcall(ai.setMode, 'disabled') end
+]]
 -- The starter truck's picture, for the start page when the game can't name one.
 M.STARTER_PREVIEW = '/vehicles/pickup/tankerstarter.jpg'
 
@@ -37,6 +42,14 @@ function M.new(environment)
       { config = useSaved and config or M.STARTER_CONFIG, keepOtherVehRotation = true }, player)
     if not ok then return false, 'spawn_failed', tostring(why) end
     return true
+  end
+
+  -- Hands the player's vehicle back to the player: Tanker's Hoon driver and BeamNG's AI let go of
+  -- it. For a new game, in case the game had put the player in a Hoon's car.
+  function v:freeDriver()
+    local okPlayer, player = pcall(env.player)
+    if not okPlayer or not player then return false end
+    return (pcall(function() player:queueLuaCommand(M.FREE) end))
   end
 
   -- Whether this vehicle id is the player's, so a spawn of some other car (traffic) is ignored.

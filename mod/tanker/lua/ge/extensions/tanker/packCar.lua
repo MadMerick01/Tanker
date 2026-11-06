@@ -40,7 +40,10 @@ function M.new(hc, environment)
   local p = {}
   local spares, loaded = {}, {} -- our own hidden HoonOld1 cars, and every one we loaded
 
+  -- Never the player's own vehicle: if the game puts you in a Hoon's car, it stops being a Hoon.
   local function car(id)
+    local me = hc:player()
+    if id == nil or (me and me.id == id) then return nil end
     local ok, c = pcall(env.byId, id)
     return ok and c or nil
   end

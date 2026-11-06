@@ -69,7 +69,7 @@ function M.new(car, random)
       return tostring(why) .. (detail and (': ' .. detail) or '')
     end
     self.id, self.model, self.state = id, why, 'HIDDEN'
-    self.nextKm = (drivenKm or 0) + M.FIRST_KM
+    self.nextKm = math.max(self.nextKm or 0, (drivenKm or 0) + M.FIRST_KM)
     return nil
   end
 
@@ -128,7 +128,8 @@ function M.new(car, random)
     if self.state ~= 'HUNTING' and self.state ~= 'DOWN' then return nil end
     local me, hoon = car:player(), car:state(self.id)
     if not hoon then
-      self.state = 'HIDDEN'
+      -- Its car is gone (or the game put you in it): a fresh car is loaded for the next Hoon.
+      self.state, self.id = 'NONE', nil
       self.nextKm = (drivenKm or 0) + self:gap()
       return LINES.gone
     end

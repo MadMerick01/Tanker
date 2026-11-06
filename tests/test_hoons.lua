@@ -79,7 +79,10 @@ car.offRoad = nil
 T.eq(h:step(105, 40), nil, 'waits before trying again')
 T.eq(h:step(101 + H.RETRY_SECONDS + 1, 40), H.LINES.coming, 'tries again')
 car.hoon = nil
-T.eq(h:step(200, 40), H.LINES.gone, 'a car that vanished is handled'); T.eq(h.state, 'HIDDEN', 'and waits for the next')
+T.eq(h:step(200, 40), H.LINES.gone, 'a car that vanished is handled'); T.eq(h.state, 'NONE', 'and a fresh car is loaded for the next')
+T.eq(h.id, nil, 'the old car is forgotten')
+T.eq(h:load(40), nil, 'loads again'); T.eq(h.state, 'HIDDEN', 'and waits')
+T.check(h.nextKm >= 40 + H.FIRST_KM, 'not straight away')
 h:remove()
 T.eq(car.removed, 1, 'removed when Tanker goes'); T.eq(h.state, 'NONE', 'ready to load again')
 
@@ -193,6 +196,14 @@ local fastGame = HC.new({
 })
 fastGame:load()
 T.eq(spawned[#spawned].opts.config, 'vehicles/barstow/hoonfast2.pc', 'and HoonFast2 on a high roll')
+-- Your own vehicle is never a Hoon: if the game put you in a Hoon's car, Tanker leaves it alone.
+T.eq(game:hide(7), false, 'never hides your car'); T.eq(cars[7].active, 1, 'it stays on')
+local okPut, whyPut = game:put(7, 0, 0, 0, 0, 1)
+T.eq(okPut, false, 'never places your car'); T.eq(whyPut, 'no_car', 'as if it were gone')
+T.eq(game:state(7), nil, 'and the Hoon counts its car as gone')
+T.eq(game:hunt(7, 7), false, 'never sets your car hunting')
+T.eq(#cars[7].commands, 0, 'no command reaches your car')
+T.eq(cars[50].playerUsable, false, 'a Hoon car cannot be switched into')
 local road = game:road(3, -390, 5)
 T.near(road.y, -390, 1e-9, 'the nearest point on the road'); T.near(road.metres, 3, 1e-9, 'and how far')
 T.eq(game:solid(0, -390, 5), false, 'no ground, not solid'); T.eq(game:solid(0, -400, 5), true, 'ground under the road is solid')
