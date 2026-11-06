@@ -1,0 +1,25 @@
+{
+  "Config Type":"Custom",
+  "Configuration":"HoonFast2",
+  "Population":20,
+  "defaultMultiPaintSetup":{
+    "name":"hoonfast2 Multi Paint Setup",
+    "paint1":{
+      "baseColor":[
+        0.026000000536442,
+        0.096000000834465,
+        0.26899999380112,
+        1.2000000476837
+      ],
+      "class":"hidden",
+      "clearcoat":0,
+      "clearcoatRoughness":0,
+      "metallic":0,
+      "name":"hoonfast2 Paint 1",
+      "roughness":0.0700000003
+    },
+    "paint2":"Fire Red",
+    "paint3":"Gray"
+  },
+  "vehicleSelectorSubGroup":"vehiclesData.autobello.150_rally.vehicleSelectorSubGroup"
+}

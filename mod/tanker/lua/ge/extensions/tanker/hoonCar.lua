@@ -4,11 +4,13 @@
 -- means no Hoon, never an error.
 local M = {}
 
--- The Hoon's car: Rowan's HoonOld1, a rusty Barstow (I6, welded diff, rollcage, offroad tyres),
--- shipped in the mod under vehicles/barstow. If the game has no Barstow, a plain one of the
--- other vanilla muscle cars, in order, is used instead.
+-- The Hoon's car: one of Rowan's Barstows, shipped in the mod under vehicles/barstow, each
+-- equally likely (Rowan, 6 Nov): HoonOld1 (rusty, I6, welded diff, rollcage, offroad tyres) and
+-- HoonFast2 (supercharged V8, cowl hood, rollcage). If the game has no Barstow, a plain one of
+-- the other vanilla muscle cars, in order, is used instead.
 M.MODELS = { 'barstow', 'moonhawk', 'burnside' }
-M.CONFIGS = { barstow = 'vehicles/barstow/hoonold1.pc' }
+M.HOONS = { 'hoonold1', 'hoonfast2' }
+local function configPath(name) return 'vehicles/barstow/' .. name .. '.pc' end
 -- How high above the player the car waits while hidden, in metres.
 M.HIDE_LIFT = 2000
 -- A road point counts as solid when the ground under it is within this many metres of it.
@@ -109,9 +111,9 @@ function M.new(environment, pool)
   end
 
   -- A car of this model taken out of Tanker's traffic pool, the one furthest from you, or nil.
-  function h:fromPool(name, me)
+  function h:fromPool(name, me, config)
     if not (self.pool and me) then return nil end
-    local ok, id = pcall(self.pool.take, self.pool, name, me.x, me.y)
+    local ok, id = pcall(self.pool.take, self.pool, name, me.x, me.y, config)
     if ok and type(id) == 'number' and car(id) then return id end
   end
 
@@ -122,10 +124,26 @@ function M.new(environment, pool)
     if not me then return nil, 'vehicle_required' end
     local name = self:model()
     if not name then return nil, 'no_hoon_model' end
-    local pooled = self:fromPool(name, me)
-    if pooled then
-      self:hide(pooled)
-      return pooled, name
+    -- Which Hoon: HoonOld1 or HoonFast2, even odds. From the pool, that one if it has one left,
+    -- else the other; failing both, the chosen one is loaded.
+    local config
+    if name == 'barstow' then
+      local roll = env.random and env.random() or math.random()
+      local first = roll < 0.5 and 1 or 2
+      config = M.HOONS[first]
+      for _, pick in ipairs({ M.HOONS[first], M.HOONS[3 - first] }) do
+        local pooled = self:fromPool(name, me, pick)
+        if pooled then
+          self:hide(pooled)
+          return pooled, name, pick
+        end
+      end
+    else
+      local pooled = self:fromPool(name, me)
+      if pooled then
+        self:hide(pooled)
+        return pooled, name
+      end
     end
     local okVehicles, vehicles = pcall(env.vehicles)
     if not okVehicles or type(vehicles) ~= 'table' or type(vehicles.spawnNewVehicle) ~= 'function' then
@@ -133,12 +151,12 @@ function M.new(environment, pool)
     end
     local okPos, pos = pcall(env.vec3, me.x, me.y, me.z + M.HIDE_LIFT)
     local ok, c = pcall(vehicles.spawnNewVehicle, name,
-      { config = M.CONFIGS[name], pos = okPos and pos or nil, autoEnterVehicle = false })
+      { config = config and configPath(config), pos = okPos and pos or nil, autoEnterVehicle = false })
     if not ok or not c then return nil, 'spawn_failed', tostring(c) end
     local okId, id = pcall(function() return c:getID() end)
     if not okId or type(id) ~= 'number' then return nil, 'spawn_failed' end
     self:hide(id)
-    return id, name
+    return id, name, config
   end
 
   -- Stops the car's AI and switches it off, above wherever the player is.
