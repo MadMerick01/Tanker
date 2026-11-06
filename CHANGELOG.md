@@ -6,6 +6,10 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Hoons are better at getting through the scrub.** A Hoon now looks ahead along both edges of its car as well, so it no longer tries to squeeze through a gap between two bushes that's narrower than itself. When a bush has others beside it, the Hoon goes round the open side of the whole clump. Once it picks a side it sticks to it for a moment instead of weaving left and right.
+- **Hoons now see bushes on hills.** Their view ahead follows the ground, so a Hoon spots a bush up a slope or just over a crest in time instead of running into it. The bottom of a steep hill still isn't mistaken for a bush.
+- Your save still works, and there's nothing to do except download the new tanker.zip.
+
 ## Build 32 · 6 Nov 2026
 
 - **Hoons now steer round solid bushes, rocks and trees.** In the desert a Hoon looks ahead for anything solid in its path and swerves round it, easing off if it's right in front. Hillsides don't count. A Hoon going for a sideswipe still holds its line.
