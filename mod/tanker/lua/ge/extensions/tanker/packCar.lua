@@ -21,7 +21,7 @@ end
 local SLOT = [[
 if extensions and not extensions.tankerDriver then pcall(extensions.load, 'tankerDriver') end
 if extensions and extensions.tankerDriver then
-  extensions.tankerDriver.target(%.2f, %.2f, %.2f, %.2f)
+  extensions.tankerDriver.target(%.2f, %.2f, %.2f, %.2f, %s)
 elseif ai and ai.setSlotTrafficTarget then
   pcall(ai.setSlotTrafficTarget, %.2f, %.2f, %.2f, %.2f)
   if obj then obj:queueGameEngineLua('if tanker_core then tanker_core.packProblem(%d, "no_tanker_driver") end') end
@@ -29,6 +29,8 @@ elseif obj then
   obj:queueGameEngineLua('if tanker_core then tanker_core.packProblem(%d, "no_driver_ai") end')
 end
 ]]
+-- The driving modes a point may ask for (see tankerDriver.control), as Lua in the command.
+local MODES = { coast = '"coast"', swipe = '"swipe"' }
 -- Hands the car back from Tanker's driver, before BeamNG's AI takes over or is switched off.
 local LET_GO = [[if extensions and extensions.tankerDriver then extensions.tankerDriver.stop() end]]
 
@@ -79,7 +81,7 @@ function M.new(hc, environment)
   function p:goTo(id, aim)
     local c = car(id)
     if not (c and aim and finite(aim.x) and finite(aim.y) and finite(aim.z) and finite(aim.speed)) then return false end
-    return (pcall(function() c:queueLuaCommand(string.format(SLOT, aim.x, aim.y, aim.z, aim.speed, aim.x, aim.y, aim.z, aim.speed, id, id)) end))
+    return (pcall(function() c:queueLuaCommand(string.format(SLOT, aim.x, aim.y, aim.z, aim.speed, MODES[aim.mode] or 'nil', aim.x, aim.y, aim.z, aim.speed, id, id)) end))
   end
 
   -- Hides the Hoon's car for the next Hoon.

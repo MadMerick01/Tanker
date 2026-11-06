@@ -142,7 +142,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
       tankLine(next, 'Your tank', o.yours, o.yoursCapacity, '#6fcf97')
       if (o.bed) tankLine(next, bedName, o.bedLitres, o.bedCapacity, '#c48448')
       if (o.blocked === 'in_vehicle') {
-        line(next, 'You must be on foot to siphon. Get out of your truck and stand beside the car.', 'font-weight:bold;color:#f2c94c;margin-top:8px;')
+        line(next, 'Get out and connect the pump to siphon fuel to your tanks.', 'font-weight:bold;color:#f2c94c;margin-top:8px;')
       } else if (o.blocked) {
         line(next, 'Park your truck within ' + whole(o.truckMetres) + ' m of you to siphon into it.', 'font-weight:bold;color:#f2c94c;margin-top:8px;')
       } else if (o.bed) {

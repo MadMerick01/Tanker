@@ -50,8 +50,11 @@ M.MIN_MPS, M.ORBIT_METRES, M.ORBIT_STEP = 8, 20, 0.8
 -- Changing spot is done by speeding up, not braking (Rowan, 6 Nov): circling only ever moves
 -- forward (a rear slot to the front slot on its side, a front slot round your nose to the other
 -- front slot), and a Hoon getting into place never asks for more than DROP_MPS below your
--- speed, so it drops back by easing off, not on the brakes.
-M.DROP_MPS = 3
+-- speed, so it drops back by easing off, not on the brakes. A Hoon getting into place, lining up
+-- or swiping never uses its brakes at all (Rowan, 6 Nov): its driver lifts off instead, and it
+-- asks for at most DROP_MPS less than your speed, so it moves round you sideways or forwards,
+-- and only ever eases back slowly.
+M.DROP_MPS = 1
 -- How many far slots a new Hoon circles through before closing in (picked between the two). A
 -- bold one (BOLD_CHANCE of them) moves in after one at most. After an attack it circles 0 to 2.
 M.CIRCLES, M.BOLD_CHANCE, M.CIRCLES_AFTER = { 2, 6 }, 0.3, { 0, 2 }
@@ -60,11 +63,11 @@ M.CIRCLES, M.BOLD_CHANCE, M.CIRCLES_AFTER = { 2, 6 }, 0.3, { 0, 2 }
 M.WINDUP_SIDE, M.WINDUP_SECONDS = 6, 1.5
 -- A swipe is Tanker's own driver aimed into the corner of your truck by its slot: SWIPE_INTO
 -- metres from your middle on that side (inside your bodywork, so it hits), level with your
--- front or back, only STRIKE_LEAD metres ahead of that point so it turns in hard, and
--- SWIPE_PUSH metres a second faster than it would go to sit there. It lasts up to
+-- front or back, only STRIKE_LEAD metres ahead of that point so it turns in hard. It matches
+-- your speed and turns in suddenly, with no brake (Rowan, 6 Nov). It lasts up to
 -- SWIPE_SECONDS; within CONTACT_METRES it has hit you, and it peels off AFTER_CONTACT_SECONDS
 -- later.
-M.SWIPE_INTO, M.STRIKE_LEAD, M.SWIPE_PUSH = 0.5, 2, 3
+M.SWIPE_INTO, M.STRIKE_LEAD = 0.5, 2
 M.SWIPE_SECONDS, M.CONTACT_METRES, M.AFTER_CONTACT_SECONDS = 4, 5, 1
 -- This share of attacks are a box instead of a swipe. The lead Hoon gets BOX_AHEAD metres in
 -- front of you and drives at BOX_SLOW of your speed; a second Hoon, if there is one, sits
@@ -227,7 +230,7 @@ function M.new(car, random)
     local right, ahead = M.offset(h.slot)
     local side = M.SLOTS[h.slot].side
     if h.state == 'WINDUP' then right = side * M.WINDUP_SIDE end
-    if h.state == 'SWIPE' then return side * M.SWIPE_INTO, ahead, 1, M.STRIKE_LEAD, M.SWIPE_PUSH end
+    if h.state == 'SWIPE' then return side * M.SWIPE_INTO, ahead, 1, M.STRIKE_LEAD end
     return right, ahead, 1
   end
 
@@ -265,7 +268,7 @@ function M.new(car, random)
       car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = M.FLEE_MPS, slotX = x, slotY = y })
       return
     end
-    local right, ahead, slow, strikeLead, push = target(h)
+    local right, ahead, slow, strikeLead = target(h)
     local mine = me.speed or 0
     local aimRight, aimAhead = right, ahead
     local hr, ha = st.right, st.ahead
@@ -273,10 +276,12 @@ function M.new(car, random)
       local sign = (ahead + ha) >= 0 and 1 or -1
       aimRight, aimAhead = 0, sign * (math.max(math.abs(ahead), math.abs(ha)) + M.CROSS_METRES)
     end
-    local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr) + (push or 0)
-    if h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL' then
-      speed = math.max(speed, mine - M.DROP_MPS)
-    end
+    local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr)
+    -- A swipe matches your speed and turns in suddenly.
+    if h.state == 'SWIPE' then speed = mine end
+    local coasting = h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL' or h.state == 'WINDUP'
+      or h.state == 'SWIPE'
+    if coasting then speed = math.max(speed, mine - M.DROP_MPS) end
     speed = math.max(0, math.min(speed, mine + M.CATCH_UP_MPS))
     local lead = strikeLead or math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
     -- Never aim behind the Hoon: its driver would turn round for a point behind it, slowly, and
@@ -301,7 +306,8 @@ function M.new(car, random)
       end
       speed = M.MIN_MPS
     end
-    car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = speed, slotX = sx, slotY = sy })
+    local mode = h.state == 'SWIPE' and 'swipe' or (coasting and 'coast' or nil)
+    car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = speed, slotX = sx, slotY = sy, mode = mode })
   end
 
   local function arrived(h, me, st)

@@ -113,7 +113,7 @@
       </div>
       <div ng-if="data.siphonNear && !data.siphonStopAllowed" style="margin-top:6px;">
         <button type="button" class="mm-btn" ng-disabled="!data.siphonAllowed" ng-click="send('siphonStart')">Siphon fuel</button>
-        <span class="mm-k" style="margin-left:6px;">{{data.siphonNear.needsFoot ? 'You must be on foot to siphon' : data.siphonNear.truckFar ? 'Park your truck closer to siphon' : data.siphonNear.moving ? 'Stop next to the car to siphon' : 'A car ' + whole(data.siphonNear.metres) + ' m away'}}</span>
+        <span class="mm-k" style="margin-left:6px;">{{data.siphonNear.needsFoot ? 'Get out and connect the pump to siphon fuel to your tanks' : data.siphonNear.truckFar ? 'Park your truck closer to siphon' : data.siphonNear.moving ? 'Stop next to the car to siphon' : 'A car ' + whole(data.siphonNear.metres) + ' m away'}}</span>
       </div>
       <button type="button" ng-if="data.siphonStopAllowed" class="mm-btn" ng-click="send('siphonStop')">Stop siphoning</button>
       <div ng-if="data.revolverAllowed" style="margin-top:10px;">

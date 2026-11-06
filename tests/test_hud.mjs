@@ -110,7 +110,7 @@ test('siphon buttons and the siphon box', () => {
   // In the truck: the window says you must be on foot, with nothing to press.
   a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, bed: true, blocked: 'in_vehicle' } })
   const foot = doc.body.children[0]
-  assert.match(text(foot), /You must be on foot to siphon/)
+  assert.match(text(foot), /Get out and connect the pump to siphon fuel to your tanks/)
   assert.ok(!foot.children.some(c => c.tagName === 'button' || c.tag === 'button'), 'no buttons')
   a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, blocked: 'truck_far', truckMetres: 15 } })
   assert.match(text(doc.body.children[0]), /Park your truck within 15 m/)

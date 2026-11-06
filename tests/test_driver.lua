@@ -98,6 +98,17 @@ T.eq(th, 0, 'lifts off'); T.eq(br, 0, 'without touching the brakes')
 s = D.newState(); aim(s, 0, 40, 10)
 st, th, br = D.control(s, car(20), 1 / 60)
 T.check(br > 0, 'a lot slower wanted, it brakes')
+-- A desert Hoon getting into place (Rowan, 6 Nov): never the brakes, however much slower it is asked.
+s = D.newState(); aim(s, 0, 40, 10); s.target.mode = 'coast'
+st, th, br = D.control(s, car(20), 1 / 60)
+T.eq(br, 0, 'coasting: no brake'); T.eq(th, 0, 'it lifts off instead')
+s = D.newState(); aim(s, 15, 10, 40); s.target.mode = 'coast'
+st, th, br = D.control(s, car(25), 1 / 60)
+T.eq(br, 0, 'not even for a tight turn')
+-- A swipe: no brake, and it turns in hard at the speed asked.
+s = D.newState(); aim(s, 6, 3, 25); s.target.mode = 'swipe'
+st, th, br = D.control(s, car(25), 1 / 60)
+T.eq(br, 0, 'swiping: no brake'); T.check(th > 0, 'holding your speed'); T.check(st > 0, 'turning in')
 
 -- Stopping the car: asked for nought, it holds the brake once stopped.
 s = D.newState(); aim(s, 0, 10, 0)
