@@ -8,7 +8,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
     siphonStart: 'siphonAllowed', siphonToTruck: 'siphonAllowed', siphonToBed: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed', addHoon: 'addHoonAllowed', clearHoons: 'clearHoonsAllowed', spawnTanker: 'tankerSpawnAllowed',
     pumpToTruck: 'pumpAllowed', pumpToBed: 'pumpAllowed', pumpStop: 'pumpStopAllowed',
     payParts: 'payPartsAllowed', payPartsBill: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed',
-    toggleRevolver: 'revolverAllowed', reloadRevolver: 'reloadAllowed' }
+    toggleRevolver: 'revolverAllowed', reloadRevolver: 'reloadAllowed', aimUp: 'aimAllowed', aimDown: 'aimAllowed' }
   // The game's own parts menu, as Earth Freight opens it.
   var PARTS_MENU = "if core_vehicles and core_vehicles.openPartsSelectorUI then core_vehicles.openPartsSelectorUI() " +
     "elseif guihooks then guihooks.trigger('ChangeState', {state = 'menu.vehicleconfig.parts'}) end"
@@ -297,6 +297,8 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
 
       // Whole numbers with thousands commas, or a dash when unknown.
       scope.whole = whole
+      // The VR revolver's aim tilt, e.g. "-10°", to one decimal only when it has one.
+      scope.degrees = function (d) { return typeof d === 'number' && isFinite(d) ? (Math.round(d * 10) / 10) + '°' : '–' }
       // The own tank's share as a percentage, for the bar, and its colour.
       scope.fuelShare = function (f) {
         if (!f || !(f.capacity > 0)) return 0
