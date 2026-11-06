@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 24 · 6 Nov 2026
+
 - **Fixed the game stuttering every 15 seconds or so.** Tanker's traffic check could load all of its traffic cars again every few seconds. Now Tanker loads its HoonOld1s and TankerMobs once. Any normal traffic car that turns up later is simply removed. Your save still works.
 
 ## Build 23 · 6 Nov 2026
