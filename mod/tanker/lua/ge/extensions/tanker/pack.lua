@@ -44,8 +44,13 @@ M.CIRCLES, M.BOLD_CHANCE, M.CIRCLES_AFTER = { 2, 6 }, 0.3, { 0, 2 }
 -- Before it strikes, a Hoon edges in to this many metres off your side for WINDUP_SECONDS, so
 -- you can see it coming.
 M.WINDUP_SIDE, M.WINDUP_SECONDS = 6, 1.5
--- A swipe is BeamNG's chase AI aimed at you for up to SWIPE_SECONDS; within CONTACT_METRES it
--- has hit you, and it peels off AFTER_CONTACT_SECONDS later.
+-- A swipe is Tanker's own driver aimed into the corner of your truck by its slot: SWIPE_INTO
+-- metres from your middle on that side (inside your bodywork, so it hits), level with your
+-- front or back, only STRIKE_LEAD metres ahead of that point so it turns in hard, and
+-- SWIPE_PUSH metres a second faster than it would go to sit there. It lasts up to
+-- SWIPE_SECONDS; within CONTACT_METRES it has hit you, and it peels off AFTER_CONTACT_SECONDS
+-- later.
+M.SWIPE_INTO, M.STRIKE_LEAD, M.SWIPE_PUSH = 0.5, 2, 3
 M.SWIPE_SECONDS, M.CONTACT_METRES, M.AFTER_CONTACT_SECONDS = 4, 5, 1
 -- This share of attacks are a box instead of a swipe. The lead Hoon gets BOX_AHEAD metres in
 -- front of you and drives at BOX_SLOW of your speed; a second Hoon, if there is one, sits
@@ -152,11 +157,15 @@ function M.new(car, random)
   end
 
   -- The offset a Hoon drives to now, and the speed factor and crossing point on the way.
+  -- The offset a Hoon drives to now (right, ahead), the share of your speed to match there, how
+  -- far ahead of the point to aim (nil: the usual lead), and any extra speed on top.
   local function target(h)
     if h.state == 'BOXING' then return 0, M.HALF_LENGTH + M.BOX_AHEAD, M.BOX_SLOW end
     if h.state == 'BOX_SIDE' then return h.side * M.BOX_SIDE, 0, M.BOX_SLOW end
     local right, ahead = M.offset(h.slot)
-    if h.state == 'WINDUP' then right = M.SLOTS[h.slot].side * M.WINDUP_SIDE end
+    local side = M.SLOTS[h.slot].side
+    if h.state == 'WINDUP' then right = side * M.WINDUP_SIDE end
+    if h.state == 'SWIPE' then return side * M.SWIPE_INTO, ahead, 1, M.STRIKE_LEAD, M.SWIPE_PUSH end
     return right, ahead, 1
   end
 
@@ -173,7 +182,7 @@ function M.new(car, random)
     if h.replanAt and clock < h.replanAt then return end
     h.replanAt = clock + M.STEER_SECONDS
     relative(me, st)
-    local right, ahead, slow = target(h)
+    local right, ahead, slow, strikeLead, push = target(h)
     local mine = me.speed or 0
     local aimRight, aimAhead = right, ahead
     local hr, ha = st.right, st.ahead
@@ -181,9 +190,9 @@ function M.new(car, random)
       local sign = (ahead + ha) >= 0 and 1 or -1
       aimRight, aimAhead = 0, sign * (math.max(math.abs(ahead), math.abs(ha)) + M.CROSS_METRES)
     end
-    local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr)
+    local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr) + (push or 0)
     speed = math.max(0, math.min(speed, mine + M.CATCH_UP_MPS))
-    local lead = math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
+    local lead = strikeLead or math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
     local x, y = M.at(me, aimRight, aimAhead + lead, 0)
     local sx, sy = M.at(me, right, ahead, 0)
     car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = speed, slotX = sx, slotY = sy })
@@ -307,8 +316,7 @@ function M.new(car, random)
       end
     elseif h.state == 'WINDUP' then
       if clock - h.since >= M.WINDUP_SECONDS then
-        h.state, h.since, h.contactAt = 'SWIPE', clock, nil
-        car:strike(h.id, me.id)
+        h.state, h.since, h.contactAt, h.replanAt = 'SWIPE', clock, nil, nil
       end
     elseif h.state == 'SWIPE' then
       if not h.contactAt and h.metres and h.metres <= M.CONTACT_METRES then h.contactAt, h.hasHit = clock, true end
@@ -328,7 +336,7 @@ function M.new(car, random)
         peel(h, clock)
       end
     end
-    if h.state ~= 'SWIPE' and h.state ~= 'DOWN' then drive(h, me, st, clock) end
+    if h.state ~= 'DOWN' then drive(h, me, st, clock) end
     return line
   end
 
@@ -375,7 +383,7 @@ function M.new(car, random)
     local me = car:player()
     if not me then return end
     for _, h in ipairs(self.hoons) do
-      if h.state ~= 'SWIPE' and h.state ~= 'DOWN' then
+      if h.state ~= 'DOWN' then
         local st = car:state(h.id)
         if st then drive(h, me, st, clock) end
       end

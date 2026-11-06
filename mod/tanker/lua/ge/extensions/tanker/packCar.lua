@@ -4,7 +4,7 @@
 -- (once per extra Hoon; loading a car mid-drive hitches) and kept hidden for next time.
 --
 -- Moving to a slot uses Tanker's own desert driver (tankerDriver.lua, in the car), which drives at
--- a point at a speed, road or no road. An attack uses BeamNG's chase AI aimed at you. Every game call is guarded: a missing or changed
+-- a point at a speed, road or no road, for moving between slots and for attacks alike. Every game call is guarded: a missing or changed
 -- one means no Hoon, never an error.
 local M = {}
 
@@ -60,7 +60,6 @@ function M.new(hc, environment)
   end
   function p:calm(id) letGo(id); return hc:calm(id) end
   function p:place(id, x, y, z, dx, dy) return hc:put(id, x, y, z, dx, dy) end
-  function p:strike(id, targetId) letGo(id); return hc:hunt(id, targetId) end
 
   -- The traffic car furthest from you, taken out of traffic, or nil.
   local function takeTraffic(me)

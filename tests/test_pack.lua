@@ -20,7 +20,7 @@ T.eq(x, 100, 'facing east, right of you'); T.eq(y, -10, 'is south')
 x, y = P.at({ x = 0, y = 0, dx = 0, dy = 1, speed = 20 }, 0, 5, 2)
 T.eq(y, 45, 'a slot moves with you')
 
--- A pretend game: goTo puts the Hoon straight at its slot; a strike puts it on you.
+-- A pretend game: goTo puts the Hoon straight at its slot.
 local function fakeCar()
   local car = { me = { id = 7, x = 0, y = 0, z = 0, dx = 0, dy = 1, speed = 20 }, cars = {}, next = 100,
     paths = {}, strikes = {}, released = {}, calmed = 0, traffic = 1 }
@@ -39,10 +39,6 @@ local function fakeCar()
     self.paths[id] = aim
     if not self.frozen then self.cars[id].x, self.cars[id].y = aim.slotX, aim.slotY end
     return true
-  end
-  function car:strike(id, target)
-    self.strikes[#self.strikes + 1] = { id = id, target = target }
-    if self.hitOnStrike then self.cars[id].x, self.cars[id].y = 2, 0 end
   end
   function car:state(id) return self.cars[id] end
   function car:calm() self.calmed = self.calmed + 1 end
@@ -121,13 +117,17 @@ end
 local lines, t = runUntil(p, 30.5, function() return h.state == 'WINDUP' end)
 T.eq(h.state, 'WINDUP', 'lines up'); T.check(has(lines, P.LINES.windup(h.slot)), 'and you are told')
 T.eq(math.abs(car.paths[h.id].slotX), P.WINDUP_SIDE, 'edging in to 6 m')
-T.eq(#car.strikes, 0, 'not striking yet')
-car.hitOnStrike = true
+car.frozen = true
+lines, t = runUntil(p, t + 0.5, function() return h.state == 'SWIPE' end)
+local side = P.SLOTS[h.slot].side
+local _, slotAhead = P.offset(h.slot)
+aim = car.paths[h.id]
+T.eq(aim.slotX, side * P.SWIPE_INTO, 'the swipe drives into your side'); T.eq(aim.slotY, slotAhead, 'at the corner by its slot')
+T.near(aim.y, slotAhead + P.STRIKE_LEAD, 0.01, 'turning in hard'); T.check(aim.speed > car.me.speed, 'faster than you')
+car.frozen = nil
 lines, t = runUntil(p, t + 0.5, function() return h.state == 'CIRCLING' end)
-T.eq(#car.strikes, 1, 'strikes with the chase AI'); T.eq(car.strikes[1].target, 7, 'at you')
 T.check(has(lines, P.LINES.swiped), 'hits you and peels off'); T.eq(h.state, 'CIRCLING', 'back out to a far slot')
 T.eq(P.SLOTS[h.slot].far, true, 'a far one')
-car.hitOnStrike = nil
 
 -- A second Hoon: one per slot, and only one attacks at a time.
 line = p:add(t)
@@ -273,8 +273,6 @@ T.eq(pc:goTo(21, { x = 4, y = 5, z = 6, speed = 22.5 }), true, 'point sent')
 T.check(commands[#commands]:find('tankerDriver.target(4.00, 5.00, 6.00, 22.50)', 1, true) ~= nil, 'to Tanker\'s own driver')
 T.check(commands[#commands]:find('ai.setSlotTrafficTarget, 4.00, 5.00, 6.00, 22.50', 1, true) ~= nil, 'or BeamNG\'s slotTraffic AI without it')
 T.check((loadstring or load)(commands[#commands]) ~= nil, 'the command is valid Lua')
-pc:strike(21, 7)
-T.check(commands[#commands]:find('tankerDriver.stop()', 1, true) ~= nil, 'an attack takes the wheel back from Tanker\'s driver')
 T.eq(pc:goTo(21, { x = 0 / 0, y = 5, z = 6, speed = 1 }), false, 'a broken point is not sent')
 local chunk = (loadstring or load)(commands[#commands])
 T.check(chunk ~= nil, 'the command is valid Lua')
