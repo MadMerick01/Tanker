@@ -6,6 +6,10 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Hoons in the desert no longer touch the brakes.** When a Hoon changes spot around you, lines up or swipes you, it never brakes. When it needs to slow down, it lifts off the throttle and asks for no more than a little under your speed. So it moves round you sideways or forwards and no longer drops back behind you. Hoons still brake when they box you in, or when they pull up to rob you.
+- **A Hoon's sideswipe now matches your speed and turns into you suddenly**, without braking or slowing for the turn, instead of speeding up into you.
+- Your save still works.
+
 ## Build 28 · 6 Nov 2026
 
 - **Siphoning now happens in a window in the middle of the screen, and you siphon on foot.** Park within 15 m of a car, get out and walk up to it, and the window offers to siphon it. From inside your truck, the window and the Road tab tell you that you must be on foot. Your truck must stay parked within 15 m of you, since the fuel goes into it. Hoons nearby don't stop you siphoning, though the window warns you they're about. You can't save while you're on foot. If your truck has a bed tank, you choose where the fuel goes: **Into your truck** or **Into the bed tank**. While the fuel flows, the window shows both tanks and a **Stop** button, then what you took for a few seconds. The **Siphon fuel** button on the Road tab still works too.

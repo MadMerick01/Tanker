@@ -52,7 +52,9 @@ end
 -- One frame. s is the state, car what the car senses now:
 --   x, y (centre), fx, fy (facing, unit), rx, ry (right, unit), speed (m/s, forward positive),
 --   yawRate (rad/s, right turn positive), wheelSpeed (m/s), mu (ground grip), wheelBase (m)
--- s.target is { x, y, speed }. Returns steering (-1 left .. 1 right), throttle, brake and
+-- s.target is { x, y, speed, mode }. mode 'coast' never brakes (Rowan, 6 Nov): it lifts off
+-- instead, so a desert Hoon never drops back on the brakes. mode 'swipe' never brakes either and
+-- turns in as hard as it asks, without slowing for the arc. Returns steering (-1 left .. 1 right), throttle, brake and
 -- parking brake (0 .. 1). In BeamNG's arcade gearbox the brake held at a standstill drives
 -- backwards, so holding still uses the parking brake instead.
 function M.control(s, car, dt)
@@ -77,6 +79,8 @@ function M.control(s, car, dt)
     -- Behind: full lock towards it, slowly.
     want = side >= 0 and 1 or -1
     speedCap = M.TURN_MPS
+  elseif t.mode == 'swipe' then
+    speedCap = math.huge
   else
     speedCap = math.sqrt(M.LAT_G * math.min(1, mu) * G / math.max(math.abs(curvature), 1e-4))
   end
@@ -129,7 +133,7 @@ function M.control(s, car, dt)
     -- A little throttle to hold speed against drag and the slope.
     if speed > 1 then throttle = math.max(throttle, 0.15) end
     if car.wheelSpeed and car.wheelSpeed > car.speed * (1 + M.SPIN_SHARE) + 2 then throttle = throttle * 0.5 end
-  elseif car.speed - speed > M.COAST_MPS then
+  elseif car.speed - speed > M.COAST_MPS and t.mode ~= 'coast' and t.mode ~= 'swipe' then
     brake = clamp(-accel / (M.BRAKE_G * G), 0, 1)
   end
   s.lastThrottle = throttle
@@ -338,11 +342,11 @@ local function takeOver()
   end
 end
 
--- Tanker's command: drive at x, y, z at speed m/s.
-function M.target(x, y, z, speed)
+-- Tanker's command: drive at x, y, z at speed m/s; mode as in control (nil may brake).
+function M.target(x, y, z, speed, mode)
   takeOver()
   chasing = nil
-  state.target = { x = x, y = y, z = z, speed = speed }
+  state.target = { x = x, y = y, z = z, speed = speed, mode = mode }
   state.age = 0
 end
 

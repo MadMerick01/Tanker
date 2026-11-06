@@ -95,6 +95,7 @@ T.eq(aim.slotX, nx, 'it drives to the slot'); T.eq(aim.slotY, ny, 'level with yo
 p:steer(1000)
 aim = car.paths[h.id]
 T.near(aim.speed, car.me.speed, 0.01, 'at the slot it keeps pace with you')
+T.eq(aim.mode, 'coast', 'getting into place it never brakes')
 T.eq(aim.x, nx, 'running alongside'); T.near(aim.y, ny + car.me.speed * P.LEAD_SECONDS, 0.01, 'aiming a little ahead')
 car.cars[h.id].y = ny - 20
 p:steer(1001)
@@ -152,7 +153,8 @@ local side = P.SLOTS[h.slot].side
 local _, slotAhead = P.offset(h.slot)
 aim = car.paths[h.id]
 T.eq(aim.slotX, side * P.SWIPE_INTO, 'the swipe drives into your side'); T.eq(aim.slotY, slotAhead, 'at the corner by its slot')
-T.near(aim.y, slotAhead + P.STRIKE_LEAD, 0.01, 'turning in hard'); T.check(aim.speed > car.me.speed, 'faster than you')
+T.near(aim.y, slotAhead + P.STRIKE_LEAD, 0.01, 'turning in hard'); T.eq(aim.speed, car.me.speed, 'at your speed')
+T.eq(aim.mode, 'swipe', 'with no brake, turning in suddenly')
 car.frozen = nil
 lines, t = runUntil(p, t + 0.5, function() return h.state == 'CIRCLING' end)
 T.check(has(lines, P.LINES.swiped), 'hits you and peels off'); T.eq(h.state, 'CIRCLING', 'back out to a far slot')
@@ -343,7 +345,10 @@ T.eq(id, 50, 'the Hoon\'s own car is loaded'); T.eq(source, 'own', 'its own, not
 id = pc:take(hc.player())
 T.eq(id, 51, 'a second Hoon loads a second car')
 T.eq(pc:goTo(50, { x = 4, y = 5, z = 6, speed = 22.5 }), true, 'point sent')
-T.check(commands[#commands]:find('tankerDriver.target(4.00, 5.00, 6.00, 22.50)', 1, true) ~= nil, 'to Tanker\'s own driver')
+T.check(commands[#commands]:find('tankerDriver.target(4.00, 5.00, 6.00, 22.50, nil)', 1, true) ~= nil, 'to Tanker\'s own driver')
+pc:goTo(50, { x = 4, y = 5, z = 6, speed = 22.5, mode = 'coast' })
+T.check(commands[#commands]:find('22.50, "coast")', 1, true) ~= nil, 'with no brake when asked')
+T.check((loadstring or load)(commands[#commands]) ~= nil, 'still valid Lua')
 T.check(commands[#commands]:find('ai.setSlotTrafficTarget, 4.00, 5.00, 6.00, 22.50', 1, true) ~= nil, 'or BeamNG\'s slotTraffic AI without it')
 T.check((loadstring or load)(commands[#commands]) ~= nil, 'the command is valid Lua')
 T.eq(pc:goTo(50, { x = 0 / 0, y = 5, z = 6, speed = 1 }), false, 'a broken point is not sent')
