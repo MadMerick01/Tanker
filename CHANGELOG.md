@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 25 · 6 Nov 2026
+
 - **A new run now starts by Lake Eyre in outback South Australia** (28.8807 S, 137.6025 E) instead of at Kulgera Roadhouse. **Start the run** and **Start a new game** take you there. Pine Gap is now about 800 km away by road instead of about 270 km, so the trip is much longer and you will need to find a lot more fuel on the way. A run you already have going carries on from where it was saved.
 
 ## Build 24 · 6 Nov 2026
