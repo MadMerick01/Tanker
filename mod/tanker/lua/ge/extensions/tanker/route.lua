@@ -5,8 +5,9 @@ local M = {}
 -- One-line settings. Tune these after testing in game.
 -- Kulgera Roadhouse, NT, on the Stuart Highway just north of the South Australian border:
 -- Rowan's pick for where the run starts (2 Nov), the first stop in the desert south of Alice
--- Springs. config.json's start moves it.
-M.START = { latitude = -25.8406, longitude = 133.2966 }
+-- Springs. Moved on 6 Nov to Rowan's exact spot, about 2.5 km south-west of the roadhouse.
+-- config.json's start moves it.
+M.START = { latitude = -25.85141, longitude = 133.27493 }
 M.START_NAME = 'Kulgera Roadhouse'
 -- Pine Gap, outside Alice Springs. Everything about it in the game is fiction.
 M.GOAL = { latitude = -23.7990, longitude = 133.7370 }
