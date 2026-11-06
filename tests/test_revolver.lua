@@ -96,6 +96,16 @@ c2:goToSave(); c2.adapter:put(c.profile.resume.latitude, c.profile.resume.longit
 for _ = 1, 4 do c2:tick(0.5) end
 c2:vehicleSpawned(7)
 T.eq(c2.gun.spare, G.START_SPARE - 5, 'back at the save, the same rounds')
+-- A reload finishes even while the truck's position can't be read (say Earth is busy).
+c.gun.loaded = 0; T.eq(c:reloadRevolver(), true, 'reload with an empty cylinder')
+local saved = adapter.here; adapter.here = { valid = false, reason = 'earth_starting' }
+run(G.RELOAD_SECONDS + 0.5)
+T.eq(c.gun.loaded, 6, 'six rounds back with no position'); T.eq(c.gun:reloading(), false, 'and the reload is over')
+T.eq(c.feedback, 'Reloaded.', 'the HUD says so'); adapter.here = saved
+-- With no spare rounds the button says why it is off.
+local spare = c.gun.spare; c.gun.loaded, c.gun.spare = 2, 0
+T.eq(c:view().gun.noSpare, true, 'no spares, the HUD says so'); T.eq(c:view().reloadAllowed, false, 'and Reload is off')
+c.gun.loaded, c.gun.spare = 6, spare
 -- In VR the VR revolver mod shoots, so the flatscreen one stays away.
 shooter.vrOn = true
 T.eq(c:view().revolverAllowed, nil, 'no mouse revolver in VR')

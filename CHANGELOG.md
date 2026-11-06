@@ -6,6 +6,9 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Fixed: Reload on a flat screen sometimes never finished.** Pressing **Reload**, or clicking with an empty cylinder, could stay stuck on **Reloading** and never give your rounds back whenever the game briefly lost track of where your truck was. A reload now always finishes after a second and a half and fills the cylinder back up to six from your spares.
+- When you have no spare rounds left, the **Reload** button now says **No spare rounds** instead of just greying out. A new run still starts with 12 spare. Your save still works.
+
 ## Build 17 · 6 Nov 2026
 
 - **New: desert Hoons that circle you before they attack.** **Spawn a Hoon** on the **Rig** tab now brings in a Hoon at one of four far spots around your truck, 60 m out to your left or right and just ahead of or behind you. It sizes you up first, moving between those far spots like a hyena circling, then closes in to 10 m off your side and attacks. Some Hoons move in sooner than others.

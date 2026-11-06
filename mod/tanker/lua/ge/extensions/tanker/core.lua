@@ -569,7 +569,6 @@ function M.new(env)
     self:followPack()
     self:followPump()
     if self.parts then self:followWorkshop() end
-    if self.gun:step(self.clock) then self.feedback = 'Reloaded.' end
     self.fuel:read()
     local distances = env.hoonDistances and env.hoonDistances()
     if not distances then
@@ -679,7 +678,8 @@ function M.new(env)
     -- Without VR, the flatscreen revolver's rounds are the ones that count.
     if self:flatGun() then
       v.ammo = self.gun:ammo()
-      v.gun = { drawn = self.gun.drawn, reloading = self.gun:reloading() }
+      v.gun = { drawn = self.gun.drawn, reloading = self.gun:reloading(),
+        noSpare = self.gun.spare <= 0 and self.gun.loaded < revolver.CYLINDER }
       v.revolverAllowed = true
       v.reloadAllowed = not self.gun:reloading() and self.gun.loaded < revolver.CYLINDER and self.gun.spare > 0
     end
@@ -712,6 +712,12 @@ function M.new(env)
   function c:tick(dt)
     self.clock = self.clock + (location.finite(dt) and dt > 0 and dt or 0)
     if self.state == 'STARTING' then self:reload() end
+    -- Every frame, before anything that can bail out: a reload always finishes on time, even
+    -- while the truck's position can't be read.
+    if self.gun:step(self.clock) then
+      self.feedback = 'Reloaded.'
+      self:publish()
+    end
     if self.clock >= self.nextSample then
       self.nextSample = self.clock + SAMPLE_SECONDS
       self:sample()
