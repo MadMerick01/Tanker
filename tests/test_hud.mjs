@@ -19,7 +19,7 @@ function page() {
 }
 const text = node => node.textContent + node.children.map(text).join(' ')
 
-function app(document) {
+function app(document, sounds) {
   const commands = [], handlers = {}, timers = new Map()
   let definition, clock = 0
   const scope = { $on: (name, fn) => { handlers[name] = fn }, $evalAsync: fn => fn() }
@@ -30,7 +30,8 @@ function app(document) {
     } },
     bngApi: { engineLua: command => commands.push(command) },
     setInterval: fn => { timers.set(1, fn); return 1 }, clearInterval: id => timers.delete(id), Date: { now: () => clock },
-    document
+    document,
+    Audio: sounds ? class { constructor(src) { this.src = src } play() { sounds.push({ src: this.src, volume: this.volume }) } } : undefined
   })
   definition.link(scope)
   const a = { scope, commands, handlers, relink: (s, el) => definition.link(s, el), state: data => handlers.TankerState({}, data),
@@ -269,4 +270,32 @@ test('Spawn a Hoon and Clear Hoons only work when Lua allows them', () => {
   a.state({ state: 'RUNNING', addHoonAllowed: true, clearHoonsAllowed: true, pack: { hoons: [], max: 4 } })
   a.scope.send('addHoon'); assert.equal(a.commands.at(-1), fixed('addHoon()'))
   a.scope.send('clearHoons'); assert.equal(a.commands.at(-1), fixed('clearHoons()'))
+})
+
+test('drone strikes: a countdown banner, the drone heard coming, then the blast', () => {
+  const doc = page()
+  const sounds = []
+  const a = app(doc, sounds)
+  a.state({ state: 'RUNNING', drone: { strikes: 0, misses: 0 } })
+  assert.equal(doc.body.children.length, 0, 'off the road, no banner')
+  a.state({ state: 'RUNNING', drone: { state: 'WATCHED', seconds: 22, strikes: 0, misses: 0 } })
+  const b = doc.body.children[0]
+  assert.match(b.textContent, /ROAD SURVEILLANCE/); assert.match(b.textContent, /drone in 22 s/)
+  assert.match(b.style.cssText, /pointer-events:none/, 'clicks go through it')
+  assert.equal(sounds.length, 0, 'quiet while it counts')
+  a.state({ state: 'RUNNING', drone: { state: 'INBOUND', seconds: 4, strikes: 0, misses: 0 } })
+  assert.match(doc.body.children[0].textContent, /DRONE INBOUND/)
+  assert.equal(sounds.at(-1).src, '/ui/modules/apps/Tanker/sounds/drone.ogg', 'the drone is heard coming')
+  a.state({ state: 'RUNNING', drone: { state: 'INBOUND', seconds: 3, strikes: 0, misses: 0 } })
+  assert.equal(sounds.length, 1, 'once')
+  a.state({ state: 'RUNNING', drone: { state: 'WATCHED', seconds: 20, strikes: 1, misses: 0 } })
+  assert.equal(sounds.at(-1).src, '/ui/modules/apps/Tanker/sounds/blast.ogg', 'then the blast'); assert.equal(sounds.at(-1).volume, 1)
+  a.state({ state: 'RUNNING', drone: { state: 'WATCHED', seconds: 20, strikes: 1, misses: 0, offRoad: true } })
+  assert.match(doc.body.children[0].textContent, /losing you/)
+  a.state({ state: 'RUNNING', drone: { strikes: 1, misses: 1 } })
+  assert.equal(sounds.at(-1).volume, 0.35, 'a miss is heard further off')
+  assert.equal(doc.body.children.length, 0, 'the banner goes')
+  a.state({ state: 'RUNNING', drone: { state: 'WATCHED', seconds: 9, strikes: 1, misses: 1 } })
+  a.handlers.$destroy()
+  assert.equal(doc.body.children.length, 0, 'and goes with the app')
 })

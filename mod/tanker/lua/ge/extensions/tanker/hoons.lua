@@ -4,6 +4,7 @@
 -- when the Hoon is down (stuck or wrecked, so its tank is yours to siphon) or when you get away.
 -- This is the logic only; hoonCar.lua does the game's side.
 local M = {}
+local behind = require('tanker/behind')
 
 -- One-line settings. Tune these after testing in game.
 -- The first Hoon comes this many km after the run starts or the game loads.
@@ -31,7 +32,7 @@ M.HUNT_SECONDS = 300
 M.LEAVE_METRES = 400
 -- If a Hoon can't be placed, try again after this many seconds.
 M.RETRY_SECONDS = 10
--- The spawn button puts the Hoon this far behind you when there is no road to put it on.
+-- The spawn button puts the Hoon this far behind the camera when there is no road to put it on.
 M.SPAWN_METRES = 40
 -- This many hits from your revolver stop a hunting Hoon.
 M.SHOTS_TO_STOP = 4
@@ -85,17 +86,26 @@ function M.new(car, random)
     local near = car:road(me.x, me.y, me.z)
     if not anywhere and (not near or near.metres > M.ROAD_METRES) then return nil, 'off_road' end
     -- Behind first, then ahead: a road point near the spot, far enough away, with solid ground.
+    -- Out of sight (Rowan, 6 Nov): only a spot behind the camera. Straight behind the camera
+    -- first, then behind and ahead of the truck, if the camera faces that way.
+    local view = behind.view(car, me)
     local road, line
-    for _, side in ipairs({ { -1, LINES.coming }, { 1, LINES.ahead } }) do
-      local x, y = me.x + side[1] * me.dx * M.PLACE_METRES, me.y + side[1] * me.dy * M.PLACE_METRES
-      local r = car:road(x, y, me.z)
-      if r and r.metres <= M.SNAP_METRES and distance(r, me) >= M.MIN_START_METRES and car:solid(r.x, r.y, r.z) then
-        road, line = r, side[2]
+    local cx, cy = behind.point(view, M.PLACE_METRES)
+    local spots = {
+      { cx, cy, (cx - me.x) * me.dx + (cy - me.y) * me.dy > 0 and LINES.ahead or LINES.coming },
+      { me.x - me.dx * M.PLACE_METRES, me.y - me.dy * M.PLACE_METRES, LINES.coming },
+      { me.x + me.dx * M.PLACE_METRES, me.y + me.dy * M.PLACE_METRES, LINES.ahead },
+    }
+    for _, spot in ipairs(spots) do
+      local r = car:road(spot[1], spot[2], me.z)
+      if r and r.metres <= M.SNAP_METRES and distance(r, me) >= M.MIN_START_METRES and behind.isBehind(view, r.x, r.y)
+        and car:solid(r.x, r.y, r.z) then
+        road, line = r, spot[3]
         break
       end
     end
     if not road and anywhere then
-      local x, y = me.x - me.dx * M.SPAWN_METRES, me.y - me.dy * M.SPAWN_METRES
+      local x, y = behind.point(view, M.SPAWN_METRES)
       local z = car.ground and car:ground(x, y, me.z) or me.z
       road, line = { x = x, y = y, z = z or me.z }, LINES.coming
     end
