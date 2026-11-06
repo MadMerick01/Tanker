@@ -66,9 +66,10 @@ if extensions and extensions.tankerDriver then extensions.tankerDriver.stop() en
 if ai then pcall(ai.setMode, 'disabled') end
 ]]
 
-function M.new(environment)
+-- pool is Tanker's traffic pool (trafficPool.lua), or nil: a Hoon's car is taken from it first.
+function M.new(environment, pool)
   local env = environment or defaults()
-  local h = {}
+  local h = { pool = pool }
 
   local function car(id)
     local ok, c = pcall(env.byId, id)
@@ -107,12 +108,25 @@ function M.new(environment)
     end
   end
 
-  -- Loads the Hoon's car high above the player and switches it off at once. Returns its id.
+  -- A car of this model taken out of Tanker's traffic pool, the one furthest from you, or nil.
+  function h:fromPool(name, me)
+    if not (self.pool and me) then return nil end
+    local ok, id = pcall(self.pool.take, self.pool, name, me.x, me.y)
+    if ok and type(id) == 'number' and car(id) then return id end
+  end
+
+  -- The Hoon's car, switched off at once: a HoonOld1 from Tanker's traffic pool, or else one
+  -- loaded high above the player. Returns its id and model.
   function h:load()
     local me = self:player()
     if not me then return nil, 'vehicle_required' end
     local name = self:model()
     if not name then return nil, 'no_hoon_model' end
+    local pooled = self:fromPool(name, me)
+    if pooled then
+      self:hide(pooled)
+      return pooled, name
+    end
     local okVehicles, vehicles = pcall(env.vehicles)
     if not okVehicles or type(vehicles) ~= 'table' or type(vehicles.spawnNewVehicle) ~= 'function' then
       return nil, 'spawn_unavailable'

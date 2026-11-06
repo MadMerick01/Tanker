@@ -1,6 +1,7 @@
 -- The game's side of the Hoon pack (pack.lua). Every Hoon drives Rowan's HoonOld1, a rusty Barstow
--- shipped in the mod. Its car is loaded once per extra Hoon (loading a car mid-drive hitches) and
--- kept hidden for next time, so a later Hoon reuses it at once.
+-- shipped in the mod. Its car is taken out of Tanker's traffic pool (trafficPool.lua), which loaded
+-- it with the rest of traffic, so it doesn't hitch; only with none left is one loaded. Once a Hoon
+-- is done its car is kept hidden, so a later Hoon reuses it at once.
 --
 -- Moving to a slot uses Tanker's own desert driver (tankerDriver.lua, in the car), which drives at
 -- a point at a speed, road or no road, for moving between slots and for attacks alike. Every game call is guarded: a missing or changed
@@ -57,7 +58,8 @@ function M.new(hc, environment)
   -- Road mode: the Hoon's own driver hunts targetId along the roads.
   function p:chase(id, targetId) return hc:hunt(id, targetId) end
 
-  -- A car for a new Hoon: a hidden one of ours, else a new one loaded (HoonOld1, see hoonCar.lua).
+  -- A car for a new Hoon: a hidden one of ours, else a HoonOld1 from Tanker's traffic pool, else a
+  -- new one loaded (hoonCar.lua does both).
   -- Returns its id and where it came from ('own'), or nil and why.
   function p:take()
     local id = table.remove(spares)

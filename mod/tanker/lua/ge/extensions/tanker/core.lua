@@ -29,6 +29,7 @@ local pricing = require('tanker/pricing')
 local revolver = require('tanker/revolver')
 local aim = require('tanker/aim')
 local tankerMob = require('tanker/tankerMob')
+local trafficPool = require('tanker/trafficPool')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -70,6 +71,7 @@ function M.new(env)
   -- The flatscreen revolver: mouse aiming when there is no VR.
   c.aim, c.gun = env.aim, revolver.new()
   c.tankerMob = env.tankerMob
+  c.trafficPool = env.trafficPool
   -- Parts paid for in fuel.
   c.parts = env.parts
   if c.parts then workshop.attach(c) end
@@ -252,10 +254,18 @@ function M.new(env)
     if line then self.feedback = line; self.diag:event('siphon', line) end
   end
 
+  -- Tanker's traffic: only HoonOld1s and TankerMobs, set up once the run is on the road.
+  function c:followTraffic()
+    if not self.trafficPool or self.state ~= 'RUNNING' then return end
+    local line = self.trafficPool:step(self.clock)
+    if line then self.diag:event('traffic', line) end
+  end
+
   -- The Hoons: their car is loaded once the run is on the road, then they come every few km.
   function c:followHoons()
     if not self.hoons or self.state ~= 'RUNNING' then return end
-    if self.hoons.state == 'NONE' then
+    -- Wait for Tanker's traffic to load, so the Hoon's car comes from it.
+    if self.hoons.state == 'NONE' and not (self.trafficPool and self.trafficPool:loading()) then
       local problem = self.hoons:load(self.profile.run.drivenKm)
       self.diag:event('hoon', problem or ('loaded ' .. tostring(self.hoons.model)), problem and 'W' or nil)
     end
@@ -579,6 +589,7 @@ function M.new(env)
     end
     self:follow()
     self:followSiphon()
+    self:followTraffic()
     self:followHoons()
     self:followPack()
     self:followPump()
@@ -802,9 +813,11 @@ local function drawTri(ax, ay, az, bx, by, bz, cx, cy, cz, colour)
 end
 local function ensure()
   if not active then
+    local pool = trafficPool.new()
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
-      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(), parts = parts.new(),
-      aim = aim.new(), tankerMob = tankerMob.new(hoonCar.new()), packCar = packCar.new(hoonCar.new()),
+      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(nil, pool), bed = bedTank.new(), parts = parts.new(),
+      aim = aim.new(), tankerMob = tankerMob.new(hoonCar.new(nil, pool)), packCar = packCar.new(hoonCar.new(nil, pool)),
+      trafficPool = pool,
       log = rawget(_G, 'log'), drawTri = drawTri, camera = gameCamera(),
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end

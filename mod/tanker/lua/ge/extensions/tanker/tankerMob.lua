@@ -57,6 +57,17 @@ function M.new(car, environment)
     if okDir and okUp then okRot, rot = pcall(env.quatFromDir, dir, up) end
     if not okPos then return false, 'place_failed' end
     local c = existing()
+    -- Tanker's traffic pool holds TankerMobs: take one out of traffic before loading a new one.
+    if not c and car.fromPool then
+      local pooled = car:fromPool(M.MODEL, me)
+      if pooled then
+        local okCar, made = pcall(env.byId, pooled)
+        if okCar and made then
+          t.id, c = pooled, made
+          pcall(function() c:setActive(1) end)
+        end
+      end
+    end
     if c then
       local placed = false
       local okSpawn, spawn = pcall(env.spawn)
