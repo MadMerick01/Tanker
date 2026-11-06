@@ -297,6 +297,12 @@ function M.new(env)
     if not self.pack or self.state ~= 'RUNNING' then return end
     local line = self.pack:step(self.clock)
     if line then self.feedback = line; self.diag:event('pack', line) end
+    local st = self.pack.stalled
+    if st then
+      self.pack.stalled = nil
+      self.diag:event('pack', string.format('Hoon %d stalled %d time(s) while %s at %s, %s m away, car from %s',
+        st.n, st.stalls, tostring(st.state), tostring(st.slot), st.metres and tostring(math.floor(st.metres)) or '?', tostring(st.source)), 'W')
+    end
   end
 
   -- A Hoon's car said its AI can't do what the pack asked. Logged once.

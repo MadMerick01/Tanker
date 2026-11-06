@@ -48,9 +48,11 @@ M.SWIPE_SECONDS, M.CONTACT_METRES, M.AFTER_CONTACT_SECONDS = 4, 5, 1
 -- BOXED_SECONDS and you are boxed in; they hold you there for BOX_HOLD_SECONDS, then peel off.
 M.BOX_CHANCE, M.BOX_AHEAD, M.BOX_SLOW, M.BOX_SIDE = 0.35, 8, 0.6, 4
 M.BOX_SECONDS, M.STOPPED_MPS, M.BOXED_SECONDS, M.BOX_HOLD_SECONDS = 15, 2, 3, 5
--- A Hoon going slower than STUCK_MPS for DOWN_SECONDS while you drive is down. You must be going
--- at least DRIVING_MPS for that to count, since Hoons wait when you stop.
-M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS = 1, 12, 3
+-- A Hoon that has hit you and then goes slower than STUCK_MPS for DOWN_SECONDS while you drive
+-- is down (wrecked or stuck). You must be going at least DRIVING_MPS for that to count, since
+-- Hoons wait when you stop. One that hasn't hit you yet is never down for being slow: after
+-- STALL_SECONDS its path is sent again and the stall is logged, to find out why.
+M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS, M.STALL_SECONDS = 1, 12, 3, 5
 -- Further than ESCAPE_METRES from you for ESCAPE_SECONDS, and you have lost it: it is gone.
 M.ESCAPE_METRES, M.ESCAPE_SECONDS = 400, 0
 -- A downed Hoon is given back once you are this far from it.
@@ -308,7 +310,7 @@ function M.new(car, random)
         car:strike(h.id, me.id)
       end
     elseif h.state == 'SWIPE' then
-      if not h.contactAt and h.metres and h.metres <= M.CONTACT_METRES then h.contactAt = clock end
+      if not h.contactAt and h.metres and h.metres <= M.CONTACT_METRES then h.contactAt, h.hasHit = clock, true end
       if h.contactAt and clock - h.contactAt >= M.AFTER_CONTACT_SECONDS then
         peel(h, clock); line = LINES.swiped
       elseif clock - h.since >= M.SWIPE_SECONDS then
@@ -349,8 +351,12 @@ function M.new(car, random)
           local driving = (me.speed or 0) >= M.DRIVING_MPS
           if driving and st.speed < M.STUCK_MPS then h.slow = h.slow or clock else h.slow = nil end
           if h.metres > M.ESCAPE_METRES then h.far = h.far or clock else h.far = nil end
-          if h.slow and clock - h.slow >= M.DOWN_SECONDS then
+          if h.slow and h.hasHit and clock - h.slow >= M.DOWN_SECONDS then
             line = down(h, LINES.down)
+          elseif h.slow and not h.hasHit and clock - h.slow >= M.STALL_SECONDS then
+            h.slow, h.replanAt, h.stalls = nil, nil, (h.stalls or 0) + 1
+            p.stalled = { n = h.n, state = h.state, slot = h.slot, source = h.source, metres = h.metres, stalls = h.stalls }
+            line = think(h, me, st, clock)
           elseif h.far and clock - h.far >= M.ESCAPE_SECONDS then
             release(h); line = LINES.escaped
           else

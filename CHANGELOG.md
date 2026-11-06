@@ -7,6 +7,7 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
 - **The strip at the top of the HUD now shows how far the nearest Hoon is,** for example "Hoon 85 m" in red beside the threat light, and it updates as you drive. The **Rig** tab lists every spawned Hoon with its distance under the **Spawn a Hoon** button too.
+- **Fixed: spawned Hoons no longer just stop out in the desert.** A Hoon that was slow to get to its spot was counted as down and switched off, even though it had never touched you. Now a spawned Hoon only counts as down for being stopped once it has hit you. If one stalls before that, it's sent on its way again, and the log says where it got stuck.
 - A spawned Hoon that gets more than 400 m away from you is now gone straight away, instead of following you from a long way back. A downed Hoon is taken away once you're 400 m from it. Your save still works.
 
 ## Build 18 · 6 Nov 2026

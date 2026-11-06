@@ -173,7 +173,11 @@ local p3 = P.new(car3, random)
 p3:add(0)
 car3.frozen = true
 car3.cars[p3.hoons[1].id].speed = 0
-T.check(has(run(p3, 0.5, P.DOWN_SECONDS + 1), P.LINES.down), 'a stuck Hoon is down')
+local lines3 = run(p3, 0.5, P.DOWN_SECONDS + 1)
+T.check(not has(lines3, P.LINES.down), 'a Hoon that never hit you is not down for being slow')
+T.eq(p3.hoons[1].stalls, 2, 'its stalls are counted'); T.check(p3.stalled ~= nil, 'and reported')
+p3.hoons[1].hasHit = true
+T.check(has(run(p3, 20, P.DOWN_SECONDS + 1), P.LINES.down), 'one that hit you and is stuck is down')
 p3:clear(); car3.frozen = nil
 T.eq(#p3.hoons, 0, 'clear sends them all away')
 p3:add(0)
