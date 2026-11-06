@@ -177,9 +177,14 @@ for _ = 1, P.SHOTS_TO_STOP - 1 do T.eq(select(2, p2:shot(lead.id)), true, 'hit a
 T.eq(p2:shot(lead.id), P.LINES.shotDown, 'four hits stop it'); T.eq(lead.state, 'DOWN', 'down')
 T.eq(#p2:distances(), before - 1, 'no longer lights the threat')
 T.eq(p2:driverShot(side.id), P.LINES.driverShot, 'a shot through the driver stops one at once')
-car2.me.y = 5000
-run(p2, 100, 1)
-T.eq(#p2.hoons, 0, 'downed Hoons are given back once you are far away')
+car2.frozen = true
+car2.cars[lead.id].x, car2.cars[lead.id].y, car2.cars[side.id].x, car2.cars[side.id].y = 0, 399, 0, 399
+run(p2, 100, 0.5)
+T.eq(#p2.hoons, 2, 'downed Hoons wait while you are within 400 m')
+car2.cars[lead.id].y, car2.cars[side.id].y = 401, 401
+run(p2, 101, 0.5)
+T.eq(#p2.hoons, 0, 'and are given back once you are more than 400 m away')
+car2.frozen = nil
 
 -- Stuck while you drive: down. Getting away: lost. Gone: forgotten. Full: no more.
 local car3 = fakeCar()
