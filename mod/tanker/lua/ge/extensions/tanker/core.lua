@@ -250,12 +250,6 @@ function M.new(env)
       self.reading = { litres = after, capacity = capacity, km = self.profile and self.profile.run.drivenKm }
     end
     if line then self.feedback = line; self.diag:event('siphon', line) end
-    -- A downed Hoon waits for you to come back for more until its tank is dry.
-    local result = self.siphon.result
-    if line and donor and result and result.reason == 'dry' then
-      if self.hoons and self.hoons.siphonedDry then self.hoons:siphonedDry(donor) end
-      if self.pack and self.pack.siphonedDry then self.pack:siphonedDry(donor) end
-    end
   end
 
   -- The Hoons: their car is loaded once the run is on the road, then they come every few km.

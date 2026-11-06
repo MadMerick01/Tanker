@@ -6,7 +6,7 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
-- **You can now siphon a downed Hoon more than once.** Siphon some of its fuel, drive off, then come back, stop beside it and press **Siphon fuel** again, as many times as you like until its tank is dry. A downed Hoon that still has fuel now waits for you until you're 2 km away. Before, it was taken away as soon as you were 600 m from it, so it was often gone when you came back. Once you've siphoned its tank dry, it goes as before when you drive away. Your save still works.
+- **You can siphon a downed Hoon more than once.** Siphon some of its fuel, drive off, then come back, stop beside it and press **Siphon fuel** again, as many times as you like until its tank is dry. A downed Hoon is now taken away once you're more than 400 m from it (it was 600 m), and after that it's gone and can't be siphoned. Your save still works.
 
 ## Build 18 · 6 Nov 2026
 

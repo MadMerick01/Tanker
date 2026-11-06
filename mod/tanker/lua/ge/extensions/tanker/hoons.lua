@@ -28,10 +28,7 @@ M.ESCAPE_METRES, M.ESCAPE_SECONDS = 1500, 30
 -- A hunt that lasts this long without catching you ends anyway.
 M.HUNT_SECONDS = 300
 -- A downed Hoon is put away once you are this far from it.
-M.LEAVE_METRES = 600
--- A downed Hoon with fuel still in its tank waits for you to come back and siphon it again,
--- until you are this far from it. Once its tank is siphoned dry, LEAVE_METRES applies.
-M.KEEP_METRES = 2000
+M.LEAVE_METRES = 400
 -- If a Hoon can't be placed, try again after this many seconds.
 M.RETRY_SECONDS = 10
 -- The spawn button puts the Hoon this far behind you when there is no road to put it on.
@@ -112,7 +109,7 @@ function M.new(car, random)
   -- Puts the Hoon away and picks when the next one comes.
   function s:putAway(drivenKm)
     car:hide(self.id)
-    self.state, self.dry = 'HIDDEN', nil
+    self.state = 'HIDDEN'
     self.nextKm = (drivenKm or 0) + self:gap()
   end
 
@@ -138,7 +135,7 @@ function M.new(car, random)
     local metres = distance(me, hoon)
     self.metres = metres
     if self.state == 'DOWN' then
-      if metres and metres > (self.dry and M.LEAVE_METRES or M.KEEP_METRES) then self:putAway(drivenKm) end
+      if metres and metres > M.LEAVE_METRES then self:putAway(drivenKm) end
       return nil
     end
     if hoon.speed < M.STUCK_MPS then self.slow = self.slow or clock else self.slow = nil end
@@ -175,13 +172,6 @@ function M.new(car, random)
     self.state = 'DOWN'
     car:calm(self.id)
     return LINES.driverShot, true
-  end
-
-  -- A siphon found car id's tank dry. Returns whether it was the downed Hoon.
-  function s:siphonedDry(id)
-    if self.state ~= 'DOWN' or id ~= self.id then return false end
-    self.dry = true
-    return true
   end
 
   -- Distances of the Hoons hunting you, for the threat light.

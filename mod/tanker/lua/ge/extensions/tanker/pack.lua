@@ -54,13 +54,9 @@ M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS = 1, 12, 3
 -- Further than ESCAPE_METRES from you for ESCAPE_SECONDS, and you have lost it.
 M.ESCAPE_METRES, M.ESCAPE_SECONDS = 1500, 30
 -- A downed Hoon is given back once you are this far from it.
-M.LEAVE_METRES = 600
+M.LEAVE_METRES = 400
 -- This many hits from your revolver stop a Hoon.
 M.SHOTS_TO_STOP = 4
-
--- A downed Hoon with fuel still in its tank waits for you to come back and siphon it again,
--- until you are this far from it. Once its tank is siphoned dry, LEAVE_METRES applies.
-M.KEEP_METRES = 2000
 
 -- side: -1 left, 1 right. ahead: 1 front, -1 rear.
 M.SLOTS = {
@@ -348,7 +344,7 @@ function M.new(car, random)
         relative(me, st)
         h.metres = distance2d(me.x, me.y, st.x, st.y)
         if h.state == 'DOWN' then
-          if h.metres > (h.dry and M.LEAVE_METRES or M.KEEP_METRES) then release(h) end
+          if h.metres > M.LEAVE_METRES then release(h) end
         else
           local driving = (me.speed or 0) >= M.DRIVING_MPS
           if driving and st.speed < M.STUCK_MPS then h.slow = h.slow or clock else h.slow = nil end
@@ -384,14 +380,6 @@ function M.new(car, random)
     local h = find(id)
     if not h then return nil, false end
     return down(h, LINES.driverShot), true
-  end
-
-  -- A siphon found car id's tank dry. Returns whether it was a downed Hoon.
-  function p:siphonedDry(id)
-    for _, h in ipairs(self.hoons) do
-      if h.id == id and h.state == 'DOWN' then h.dry = true; return true end
-    end
-    return false
   end
 
   -- Distances of the Hoons still up, for the threat light.

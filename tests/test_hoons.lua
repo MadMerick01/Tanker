@@ -48,14 +48,12 @@ T.eq(steps(h, 2, H.DOWN_SECONDS, 13), H.LINES.down, 'a stuck Hoon is down')
 T.eq(car.calmed, 1, 'its AI stopped'); T.eq(h:distances(), nil, 'a wreck is no threat'); T.eq(h:outId(), 99, 'still out')
 h:step(30, 13)
 T.eq(h.state, 'DOWN', 'waits while you are near')
--- With fuel still in its tank it waits for you to come back and siphon it again.
-car.me.y = (H.LEAVE_METRES + H.KEEP_METRES) / 2
+car.me.y = car.hoon.y + H.LEAVE_METRES - 1
 h:step(31, 14)
-T.eq(h.state, 'DOWN', 'waits for you to come back while its tank has fuel')
-T.eq(h:siphonedDry(98), false, 'another car siphoned dry is not the Hoon')
-car.me.y = H.KEEP_METRES + 1
+T.eq(h.state, 'DOWN', 'waits while you are within 400 m, so you can come back and siphon again')
+car.me.y = car.hoon.y + H.LEAVE_METRES + 1
 h:step(31.5, 14)
-T.eq(h.state, 'HIDDEN', 'put away once you are far away'); T.eq(car.hidden, 1, 'hidden')
+T.eq(h.state, 'HIDDEN', 'put away once you are more than 400 m away'); T.eq(car.hidden, 1, 'hidden')
 T.eq(h.nextKm, 14 + H.GAP_MIN_KM, 'the next comes a few km on')
 
 -- Getting away: far from you for long enough.
@@ -108,7 +106,7 @@ car3.hoon.y, car3.hoon.speed = -80, 20
 run(0.5)
 T.eq(c:view().threat, 'red', 'a Hoon on you shows red'); T.eq(c:view().saveAllowed, false, 'no saving')
 T.eq(c:view().hoon.state, 'HUNTING', 'the Road tab says so'); T.eq(c:view().hoon.metres, 80, 'with how far')
--- Down beside you: siphon it, drive off, come back and siphon again, until its tank is dry.
+-- Down beside you: siphon it, drive off (within 400 m), come back and siphon again, until its tank is dry.
 car3.hoon.speed = 0
 run(H.DOWN_SECONDS + 1)
 T.eq(c.hoons.state, 'DOWN', 'the Hoon is down')
@@ -125,15 +123,16 @@ local function siphonOnce(before, after)
   end
 end
 siphonOnce(5, 4)
-near.cars[99] = 500; near.speed = 20; car3.me.y = 500; run(1)
+near.cars[99] = 300; near.speed = 20; car3.me.y = 300; run(1)
 T.eq(c.siphon:active(), false, 'driving off stops the siphon')
-T.eq(c.hoons.state, 'DOWN', 'the Hoon waits while its tank has fuel')
+T.eq(c.hoons.state, 'DOWN', 'the Hoon is still there 300 m away')
 near.cars[99] = 4; near.speed = 0; car3.me.y = 0; run(1)
 T.eq(c:view().siphonAllowed, true, 'back beside it, Siphon fuel is offered again')
 siphonOnce(4, 4)
 T.eq(c.siphon.result.reason, 'dry', 'until its tank is dry')
-car3.me.y = H.LEAVE_METRES + 1; run(0.5)
-T.eq(c.hoons.state, 'HIDDEN', 'a dry Hoon is put away once you leave')
+car3.me.y = H.LEAVE_METRES + 1; near.cars[99] = nil; run(0.5)
+T.eq(c.hoons.state, 'HIDDEN', 'more than 400 m away, the Hoon is gone')
+T.eq(c:view().siphonNear, nil, 'and can no longer be siphoned')
 c:shutdown()
 T.eq(car3.removed, 1, 'the Hoon car goes with Tanker')
 
