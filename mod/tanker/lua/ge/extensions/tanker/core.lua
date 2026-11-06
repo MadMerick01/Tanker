@@ -51,6 +51,9 @@ local START_FUEL_LITRES, START_BED_LITRES = 15, 25
 M.START_FUEL_LITRES, M.START_BED_LITRES = START_FUEL_LITRES, START_BED_LITRES
 -- How often the bed tank's weight is updated while the pump runs, and its size asked for.
 local BED_APPLY_SECONDS, BED_READ_SECONDS = 2, 5
+-- Siphoning is done on foot (Rowan, 6 Nov), with your truck parked within this many metres of you.
+local TRUCK_METRES = 15
+M.TRUCK_METRES = TRUCK_METRES
 
 local LABELS = {
   STARTING = 'STARTING UP', NO_EARTH = 'WAITING FOR BEAMNG.EARTH', NEW = 'READY TO START',
@@ -94,7 +97,9 @@ function M.new(env)
     c.bedDirty = true
     return c.bedLitres - before, c.bedLitres, c.bedCapacity
   end
+  -- Your own tank (id nil) is your truck's, even while you are out of it on foot.
   local function changeFuel(litres, serial, id)
+    if id == nil and c.foot and c.truckId then id = c.truckId end
     return env.fuel.change ~= nil and env.fuel:change(litres, serial, id)
   end
   c.siphon = siphon.new(changeFuel, changeBed)
@@ -216,13 +221,30 @@ function M.new(env)
     self.rocks = status
   end
 
-  -- Siphoning: offered while you stand still beside another car on the road.
+  -- Siphoning: offered while you stand still on foot beside another car on the road, with your
+  -- truck parked close by. Hoons nearby don't stop it (Rowan, 6 Nov).
   function c:siphonBlocked()
     if self.state ~= 'RUNNING' then return 'not_running' end
     if self.siphon:active() then return 'siphoning' end
     local near = self.near
     if not (near and near.metres <= siphon.REACH_METRES) then return 'nothing_near' end
+    if not self.foot then return 'in_vehicle' end
+    if not (self.truckMetres and self.truckMetres <= TRUCK_METRES) then return 'truck_far' end
     if near.speed > siphon.STILL_MPS then return 'moving' end
+  end
+
+  -- Whether you are on foot (BeamNG's walking mode), and where your truck is while you are.
+  function c:followFoot()
+    local me = self.nearby and self.nearby:player()
+    if not me then return end
+    local was = self.foot
+    self.foot = me.onFoot == true
+    if not self.foot then self.truckId, self.truckMetres = me.id, 0
+    elseif self.truckId then
+      local truck = self.nearby:closest(self.truckId)
+      self.truckMetres = truck and truck.metres or nil
+    else self.truckMetres = nil end
+    if was ~= nil and was ~= self.foot then self.diag:event('foot', self.foot and 'out of the truck' or 'back in the truck') end
   end
 
   -- Whether there is a bed tank to siphon into.
@@ -255,6 +277,7 @@ function M.new(env)
   -- Each half second: keeps the siphon going, or looks for a car to offer one from.
   function c:followSiphon()
     if not self.nearby then return end
+    self:followFoot()
     if self.state ~= 'RUNNING' then
       self.near = nil
       if self.siphon:active() then self.feedback = self.siphon:finish('stopped', self.clock) end
@@ -267,7 +290,7 @@ function M.new(env)
       self.near = nil
       return
     end
-    local car, me = self.nearby:closest()
+    local car, me = self.nearby:closest(nil, self.foot and self.truckId or nil)
     self.near = car and me and { id = car.id, metres = car.metres, speed = me.speed } or nil
   end
 
@@ -420,7 +443,8 @@ function M.new(env)
   -- Pours the bed tank's litres into the truck so it carries the weight; at most every few
   -- seconds while the pump runs, unless now.
   function c:applyBed(now)
-    if not self.bed then return end
+    -- On foot, the player's car is the walker: the bed tank's fuel is poured in once you are back.
+    if not self.bed or self.foot then return end
     if not (self.bedDirty or now) then return end
     if not now and self.bedAppliedAt and self.clock - self.bedAppliedAt < BED_APPLY_SECONDS then return end
     self.bedAppliedAt, self.bedDirty = self.clock, false
@@ -438,7 +462,7 @@ function M.new(env)
       if self.transfer:active() then self.feedback = self.transfer:finish('stopped', self.clock) end
       return
     end
-    if self.bed and not (self.bedCapacity and self.bedCapacity > 0)
+    if self.bed and not self.foot and not (self.bedCapacity and self.bedCapacity > 0)
         and (not self.bedAskedAt or self.clock - self.bedAskedAt >= BED_READ_SECONDS) then
       self.bedAskedAt = self.clock
       self.bed:read()
@@ -516,6 +540,7 @@ function M.new(env)
   function c:saveBlocked()
     if self.state ~= 'RUNNING' or not self.profile then return 'not_running' end
     if not (self.here and self.here.valid) then return 'no_position' end
+    if self.foot then return 'on_foot' end
     if self.threat ~= 'clear' then return 'hoons_near' end
   end
 
@@ -597,6 +622,8 @@ function M.new(env)
 
   -- The game's onVehicleSpawned: the starter truck has arrived when the player's vehicle respawns.
   function c:vehicleSpawned(id)
+    -- Getting out spawns the walking mode's unicycle: the truck is left as it was.
+    if self.nearby and self.nearby.isWalker and self.nearby:isWalker(id) then return end
     if not (self.vehicles and self.vehicles:isPlayer(id)) then return end
     if self.state == 'SPAWNING' then self:truckArrived()
     elseif self.state == 'RUNNING' and self.parts then self:truckRespawned() end
@@ -648,8 +675,9 @@ function M.new(env)
     self:followPack()
     self:followRobbery()
     self:followPump()
-    if self.parts then self:followWorkshop() end
-    self.fuel:read()
+    -- On foot, the parts and the fuel are your parked truck's.
+    if self.parts and not self.foot then self:followWorkshop() end
+    self.fuel:read(self.foot and self.truckId or nil)
     local distances = env.hoonDistances and env.hoonDistances()
     if not distances then
       distances = {}
@@ -705,13 +733,19 @@ function M.new(env)
     end
     v.siphonAllowed = self:siphonBlocked() == nil
     v.siphonStopAllowed = self.siphon:active()
+    local blocked = self:siphonBlocked()
     if self.near and self.near.metres <= siphon.REACH_METRES and self.state == 'RUNNING' then
-      v.siphonNear = { metres = self.near.metres, moving = self.near.speed > siphon.STILL_MPS }
+      v.siphonNear = { metres = self.near.metres, moving = self.near.speed > siphon.STILL_MPS,
+        needsFoot = blocked == 'in_vehicle', truckFar = blocked == 'truck_far' }
     end
+    v.onFoot = self.foot == true
     v.siphon = self.siphon:view(self.clock, self:siphonTank())
     -- The centre window's offer: stopped beside a car, choose where its fuel goes.
-    if v.siphonAllowed and not v.siphon then
-      v.siphonOffer = { metres = self.near.metres, bed = self:hasBed(),
+    -- In your truck, or too far from it, it says so instead (Rowan, 6 Nov).
+    local waiting = (blocked == 'in_vehicle' or blocked == 'truck_far') and self.near.speed <= siphon.STILL_MPS
+    if (v.siphonAllowed or waiting) and not v.siphon then
+      v.siphonOffer = { metres = self.near.metres, bed = self:hasBed(), blocked = v.siphonAllowed and nil or blocked,
+        truckMetres = TRUCK_METRES,
         yours = self.reading and self.reading.litres, yoursCapacity = self.reading and self.reading.capacity,
         bedLitres = self.bedLitres, bedCapacity = self.bedCapacity }
     end

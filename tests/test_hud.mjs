@@ -107,6 +107,14 @@ test('siphon buttons and the siphon box', () => {
   choose.onmouseleave()
   a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, bed: true } })
   assert.equal(doc.body.children.length, 0, 'no offer unless Lua allows it')
+  // In the truck: the window says you must be on foot, with nothing to press.
+  a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, bed: true, blocked: 'in_vehicle' } })
+  const foot = doc.body.children[0]
+  assert.match(text(foot), /You must be on foot to siphon/)
+  assert.ok(!foot.children.some(c => c.tagName === 'button' || c.tag === 'button'), 'no buttons')
+  a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, blocked: 'truck_far', truckMetres: 15 } })
+  assert.match(text(doc.body.children[0]), /Park your truck within 15 m/)
+  a.state({ state: 'RUNNING' })
   const live = { active: true, litres: 12, theirs: 68, theirsCapacity: 80, yours: 112, yoursCapacity: 300 }
   a.state({ state: 'RUNNING', siphonStopAllowed: true, siphon: live })
   assert.equal(doc.body.children.length, 1, 'the box shows')

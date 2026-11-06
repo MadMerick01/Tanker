@@ -108,7 +108,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
     if (!data) return null
     if (data.robbery) return { kind: 'robbery', r: data.robbery }
     if (data.siphon) return { kind: 'siphon', s: data.siphon }
-    if (data.siphonOffer && data.siphonAllowed) return { kind: 'offer', o: data.siphonOffer }
+    if (data.siphonOffer && (data.siphonAllowed || data.siphonOffer.blocked)) return { kind: 'offer', o: data.siphonOffer }
     return null
   }
   var showBox = function (data, send, hover) {
@@ -121,7 +121,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
     var r = what.r
     // Only redrawn when what it shows changes, so a press on a button is not lost to a redraw.
     var key = what.kind + '|' + (s ? [s.active, s.into, whole(s.litres), whole(s.theirs), whole(s.yours), s.result].join('|')
-      : o ? [o.bed, whole(o.yours), whole(o.bedLitres)].join('|')
+      : o ? [o.bed, o.blocked, whole(o.yours), whole(o.bedLitres)].join('|')
         : [r.active, r.state, r.text, whole(r.litres), whole(r.yours), whole(r.bed)].join('|')) + '|' + hoons
     if (box && key === boxKey) return
     var edge = what.kind === 'robbery' || hoons ? '#eb5757' : '#e0823c'
@@ -141,7 +141,11 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
       line(next, 'A car ' + whole(o.metres) + ' m away', 'font-weight:bold;font-size:20px;margin-top:2px;')
       tankLine(next, 'Your tank', o.yours, o.yoursCapacity, '#6fcf97')
       if (o.bed) tankLine(next, bedName, o.bedLitres, o.bedCapacity, '#c48448')
-      if (o.bed) {
+      if (o.blocked === 'in_vehicle') {
+        line(next, 'You must be on foot to siphon. Get out of your truck and stand beside the car.', 'font-weight:bold;color:#f2c94c;margin-top:8px;')
+      } else if (o.blocked) {
+        line(next, 'Park your truck within ' + whole(o.truckMetres) + ' m of you to siphon into it.', 'font-weight:bold;color:#f2c94c;margin-top:8px;')
+      } else if (o.bed) {
         line(next, 'Where should the fuel go?', 'margin-top:8px;')
         button(next, 'Into your truck', edge, function () { send('siphonToTruck') })
         button(next, 'Into the bed tank', edge, function () { send('siphonToBed') })
@@ -149,7 +153,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
         button(next, 'Siphon fuel', edge, function () { send('siphonToTruck') })
       }
       if (hoons) line(next, 'Hoons nearby!', 'font-weight:bold;color:#eb5757;margin-top:6px;')
-      line(next, 'Stay still beside the car while the fuel flows. Driving off stops it.', 'margin-top:6px;color:#c8bfb2;font-size:13px;')
+      line(next, 'Stand still beside the car while the fuel flows. Walking off stops it.', 'margin-top:6px;color:#c8bfb2;font-size:13px;')
     } else if (what.kind === 'siphon') {
       if (s.active) {
         var stop = document.createElement('button')
@@ -166,7 +170,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
       tankLine(next, 'Their tank', s.theirs, s.theirsCapacity, '#c48448')
       tankLine(next, intoBed ? bedName : 'Your tank', s.yours, s.yoursCapacity, '#6fcf97')
       if (hoons) line(next, 'Hoons nearby!', 'font-weight:bold;color:#eb5757;margin-top:6px;')
-      line(next, s.active ? 'Stay still beside their car. Driving off stops it, and you keep what you took.' : String(s.result || ''),
+      line(next, s.active ? 'Stand still beside their car. Moving off stops it, and you keep what you took.' : String(s.result || ''),
         'margin-top:6px;color:#c8bfb2;font-size:13px;')
     } else {
       line(next, r.active ? 'HOON ROBBERY' : 'ROBBERY OVER', 'font-weight:bold;letter-spacing:2px;font-size:13px;color:' + edge + ';')
