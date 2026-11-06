@@ -28,7 +28,7 @@ M.ESCAPE_METRES, M.ESCAPE_SECONDS = 1500, 30
 -- A hunt that lasts this long without catching you ends anyway.
 M.HUNT_SECONDS = 300
 -- A downed Hoon is put away once you are this far from it.
-M.LEAVE_METRES = 600
+M.LEAVE_METRES = 400
 -- If a Hoon can't be placed, try again after this many seconds.
 M.RETRY_SECONDS = 10
 -- The spawn button puts the Hoon this far behind you when there is no road to put it on.

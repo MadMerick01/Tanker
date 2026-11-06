@@ -48,9 +48,12 @@ T.eq(steps(h, 2, H.DOWN_SECONDS, 13), H.LINES.down, 'a stuck Hoon is down')
 T.eq(car.calmed, 1, 'its AI stopped'); T.eq(h:distances(), nil, 'a wreck is no threat'); T.eq(h:outId(), 99, 'still out')
 h:step(30, 13)
 T.eq(h.state, 'DOWN', 'waits while you are near')
-car.me.y = 1000
+car.me.y = car.hoon.y + H.LEAVE_METRES - 1
 h:step(31, 14)
-T.eq(h.state, 'HIDDEN', 'put away once you leave'); T.eq(car.hidden, 1, 'hidden')
+T.eq(h.state, 'DOWN', 'waits while you are within 400 m, so you can come back and siphon again')
+car.me.y = car.hoon.y + H.LEAVE_METRES + 1
+h:step(31.5, 14)
+T.eq(h.state, 'HIDDEN', 'put away once you are more than 400 m away'); T.eq(car.hidden, 1, 'hidden')
 T.eq(h.nextKm, 14 + H.GAP_MIN_KM, 'the next comes a few km on')
 
 -- Getting away: far from you for long enough.
@@ -89,7 +92,8 @@ T.eq(h2:step(0, 100), nil, 'and nothing happens')
 -- In the game: the Hoon is loaded on the road, lights the threat and blocks saving.
 local adapter = F.adapter(-31.0, 140.0)
 local car3 = fakeCar()
-local c, env = F.controller(adapter, { hoonCar = car3, random = function(lo) return lo end })
+local near = F.nearby({ [99] = 4 })
+local c, env = F.controller(adapter, { hoonCar = car3, random = function(lo) return lo end, nearby = near })
 local function run(seconds) for _ = 1, math.floor(seconds * 2) do c:tick(0.5) end end
 run(1)
 T.eq(car3.loads, 0, 'no Hoon before the run')
@@ -102,6 +106,33 @@ car3.hoon.y, car3.hoon.speed = -80, 20
 run(0.5)
 T.eq(c:view().threat, 'red', 'a Hoon on you shows red'); T.eq(c:view().saveAllowed, false, 'no saving')
 T.eq(c:view().hoon.state, 'HUNTING', 'the Road tab says so'); T.eq(c:view().hoon.metres, 80, 'with how far')
+-- Down beside you: siphon it, drive off (within 400 m), come back and siphon again, until its tank is dry.
+car3.hoon.speed = 0
+run(H.DOWN_SECONDS + 1)
+T.eq(c.hoons.state, 'DOWN', 'the Hoon is down')
+car3.me.speed = 0
+local function siphonOnce(before, after)
+  T.eq(c:startSiphon(), true, 'siphon started on the Hoon')
+  run(0.5)
+  local take = env.fuel.changes[#env.fuel.changes]
+  T.eq(take.id, 99, 'from the Hoon')
+  c:fuelChanged(99, take.serial, before, after, 60)
+  if after > 0 then
+    local give = env.fuel.changes[#env.fuel.changes]
+    c:fuelChanged(7, give.serial, 10, 10 + before - after, 300)
+  end
+end
+siphonOnce(5, 4)
+near.cars[99] = 300; near.speed = 20; car3.me.y = 300; run(1)
+T.eq(c.siphon:active(), false, 'driving off stops the siphon')
+T.eq(c.hoons.state, 'DOWN', 'the Hoon is still there 300 m away')
+near.cars[99] = 4; near.speed = 0; car3.me.y = 0; run(1)
+T.eq(c:view().siphonAllowed, true, 'back beside it, Siphon fuel is offered again')
+siphonOnce(4, 4)
+T.eq(c.siphon.result.reason, 'dry', 'until its tank is dry')
+car3.me.y = H.LEAVE_METRES + 1; near.cars[99] = nil; run(0.5)
+T.eq(c.hoons.state, 'HIDDEN', 'more than 400 m away, the Hoon is gone')
+T.eq(c:view().siphonNear, nil, 'and can no longer be siphoned')
 c:shutdown()
 T.eq(car3.removed, 1, 'the Hoon car goes with Tanker')
 
