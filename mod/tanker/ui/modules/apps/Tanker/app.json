@@ -2,7 +2,7 @@
   "domElement": "<tanker-hud></tanker-hud>",
   "name": "Tanker",
   "types": ["ui.apps.categories.utility"],
-  "description": "Tanker: a hardcore trucking run across the Australian outback on BeamNG.Earth. Fuel, ammo and the distance to Pine Gap.",
+  "description": "Tanker: an open-world, long-haul road warrior simulation across the Australian outback on BeamNG.Earth. Raid tankers, fight off Hoons, keep your tanks full and push on. Built for VR, triples and telemetry.",
   "css": {"width": "360px", "height": "420px", "top": "100px", "left": "20px"},
   "author": "Tanker",
   "version": "0.1.0",

@@ -1,6 +1,8 @@
 # Tanker
 
-A hardcore post-apocalyptic trucking game for BeamNG.drive, set in the real Australian outback on BeamNG.Earth. An AI has switched off the world's water, power and internet, and fuel is the only thing worth anything. Start in a ute with a fuel tank in the bed at Kulgera Roadhouse, take fuel from Hoons in muscle cars and from other tankers, and make it about 270 km north to Pine Gap for the codes that can stop the AI.
+**An open-world, long-haul road warrior simulation for BeamNG.drive.** *Raid tankers, fight off Hoons, keep your tanks full and push on.* Built for VR, triples and telemetry.
+
+Set in the real Australian outback on BeamNG.Earth, after an AI has switched off the world's water, power and internet. Fuel is the only thing worth anything. Start in a ute with a fuel tank in the bed at Kulgera Roadhouse, take fuel from Hoons in muscle cars and from other tankers, and make it about 270 km north to Pine Gap for the codes that can stop the AI.
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the design.
 
