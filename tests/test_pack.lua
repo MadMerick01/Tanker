@@ -109,6 +109,16 @@ T.eq(car.paths[h.id].x, nx, 'still aiming along its slot')
 car.cars[h.id].y = ny
 p:steer(1003.1)
 T.eq(car.paths[h.id].speed, car.me.speed - P.DROP_MPS, 'and is only steered every few frames')
+-- Past its point while you drive on: it aims a little ahead of itself, never behind (its driver
+-- would turn round), and eases off so the point comes back to it.
+car.cars[h.id].x, car.cars[h.id].y = nx, ny + 30
+p:steer(1003.5)
+T.check(car.paths[h.id].y >= ny + 30 + P.MIN_LEAD - 0.01, 'aims ahead of itself, not behind')
+T.eq(car.paths[h.id].speed, car.me.speed - P.DROP_MPS, 'easing off to drop back')
+-- The rear far slots are closer in.
+local rr, ra = P.offset('RRF')
+T.eq(rr, P.REAR_FAR_SIDE, 'rear far slots 30 m out'); T.check(ra < 0, 'behind you')
+T.check(math.sqrt(rr * rr + ra * ra) < 35, 'about 30 m from you')
 -- You stop beside it: it circles its point instead of parking.
 local mySpeed = car.me.speed
 car.me.speed = 0

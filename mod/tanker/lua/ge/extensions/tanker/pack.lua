@@ -21,6 +21,9 @@ M.MAX = 4
 -- FAR_SIDE metres out and FAR_BEYOND metres beyond your front or back. HALF_LENGTH is half your
 -- truck's length, from its middle to its front or back.
 M.NEAR_SIDE, M.FAR_SIDE, M.FAR_BEYOND, M.HALF_LENGTH = 10, 60, 10, 3
+-- The rear far slots (LRF, RRF) sit only this far out, so a Hoon behind you stays close (Rowan,
+-- 6 Nov): about 30 m from you.
+M.REAR_FAR_SIDE = 30
 -- A Hoon is at a far slot within this many metres of it, at a near slot within NEAR_ARRIVE.
 M.FAR_ARRIVE, M.NEAR_ARRIVE = 15, 6
 -- Driving to a slot uses Tanker's own desert driver in the car (tankerDriver.lua), fed a new
@@ -136,7 +139,7 @@ local function distance2d(ax, ay, bx, by) return math.sqrt((ax - bx) ^ 2 + (ay -
 -- The slot's offset from your middle: metres to your right, metres ahead.
 function M.offset(slot)
   local s = M.SLOTS[slot]
-  local side = s.far and M.FAR_SIDE or M.NEAR_SIDE
+  local side = s.far and (s.ahead < 0 and M.REAR_FAR_SIDE or M.FAR_SIDE) or M.NEAR_SIDE
   local ahead = M.HALF_LENGTH + (s.far and M.FAR_BEYOND or 0)
   return s.side * side, s.ahead * ahead
 end
@@ -231,7 +234,11 @@ function M.new(car, random)
     end
     speed = math.max(0, math.min(speed, mine + M.CATCH_UP_MPS))
     local lead = strikeLead or math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
-    local x, y = M.at(me, aimRight, aimAhead + lead, 0)
+    -- Never aim behind the Hoon: its driver would turn round for a point behind it, slowly, and
+    -- fall far behind you. A point it has passed is aimed at a little ahead of it instead, and the
+    -- speed law drops it back.
+    local aimAt = math.max(aimAhead + lead, ha + (strikeLead or M.MIN_LEAD))
+    local x, y = M.at(me, aimRight, aimAt, 0)
     local sx, sy = M.at(me, right, ahead, 0)
     local boxing = h.state == 'BOXING' or h.state == 'BOX_SIDE'
     local placing = h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL'
