@@ -1,6 +1,8 @@
 -- Siphoning: moving fuel from another car's tank into yours, a litre a second, while you stand
 -- still beside it. Each step takes a litre from their tank, waits for their car to say how much
 -- really came out, then puts exactly that into yours, so fuel is never made or lost.
+-- The fuel goes into your truck's tank, or into the bed tank when you choose it (Rowan, 6 Nov).
+-- The bed tank's litres are Tanker's own number, so they go in as soon as their car answers.
 -- This is the logic only; the controller feeds it the clock, the distance and the answers.
 local M = {}
 
@@ -19,7 +21,7 @@ M.EMPTY_LITRES = 0.05
 M.RESULT_SECONDS = 6
 
 local RESULTS = {
-  dry = 'Their tank is dry.', full = 'Your tank is full.', moved = 'You moved away, so the siphon stopped.',
+  dry = 'Their tank is dry.', full = 'Your tank is full.', bedFull = 'The bed tank is full.', moved = 'You moved away, so the siphon stopped.',
   lost = 'The other car is gone, so the siphon stopped.', stopped = 'Siphon stopped.',
 }
 M.RESULTS = RESULTS
@@ -27,15 +29,18 @@ M.RESULTS = RESULTS
 local function finite(n) return type(n) == 'number' and n == n and n > -math.huge and n < math.huge end
 
 -- change(litres, serial, id) adds litres to a tank (taking them when negative): the player's car
--- when id is nil. It answers later through answer().
-function M.new(change)
+-- when id is nil. It answers later through answer(). toBed(litres) puts litres in the bed tank
+-- now and returns how many went in, and the bed tank's litres and size after.
+function M.new(change, toBed)
   local s = { serial = 0 }
 
   function s:active() return self.run ~= nil end
 
-  function s:start(donorId, clock)
+  -- into: 'truck' (the default) or 'bed'.
+  function s:start(donorId, clock, into)
     if self.run or type(donorId) ~= 'number' then return false end
-    self.run = { donor = donorId, taken = 0, nextAt = clock, startedAt = clock }
+    into = (into == 'bed' and toBed) and 'bed' or 'truck'
+    self.run = { donor = donorId, taken = 0, nextAt = clock, startedAt = clock, into = into }
     self.result = nil
     return true
   end
@@ -46,10 +51,12 @@ function M.new(change)
     if not run then return nil end
     self.run = nil
     local taken = run.taken
+    if reason == 'full' and run.into == 'bed' then reason = 'bedFull' end
     local text = RESULTS[reason] or RESULTS.stopped
-    if taken >= 0.5 then text = text .. string.format(' You took %d L.', math.floor(taken + 0.5))
+    if taken >= 0.5 then
+      text = text .. string.format(' You took %d L%s.', math.floor(taken + 0.5), run.into == 'bed' and ' into the bed tank' or '')
     elseif reason == 'dry' and taken < M.EMPTY_LITRES then text = 'There is no fuel to siphon in that car.' end
-    self.result = { reason = reason, text = text, taken = taken, at = clock,
+    self.result = { reason = reason, text = text, taken = taken, at = clock, into = run.into,
       theirs = run.theirs, theirsCapacity = run.theirsCapacity }
     return text
   end
@@ -63,7 +70,8 @@ function M.new(change)
   end
 
   -- Called often. metres is how far the other car is (nil if it is gone), speed is how fast you
-  -- are going, own is your tank's reading ({ litres, capacity }) or nil. Returns a result line
+  -- are going, own is the reading ({ litres, capacity }) of the tank the fuel goes into (your
+  -- truck's, or the bed tank's), or nil. Returns a result line
   -- when the siphon stops.
   function s:step(clock, metres, speed, own)
     local run = self.run
@@ -93,6 +101,15 @@ function M.new(change)
       run.theirs, run.theirsCapacity = after, finite(capacity) and capacity or run.theirsCapacity
       local moved = before - after
       if moved < 0.001 then return true, self:finish('dry', clock) end
+      if run.into == 'bed' then
+        local added, bedAfter, bedCapacity = toBed(moved)
+        run.taken = run.taken + math.max(0, added or 0)
+        if run.theirs < M.EMPTY_LITRES then return true, self:finish('dry', clock) end
+        if finite(bedAfter) and finite(bedCapacity) and bedCapacity - bedAfter < M.EMPTY_LITRES then
+          return true, self:finish('full', clock)
+        end
+        return true
+      end
       return true, self:send(moved, nil, 'give', clock)
     end
     run.taken = run.taken + math.max(0, after - before)
@@ -105,12 +122,12 @@ function M.new(change)
   function s:view(clock, own)
     local run = self.run
     if run then
-      return { active = true, litres = run.taken, theirs = run.theirs, theirsCapacity = run.theirsCapacity,
+      return { active = true, into = run.into, litres = run.taken, theirs = run.theirs, theirsCapacity = run.theirsCapacity,
         yours = own and own.litres, yoursCapacity = own and own.capacity, seconds = clock - run.startedAt }
     end
     local r = self.result
     if r and clock - r.at <= M.RESULT_SECONDS then
-      return { active = false, litres = r.taken, theirs = r.theirs, theirsCapacity = r.theirsCapacity,
+      return { active = false, into = r.into, litres = r.taken, theirs = r.theirs, theirsCapacity = r.theirsCapacity,
         yours = own and own.litres, yoursCapacity = own and own.capacity, result = r.text }
     end
   end

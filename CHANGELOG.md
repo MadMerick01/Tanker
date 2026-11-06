@@ -6,6 +6,10 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Siphoning now happens in a window in the middle of the screen, and you siphon on foot.** Park within 15 m of a car, get out and walk up to it, and the window offers to siphon it. From inside your truck, the window and the Road tab tell you that you must be on foot. Your truck must stay parked within 15 m of you, since the fuel goes into it. Hoons nearby don't stop you siphoning, though the window warns you they're about. You can't save while you're on foot. If your truck has a bed tank, you choose where the fuel goes: **Into your truck** or **Into the bed tank**. While the fuel flows, the window shows both tanks and a **Stop** button, then what you took for a few seconds. The **Siphon fuel** button on the Road tab still works too.
+- **Hoons now rob you when you can't move.** Sit still for 10 seconds with Hoons about and one pulls up beside you, stops, and siphons your fuel at 4 litres a second: your bed tank first, then your truck's tank. It always leaves you 10 litres. Once it has what it can carry, it speeds off and is gone once it's 400 m away. If you have 10 litres or less, it pulls up, checks your tank and speeds off with nothing. The centre window shows what it's taking. Drive off to stop it. If it got some fuel, shoot it down before it gets away and you can siphon your fuel back. This works with the Hoons from **Spawn a Hoon**, not yet with the road Hoon that turns up every few km.
+- Your save still works.
+
 ## Build 27 · 6 Nov 2026
 
 - **Fixed your car driving itself after Start a new game.** If the game ever switched you into a Hoon's car (for example after your own car went unstable), Tanker kept steering it as a Hoon, even after a new game. Now Tanker never drives the car you're in, and **Start a new game** always hands your car back to you. Hoon cars can no longer be switched into from the game's vehicle switching. Your save still works.

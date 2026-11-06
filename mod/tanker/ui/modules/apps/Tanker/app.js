@@ -5,7 +5,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   var kept = { tab: 'road', open: true, start: false, startShown: false }
   // The commands the HUD may send, each only while Lua says it is allowed.
   var COMMANDS = { startRun: 'startAllowed', goToSave: 'goToSaveAllowed', save: 'saveAllowed', rocksOn: 'rocksAllowed', rocksOff: 'rocksAllowed',
-    siphonStart: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed', addHoon: 'addHoonAllowed', clearHoons: 'clearHoonsAllowed', spawnTanker: 'tankerSpawnAllowed',
+    siphonStart: 'siphonAllowed', siphonToTruck: 'siphonAllowed', siphonToBed: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed', addHoon: 'addHoonAllowed', clearHoons: 'clearHoonsAllowed', spawnTanker: 'tankerSpawnAllowed',
     pumpToTruck: 'pumpAllowed', pumpToBed: 'pumpAllowed', pumpStop: 'pumpStopAllowed',
     payParts: 'payPartsAllowed', payPartsBill: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed',
     toggleRevolver: 'revolverAllowed', reloadRevolver: 'reloadAllowed' }
@@ -72,9 +72,11 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   var whole = function (n) {
     return typeof n === 'number' && isFinite(n) ? Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '–'
   }
-  // The siphon box: bold, near the top of the screen like Earth Freight's parts bill, and put on
-  // the page itself so it sits over everything. It is redrawn from each state while fuel flows,
-  // shows the result for a few seconds after, then goes. Red when Hoons are near.
+  // The centre window (Rowan, 6 Nov): everything about siphoning, in the middle of the screen on
+  // the page itself, so it sits over everything. Stopped beside a car, it offers the siphon and,
+  // with a bed tank fitted, asks where the fuel goes. While fuel flows it shows the tanks and a
+  // Stop button, then the result for a few seconds. A Hoon robbing you takes it over. Red when
+  // Hoons are near. It only shows while you are stopped.
   var box = null
   var boxKey = null
   var closeBox = function () {
@@ -101,35 +103,84 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
       'min-width:90px;text-align:right;font-weight:bold;')
     parent.appendChild(row)
   }
-  var showBox = function (s, stop) {
-    if (!s) return closeBox()
+  // What the centre window shows now: a robbery, else the siphon, else the offer.
+  var boxFor = function (data) {
+    if (!data) return null
+    if (data.robbery) return { kind: 'robbery', r: data.robbery }
+    if (data.siphon) return { kind: 'siphon', s: data.siphon }
+    if (data.siphonOffer && (data.siphonAllowed || data.siphonOffer.blocked)) return { kind: 'offer', o: data.siphonOffer }
+    return null
+  }
+  var showBox = function (data, send, hover) {
+    var what = boxFor(data)
+    if (!what) return closeBox()
     if (typeof document === 'undefined' || !document.body) return
-    // Only redrawn when what it shows changes, so a press on Stop is not lost to a redraw.
-    var key = [s.active, whole(s.litres), whole(s.theirs), whole(s.yours), s.hoons, s.result].join('|')
+    var s = what.s
+    var hoons = !!((s && s.hoons) || data.threat === 'red' || data.threat === 'amber')
+    var o = what.o
+    var r = what.r
+    // Only redrawn when what it shows changes, so a press on a button is not lost to a redraw.
+    var key = what.kind + '|' + (s ? [s.active, s.into, whole(s.litres), whole(s.theirs), whole(s.yours), s.result].join('|')
+      : o ? [o.bed, o.blocked, whole(o.yours), whole(o.bedLitres)].join('|')
+        : [r.active, r.state, r.text, whole(r.litres), whole(r.yours), whole(r.bed)].join('|')) + '|' + hoons
     if (box && key === boxKey) return
-    var edge = s.hoons ? '#eb5757' : '#e0823c'
+    var edge = what.kind === 'robbery' || hoons ? '#eb5757' : '#e0823c'
     var next = document.createElement('div')
     next.setAttribute('role', 'status')
-    next.style.cssText = 'position:fixed;top:12%;left:50%;transform:translateX(-50%);z-index:2147483647;' +
+    next.className = 'tk-centre'
+    next.style.cssText = 'position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;' +
       'width:420px;max-width:80vw;padding:14px 18px;background:rgba(20,16,12,.96);color:#f1ece4;' +
       'border:3px solid ' + edge + ';border-radius:10px;box-shadow:0 0 24px rgba(0,0,0,.7);' +
       'font:15px/1.4 sans-serif;pointer-events:auto;'
-    if (s.active) {
-      var button = document.createElement('button')
-      button.type = 'button'
-      button.textContent = 'Stop'
-      button.style.cssText = 'float:right;margin-left:10px;padding:6px 14px;background:' + edge + ';color:#1a140f;' +
-        'font-weight:bold;border:none;border-radius:4px;cursor:pointer;'
-      button.onclick = stop
-      next.appendChild(button)
+    // A click in the window is for the window, not a shot from the revolver.
+    next.onmouseenter = function () { hover(true) }
+    next.onmouseleave = function () { hover(false) }
+    var bedName = 'Bed tank'
+    if (what.kind === 'offer') {
+      line(next, 'SIPHON', 'font-weight:bold;letter-spacing:2px;font-size:13px;color:' + edge + ';')
+      line(next, 'A car ' + whole(o.metres) + ' m away', 'font-weight:bold;font-size:20px;margin-top:2px;')
+      tankLine(next, 'Your tank', o.yours, o.yoursCapacity, '#6fcf97')
+      if (o.bed) tankLine(next, bedName, o.bedLitres, o.bedCapacity, '#c48448')
+      if (o.blocked === 'in_vehicle') {
+        line(next, 'You must be on foot to siphon. Get out of your truck and stand beside the car.', 'font-weight:bold;color:#f2c94c;margin-top:8px;')
+      } else if (o.blocked) {
+        line(next, 'Park your truck within ' + whole(o.truckMetres) + ' m of you to siphon into it.', 'font-weight:bold;color:#f2c94c;margin-top:8px;')
+      } else if (o.bed) {
+        line(next, 'Where should the fuel go?', 'margin-top:8px;')
+        button(next, 'Into your truck', edge, function () { send('siphonToTruck') })
+        button(next, 'Into the bed tank', edge, function () { send('siphonToBed') })
+      } else {
+        button(next, 'Siphon fuel', edge, function () { send('siphonToTruck') })
+      }
+      if (hoons) line(next, 'Hoons nearby!', 'font-weight:bold;color:#eb5757;margin-top:6px;')
+      line(next, 'Stand still beside the car while the fuel flows. Walking off stops it.', 'margin-top:6px;color:#c8bfb2;font-size:13px;')
+    } else if (what.kind === 'siphon') {
+      if (s.active) {
+        var stop = document.createElement('button')
+        stop.type = 'button'
+        stop.textContent = 'Stop'
+        stop.style.cssText = 'float:right;margin-left:10px;padding:6px 14px;background:' + edge + ';color:#1a140f;' +
+          'font-weight:bold;border:none;border-radius:4px;cursor:pointer;'
+        stop.onclick = function () { send('siphonStop') }
+        next.appendChild(stop)
+      }
+      var intoBed = s.into === 'bed'
+      line(next, (s.active ? 'SIPHONING' : 'SIPHON DONE') + (intoBed ? ' INTO THE BED TANK' : ''), 'font-weight:bold;letter-spacing:2px;font-size:13px;color:' + edge + ';')
+      line(next, whole(s.litres) + ' L taken', 'font-weight:bold;font-size:22px;margin-top:2px;')
+      tankLine(next, 'Their tank', s.theirs, s.theirsCapacity, '#c48448')
+      tankLine(next, intoBed ? bedName : 'Your tank', s.yours, s.yoursCapacity, '#6fcf97')
+      if (hoons) line(next, 'Hoons nearby!', 'font-weight:bold;color:#eb5757;margin-top:6px;')
+      line(next, s.active ? 'Stand still beside their car. Moving off stops it, and you keep what you took.' : String(s.result || ''),
+        'margin-top:6px;color:#c8bfb2;font-size:13px;')
+    } else {
+      line(next, r.active ? 'HOON ROBBERY' : 'ROBBERY OVER', 'font-weight:bold;letter-spacing:2px;font-size:13px;color:' + edge + ';')
+      line(next, String(r.text || ''), 'font-weight:bold;font-size:18px;margin-top:2px;')
+      if (r.litres >= 0.5) line(next, whole(r.litres) + ' L stolen', 'font-weight:bold;font-size:22px;margin-top:2px;color:#eb5757;')
+      if (typeof r.bed === 'number') tankLine(next, bedName, r.bed, r.bedCapacity, '#c48448')
+      tankLine(next, 'Your tank', r.yours, r.yoursCapacity, '#6fcf97')
+      line(next, r.active ? 'It takes the bed tank first, then your tank, and always leaves you ' + whole(r.keep) + ' L. Drive off or shoot it to stop it.'
+        : r.litres >= 0.5 ? 'Shoot it down before it is 400 m away and you can siphon your fuel back.' : '', 'margin-top:6px;color:#c8bfb2;font-size:13px;')
     }
-    line(next, s.active ? 'SIPHONING' : 'SIPHON DONE', 'font-weight:bold;letter-spacing:2px;font-size:13px;color:' + edge + ';')
-    line(next, whole(s.litres) + ' L taken', 'font-weight:bold;font-size:22px;margin-top:2px;')
-    tankLine(next, 'Their tank', s.theirs, s.theirsCapacity, '#c48448')
-    tankLine(next, 'Your tank', s.yours, s.yoursCapacity, '#6fcf97')
-    if (s.hoons) line(next, 'Hoons nearby!', 'font-weight:bold;color:#eb5757;margin-top:6px;')
-    line(next, s.active ? 'Stay still beside their car. Driving off stops it, and you keep what you took.' : String(s.result || ''),
-      'margin-top:6px;color:#c8bfb2;font-size:13px;')
     closeBox()
     document.body.appendChild(next)
     box = next
@@ -220,7 +271,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
             scope.openStart()
           }
         })
-        showBox(data.siphon, function () { scope.send('siphonStop') })
+        showBox(data, function (name) { scope.send(name) }, scope.hover)
         showBill(data, function (name) { scope.send(name) })
       })
       mount(true)

@@ -85,7 +85,36 @@ test('siphon buttons and the siphon box', () => {
   a.state({ state: 'RUNNING', siphonAllowed: true, siphonNear: { metres: 4 } })
   a.scope.send('siphonStart')
   assert.equal(a.commands.at(-1), fixed('siphonStart()'))
-  assert.equal(doc.body.children.length, 0, 'no box before siphoning')
+  assert.equal(doc.body.children.length, 0, 'no window without an offer')
+  // Stopped beside a car: the centre window offers the siphon, with no choice without a bed tank.
+  a.state({ state: 'RUNNING', siphonAllowed: true, siphonOffer: { metres: 4, bed: false, yours: 40, yoursCapacity: 300 } })
+  const offer = doc.body.children[0]
+  assert.match(text(offer), /SIPHON/); assert.match(text(offer), /A car 4 m away/)
+  assert.ok(!/bed tank/i.test(text(offer)), 'no bed tank, no choice')
+  assert.match(offer.style.cssText, /translate\(-50%,-50%\)/, 'in the middle of the screen')
+  offer.children.find(c => c.textContent === 'Siphon fuel').onclick()
+  assert.equal(a.commands.at(-1), fixed('siphonToTruck()'))
+  // With a bed tank: choose where the fuel goes.
+  a.state({ state: 'RUNNING', siphonAllowed: true, siphonOffer: { metres: 4, bed: true, yours: 40, yoursCapacity: 300, bedLitres: 20, bedCapacity: 200 } })
+  const choose = doc.body.children[0]
+  assert.match(text(choose), /Where should the fuel go/); assert.match(text(choose), /20 of 200 L/)
+  choose.children.find(c => c.textContent === 'Into the bed tank').onclick()
+  assert.equal(a.commands.at(-1), fixed('siphonToBed()'))
+  choose.children.find(c => c.textContent === 'Into your truck').onclick()
+  assert.equal(a.commands.at(-1), fixed('siphonToTruck()'))
+  choose.onmouseenter()
+  assert.equal(a.commands.at(-1), fixed('hudHover(true)'), 'a click in the window is not a shot')
+  choose.onmouseleave()
+  a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, bed: true } })
+  assert.equal(doc.body.children.length, 0, 'no offer unless Lua allows it')
+  // In the truck: the window says you must be on foot, with nothing to press.
+  a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, bed: true, blocked: 'in_vehicle' } })
+  const foot = doc.body.children[0]
+  assert.match(text(foot), /You must be on foot to siphon/)
+  assert.ok(!foot.children.some(c => c.tagName === 'button' || c.tag === 'button'), 'no buttons')
+  a.state({ state: 'RUNNING', siphonAllowed: false, siphonOffer: { metres: 4, blocked: 'truck_far', truckMetres: 15 } })
+  assert.match(text(doc.body.children[0]), /Park your truck within 15 m/)
+  a.state({ state: 'RUNNING' })
   const live = { active: true, litres: 12, theirs: 68, theirsCapacity: 80, yours: 112, yoursCapacity: 300 }
   a.state({ state: 'RUNNING', siphonStopAllowed: true, siphon: live })
   assert.equal(doc.body.children.length, 1, 'the box shows')
@@ -105,9 +134,27 @@ test('siphon buttons and the siphon box', () => {
   assert.ok(!doc.body.children[0].children.some(c => c.textContent === 'Stop'), 'no Stop once done')
   a.state({ state: 'RUNNING' })
   assert.equal(doc.body.children.length, 0, 'the box goes')
+  a.state({ state: 'RUNNING', siphonStopAllowed: true, siphon: { ...live, into: 'bed', yoursCapacity: 200 } })
+  assert.match(text(doc.body.children[0]), /SIPHONING INTO THE BED TANK/); assert.match(text(doc.body.children[0]), /Bed tank/)
   a.state({ state: 'RUNNING', siphon: live })
   a.handlers.$destroy()
   assert.equal(doc.body.children.length, 0, 'the box goes with the app')
+})
+
+test('a Hoon robbing you takes over the centre window', () => {
+  const doc = page()
+  const a = app(doc)
+  const rob = { active: true, state: 'TAKING', text: 'A Hoon is siphoning your fuel! Drive off or shoot it.', litres: 8,
+    yours: 52, yoursCapacity: 300, bed: 0, bedCapacity: 200, keep: 10 }
+  a.state({ state: 'RUNNING', siphonAllowed: true, siphonOffer: { metres: 4 }, robbery: rob })
+  const box = doc.body.children[0]
+  assert.equal(doc.body.children.length, 1)
+  assert.match(text(box), /HOON ROBBERY/); assert.match(text(box), /8 L stolen/); assert.match(text(box), /leaves you 10 L/)
+  assert.match(box.style.cssText, /#eb5757/, 'red')
+  a.state({ state: 'RUNNING', robbery: { active: false, text: 'The Hoon took 40 L and sped off.', litres: 40, yours: 10, yoursCapacity: 300, keep: 10 } })
+  assert.match(text(doc.body.children[0]), /ROBBERY OVER/); assert.match(text(doc.body.children[0]), /siphon your fuel back/)
+  a.state({ state: 'RUNNING' })
+  assert.equal(doc.body.children.length, 0, 'then it goes')
 })
 
 test('the start page opens once by itself, and its buttons close it', () => {

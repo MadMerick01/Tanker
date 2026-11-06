@@ -92,9 +92,10 @@ function M.new(environment)
     return true
   end
 
-  -- Asks the player car for its fuel. The answer comes back through fuelReading.
-  function f:read()
-    return send(function(id) return string.format(READ, id) end)
+  -- Asks the player car (or the car with this id) for its fuel. The answer comes back through
+  -- fuelReading.
+  function f:read(id)
+    return send(function(carId) return string.format(READ, carId) end, id)
   end
 
   -- Sets the player car's fuel to this many litres in all. serial ties the answer, which comes

@@ -114,6 +114,11 @@ car3.hoon.speed = 0
 run(H.DOWN_SECONDS + 1)
 T.eq(c.hoons.state, 'DOWN', 'the Hoon is down')
 car3.me.speed = 0
+-- In the truck, the siphon waits for you to get out.
+near.speed = 0; run(0.5)
+T.eq(c:view().siphonAllowed, false, 'not from inside the truck'); T.eq(c:view().siphonNear.needsFoot, true, 'you must be on foot')
+-- Out on foot, your truck parked 3 m away.
+near.onFoot, near.cars[7] = true, 3; run(0.5)
 local function siphonOnce(before, after)
   T.eq(c:startSiphon(), true, 'siphon started on the Hoon')
   run(0.5)
@@ -126,10 +131,12 @@ local function siphonOnce(before, after)
   end
 end
 siphonOnce(5, 4)
+near.onFoot, near.cars[7] = false, nil
 near.cars[99] = 300; near.speed = 20; car3.me.y = 300; run(1)
 T.eq(c.siphon:active(), false, 'driving off stops the siphon')
 T.eq(c.hoons.state, 'DOWN', 'the Hoon is still there 300 m away')
 near.cars[99] = 4; near.speed = 0; car3.me.y = 0; run(1)
+near.onFoot, near.cars[7] = true, 3; run(0.5)
 T.eq(c:view().siphonAllowed, true, 'back beside it, Siphon fuel is offered again')
 siphonOnce(4, 4)
 T.eq(c.siphon.result.reason, 'dry', 'until its tank is dry')

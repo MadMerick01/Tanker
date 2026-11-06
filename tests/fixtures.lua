@@ -55,15 +55,18 @@ function F.bed()
   return b
 end
 
--- Cars near the player: the test says which car is how far, and how fast the player goes.
-function F.nearby(cars, speed)
-  local n = { cars = cars or {}, speed = speed or 0 }
-  function n:closest(id)
+-- Cars near the player: the test says which car is how far, how fast the player goes, and
+-- whether they are on foot (the walker is car 8, the truck car 7).
+function F.nearby(cars, speed, onFoot)
+  local n = { cars = cars or {}, speed = speed or 0, onFoot = onFoot == true, walkers = {} }
+  function n:player() return { id = self.onFoot and 8 or 7, speed = self.speed, onFoot = self.onFoot } end
+  function n:isWalker(id) return self.walkers[id] == true end
+  function n:closest(id, skip)
     local best
     for carId, metres in pairs(self.cars) do
-      if (id == nil or carId == id) and (not best or metres < best.metres) then best = { id = carId, metres = metres } end
+      if (id == nil or carId == id) and (id ~= nil or carId ~= skip) and (not best or metres < best.metres) then best = { id = carId, metres = metres } end
     end
-    return best, { id = 7, speed = self.speed }
+    return best, self:player()
   end
   return n
 end
