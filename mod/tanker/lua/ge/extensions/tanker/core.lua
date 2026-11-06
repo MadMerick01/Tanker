@@ -647,6 +647,13 @@ function M.new(env)
       v.clearHoonsAllowed = #self.pack.hoons > 0
       v.pack = { hoons = self.pack:view(), max = pack.MAX }
     end
+    -- The nearest Hoon coming for you, for the strip: a spawned one or the road Hoon.
+    local nearest = self.pack and self.pack:nearest()
+    if self.hoons and self.hoons:hunting() and self.hoons.metres and (not nearest or self.hoons.metres < nearest) then
+      nearest = self.hoons.metres
+    end
+    if nearest then v.nearestHoon = nearest
+    end
     if v.siphon then
       v.siphon.hoons = self.threat ~= 'clear'
       v.siphon.blink = math.floor(self.clock) % 2 == 0

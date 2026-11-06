@@ -51,10 +51,10 @@ M.BOX_SECONDS, M.STOPPED_MPS, M.BOXED_SECONDS, M.BOX_HOLD_SECONDS = 15, 2, 3, 5
 -- A Hoon going slower than STUCK_MPS for DOWN_SECONDS while you drive is down. You must be going
 -- at least DRIVING_MPS for that to count, since Hoons wait when you stop.
 M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS = 1, 12, 3
--- Further than ESCAPE_METRES from you for ESCAPE_SECONDS, and you have lost it.
-M.ESCAPE_METRES, M.ESCAPE_SECONDS = 1500, 30
+-- Further than ESCAPE_METRES from you for ESCAPE_SECONDS, and you have lost it: it is gone.
+M.ESCAPE_METRES, M.ESCAPE_SECONDS = 400, 0
 -- A downed Hoon is given back once you are this far from it.
-M.LEAVE_METRES = 600
+M.LEAVE_METRES = 400
 -- This many hits from your revolver stop a Hoon.
 M.SHOTS_TO_STOP = 4
 
@@ -86,7 +86,7 @@ local LINES = {
   down = 'A Hoon is down. Siphon its tank before the others come.',
   shotDown = 'You shot a Hoon to a stop. Siphon its tank before the others come.',
   driverShot = 'You shot a Hoon\'s driver. Siphon its tank before the others come.',
-  escaped = 'You lost a Hoon.',
+  escaped = 'A Hoon got more than 400 m away and is gone.',
   gone = 'A Hoon is gone.',
   full = 'That\'s as many Hoons as there can be at once.',
   cleared = 'The Hoons are gone.',
@@ -389,6 +389,15 @@ function M.new(car, random)
       if h.state ~= 'DOWN' and h.metres then d[#d + 1] = h.metres end
     end
     return #d > 0 and d or nil
+  end
+
+  -- The distance to the nearest Hoon still up, or nil.
+  function p:nearest()
+    local best
+    for _, h in ipairs(self.hoons) do
+      if h.state ~= 'DOWN' and h.metres and (not best or h.metres < best) then best = h.metres end
+    end
+    return best
   end
 
   -- For the HUD: each Hoon, its slot and what it is doing.

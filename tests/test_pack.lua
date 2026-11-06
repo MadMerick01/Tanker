@@ -178,8 +178,10 @@ p3:clear(); car3.frozen = nil
 T.eq(#p3.hoons, 0, 'clear sends them all away')
 p3:add(0)
 car3.frozen = true
-car3.cars[p3.hoons[1].id].x = 3000
-T.check(has(run(p3, 0.5, P.ESCAPE_SECONDS + 1), P.LINES.escaped), 'outrun it and you lose it')
+car3.cars[p3.hoons[1].id].x = 399
+T.eq(p3:step(0.5), nil, 'a Hoon 399 m away stays'); T.eq(#p3.hoons, 1, 'still out')
+car3.cars[p3.hoons[1].id].x = 401
+T.eq(p3:step(1), P.LINES.escaped, 'more than 400 m away, it is gone at once'); T.eq(#p3.hoons, 0, 'despawned')
 for _ = 1, P.MAX do p3:add(50) end
 T.eq(#p3.hoons, P.MAX, 'up to the most at once')
 local none, why = p3:add(50)
@@ -206,7 +208,8 @@ T.eq(c:addHoon(), true, 'one Hoon'); T.eq(c:addHoon(), true, 'press again for an
 T.eq(#c:view().pack.hoons, 2, 'the HUD lists both')
 T.eq(c:view().pack.hoons[1].doing, P.DOING.CIRCLING, 'saying what each is doing')
 tick(0.5)
-T.check(c:view().threat ~= 'clear', 'they light the threat'); T.eq(c:view().saveAllowed, false, 'no saving')
+T.check(c:view().threat ~= 'clear', 'they light the threat')
+T.eq(c:view().nearestHoon, c.pack:nearest(), 'the strip shows the nearest Hoon'); T.check(c:view().nearestHoon ~= nil, 'with its distance'); T.eq(c:view().saveAllowed, false, 'no saving')
 local hit = c.pack.hoons[1].id
 for _ = 1, P.SHOTS_TO_STOP do c:vrHit(hit, false) end
 T.eq(c.pack.hoons[1].state, 'DOWN', 'the revolver stops a desert Hoon')

@@ -6,6 +6,9 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **The strip at the top of the HUD now shows how far the nearest Hoon is,** for example "Hoon 85 m" in red beside the threat light, and it updates as you drive. The **Rig** tab lists every spawned Hoon with its distance under the **Spawn a Hoon** button too.
+- A spawned Hoon that gets more than 400 m away from you is now gone straight away, instead of following you from a long way back. A downed Hoon is taken away once you're 400 m from it. Your save still works.
+
 ## Build 18 · 6 Nov 2026
 
 - **Fixed: Reload on a flat screen sometimes never finished.** Pressing **Reload**, or clicking with an empty cylinder, could stay stuck on **Reloading** and never give your rounds back whenever the game briefly lost track of where your truck was. A reload now always finishes after a second and a half and fills the cylinder back up to six from your spares.

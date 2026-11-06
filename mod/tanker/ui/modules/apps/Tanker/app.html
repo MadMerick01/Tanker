@@ -13,6 +13,7 @@
     .mm-k { color: #c8bfb2 } .mm-v { font-weight: bold }</style>
   <button type="button" ng-if="!start" class="mm-panel mm-strip" ng-click="toggle()" title="{{open ? 'Hide the panel' : 'Show the panel'}}">
     <span class="mm-dot" ng-style="{background: threatColour(data.threat)}" aria-label="threat {{data.threat}}"></span>
+    <span ng-if="data.nearestHoon != null" title="How far the nearest Hoon is" style="font-weight:bold;color:#eb5757;">Hoon {{whole(data.nearestHoon)}} m</span>
     <span title="Fuel in your tank"><span class="mm-bar"><span ng-style="{width: fuelShare(data.fuel) + '%', background: fuelColour(data.fuel)}"></span></span> {{whole(data.fuel.litres)}} L</span>
     <span title="Rounds loaded"><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span><span ng-if="data.ammo" class="mm-k"> +{{data.gun.infinite ? '∞' : data.ammo.spare}}</span></span>
     <span ng-if="data.fuelWorth != null" title="What your fuel is worth" style="color:#f2c94c;">${{whole(data.fuelWorth)}}</span>
@@ -154,6 +155,8 @@
         <button type="button" ng-if="data.pack" class="mm-tab" ng-disabled="!data.addHoonAllowed" ng-click="send('addHoon')" title="One more Hoon at a far slot: it sizes you up, then attacks. Press again for another.">Spawn a Hoon</button>
         <button type="button" ng-if="data.pack" class="mm-tab" ng-disabled="!data.clearHoonsAllowed" ng-click="send('clearHoons')" title="Send every spawned Hoon away">Clear Hoons</button>
         <button type="button" class="mm-tab" ng-disabled="!data.tankerSpawnAllowed" ng-click="send('spawnTanker')" title="A fuel tanker ahead of you that drives away">Spawn the TankerMob</button>
+        <div ng-repeat="h in data.pack.hoons" class="mm-k" style="margin-top:2px;">Hoon {{h.n}}: <span class="mm-v">{{h.metres != null ? whole(h.metres) + ' m away' : 'placing'}}</span>, {{h.doing}}<span ng-if="h.slot"> at {{h.slot}}</span></div>
+        <div ng-if="data.pack" class="mm-k" style="margin-top:2px;">A spawned Hoon more than 400 m away is gone.</div>
         <div ng-if="data.hoon && data.hoon.state === 'UNAVAILABLE'" style="margin-top:4px;color:#f2c94c;">The Hoon's car could not be loaded, so no Hoons this session.</div>
       </div>
     </div>
