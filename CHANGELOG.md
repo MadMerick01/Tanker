@@ -6,6 +6,11 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Hoons now cut you off when you turn.** In the desert, a Hoon reads how fast you're turning and heads for where you'll be by the time it gets there. It cuts across the inside of your turn instead of chasing round the outside, so a hard turn no longer shakes them off.
+- **Hoons now go for your back wheel to spin you out.** A Hoon behind you at one of your back corners may line up just off that corner instead of swiping. It then drives its nose through your back wheel, a little faster than you and without braking, to shove your back end round. You're told which back wheel it's lining up on. The Hoon list on the Road tab says when one is going for your back wheel.
+- **Hoons respect your revolver.** While it's drawn, Hoons getting into place weave from side to side so they're harder to hit. Hoons at your back corners stay there, out of your line of fire, and more of their attacks are the back-wheel kind. A Hoon you hit but don't stop backs off. It drops to a far spot, keeps further out and doesn't attack for 6 seconds. Four hits still stop a Hoon.
+- These changes are for the desert. On roads, Hoons drive as before. Your save still works.
+
 ## Build 29 · 6 Nov 2026
 
 - **Hoons in the desert no longer touch the brakes.** When a Hoon changes spot around you, lines up or swipes you, it never brakes. When it needs to slow down, it lifts off the throttle and asks for no more than a little under your speed. So it moves round you sideways or forwards and no longer drops back behind you. Hoons still brake when they box you in, or when they pull up to rob you.

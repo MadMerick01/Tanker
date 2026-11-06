@@ -382,6 +382,9 @@ function M.new(env)
 
   function c:followPack()
     if not self.pack or self.state ~= 'RUNNING' then return end
+    -- Hoons keep out of your line of fire while your revolver (or the VR one) is drawn.
+    local vr = self.pistol and self.pistol:read()
+    self.pack.gunDrawn = (self:flatGun() and self.gun.drawn) or (vr and vr.drawn == true) or false
     local line = self.pack:step(self.clock)
     if line then self.feedback = line; self.diag:event('pack', line) end
     local st = self.pack.stalled
