@@ -347,6 +347,7 @@ T.check(commands[#commands]:find('tankerDriver.target(4.00, 5.00, 6.00, 22.50)',
 T.check(commands[#commands]:find('ai.setSlotTrafficTarget, 4.00, 5.00, 6.00, 22.50', 1, true) ~= nil, 'or BeamNG\'s slotTraffic AI without it')
 T.check((loadstring or load)(commands[#commands]) ~= nil, 'the command is valid Lua')
 T.eq(pc:goTo(50, { x = 0 / 0, y = 5, z = 6, speed = 1 }), false, 'a broken point is not sent')
+T.eq(pc:goTo(7, { x = 4, y = 5, z = 6, speed = 1 }), false, 'never sent to your own car, even if it was a Hoon\'s')
 T.eq(pc:release(50, 'own'), true, 'let go')
 T.eq(commands[#commands], 'hide 50', 'its car is hidden')
 id = pc:take({ id = 7, x = 0, y = 0, z = 0 })

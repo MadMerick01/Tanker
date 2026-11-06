@@ -73,10 +73,21 @@ function M.new(environment, pool)
   local env = environment or defaults()
   local h = { pool = pool }
 
+  -- The player's own vehicle is never a Hoon (Rowan, 6 Nov): if the game ever puts you in a Hoon's
+  -- car, Tanker stops commanding it at once, and the Hoon is forgotten as if its car had gone.
+  local function playerId()
+    local ok, c = pcall(env.player)
+    if not (ok and c) then return nil end
+    local okId, id = pcall(function() return c:getID() end)
+    if okId then return id end
+  end
   local function car(id)
+    if id == nil or id == playerId() then return nil end
     local ok, c = pcall(env.byId, id)
     return ok and c or nil
   end
+  -- A Hoon's car can't be switched into from the game's vehicle switching.
+  local function notForPlayer(c) pcall(function() c.playerUsable = false end) end
 
   -- The player's car: position, facing (x, y on the ground) and speed.
   function h:player()
@@ -163,6 +174,7 @@ function M.new(environment, pool)
   function h:hide(id)
     local c = car(id)
     if not c then return false end
+    notForPlayer(c)
     pcall(function() c:queueLuaCommand(STOP) end)
     local me = self:player()
     if me then pcall(function() c:setPositionRotation(me.x, me.y, me.z + M.HIDE_LIFT, 0, 0, 0, 1) end) end
@@ -211,6 +223,7 @@ function M.new(environment, pool)
   function h:put(id, x, y, z, dx, dy)
     local c = car(id)
     if not c then return false, 'no_car' end
+    notForPlayer(c)
     local len = math.sqrt(dx * dx + dy * dy)
     if len < 1e-6 then dx, dy, len = 0, 1, 1 end
     local okActive = pcall(function() c:setActive(1) end)

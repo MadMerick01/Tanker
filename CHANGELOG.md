@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Fixed your car driving itself after Start a new game.** If the game ever switched you into a Hoon's car (for example after your own car went unstable), Tanker kept steering it as a Hoon, even after a new game. Now Tanker never drives the car you're in, and **Start a new game** always hands your car back to you. Hoon cars can no longer be switched into from the game's vehicle switching. Your save still works.
+
 ## Build 26 · 6 Nov 2026
 
 - **A second kind of Hoon: the HoonFast2.** It's a dark Barstow with a supercharged V8, a cowl hood and a rollcage. Every Hoon is now equally likely to be a HoonOld1 or a HoonFast2. Tanker's traffic now holds three of each plus the two TankerMobs. It comes with the mod, and you can also pick it in the vehicle menu under the Barstow.
