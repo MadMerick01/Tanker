@@ -161,12 +161,10 @@ function M.new(environment)
     if ok and finite(g) then return g end
   end
 
-  -- Puts the Hoon on the road at x, y, z facing the player, switches it on and sets it hunting.
-  function h:attack(id, x, y, z, targetId)
+  -- Switches car id on and puts it down at x, y, z facing along dx, dy. Returns true, or false and why.
+  function h:put(id, x, y, z, dx, dy)
     local c = car(id)
-    local me = self:player()
-    if not (c and me) then return false, 'no_car' end
-    local dx, dy = me.x - x, me.y - y
+    if not c then return false, 'no_car' end
     local len = math.sqrt(dx * dx + dy * dy)
     if len < 1e-6 then dx, dy, len = 0, 1, 1 end
     local okActive = pcall(function() c:setActive(1) end)
@@ -185,7 +183,22 @@ function M.new(environment)
       placed = pcall(function() c:setPositionRotation(x, y, z + 0.5, 0, 0, 0, 1) end)
     end
     if not placed then return false, 'place_failed' end
-    pcall(function() c:queueLuaCommand(string.format(HUNT, targetId)) end)
+    return true
+  end
+
+  -- Sets car id hunting targetId: BeamNG's chase mode, flat out and not avoiding anyone, so it rams.
+  function h:hunt(id, targetId)
+    local c = car(id)
+    return c ~= nil and (pcall(function() c:queueLuaCommand(string.format(HUNT, targetId)) end))
+  end
+
+  -- Puts the Hoon on the road at x, y, z facing the player, switches it on and sets it hunting.
+  function h:attack(id, x, y, z, targetId)
+    local me = self:player()
+    if not (car(id) and me) then return false, 'no_car' end
+    local ok, why = self:put(id, x, y, z, me.x - x, me.y - y)
+    if not ok then return false, why end
+    self:hunt(id, targetId)
     return true
   end
 

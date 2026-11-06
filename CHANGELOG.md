@@ -6,6 +6,11 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **New: desert Hoons that circle you before they attack.** **Spawn a Hoon** on the **Rig** tab now brings in a Hoon at one of four far spots around your truck, 60 m out to your left or right and just ahead of or behind you. It sizes you up first, moving between those far spots like a hyena circling, then closes in to 10 m off your side and attacks. Some Hoons move in sooner than others.
+- A desert Hoon edges closer for a moment before it strikes, and you're told which side it's lining up on, so you can brake or steer to meet it. Some attacks swipe you and drive back out to wait for another go. Others try to box you in: one Hoon gets in front of you and slows down while another sits beside you.
+- **Press Spawn a Hoon again** while Hoons are out to add another, up to four at once. Only one attacks at a time while the others hold their spots. The **Road** tab lists each Hoon, where it is around you (for example RFF for right, front, far) and what it's doing. **Clear Hoons** on the **Rig** tab sends them all away. Your revolver stops desert Hoons the same way as other Hoons.
+- The Hoons come from BeamNG's traffic when traffic is running, so they turn up without a stutter. With no traffic, the first press loads a muscle car, which can stutter for a moment. Hoons that come by themselves on the road work as before. Your save still works.
+
 ## Build 16 · 6 Nov 2026
 
 - **Tanker now calls itself an open-world, long-haul road warrior simulation.** The start page shows it under the title with the new line "Raid tankers, fight off Hoons, keep your tanks full and push on.", and the app's description in BeamNG's app list says the same and adds that it's built for VR, triples and telemetry. Nothing else in the game changes, and your save still works.

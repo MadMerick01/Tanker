@@ -19,6 +19,8 @@ local siphon = require('tanker/siphon')
 local nearby = require('tanker/nearby')
 local hoons = require('tanker/hoons')
 local hoonCar = require('tanker/hoonCar')
+local pack = require('tanker/pack')
+local packCar = require('tanker/packCar')
 local transfer = require('tanker/transfer')
 local bedTank = require('tanker/bedTank')
 local workshop = require('tanker/workshop')
@@ -63,6 +65,8 @@ function M.new(env)
     camera = env.camera,
   }
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
+  -- The desert Hoons, for now only from the spawn button: they circle you and take turns attacking.
+  c.pack = env.packCar and pack.new(env.packCar, env.random)
   -- The flatscreen revolver: mouse aiming when there is no VR.
   c.aim, c.gun = env.aim, revolver.new()
   c.tankerMob = env.tankerMob
@@ -91,6 +95,7 @@ function M.new(env)
   function c:reload()
     self.profile, self.reading, self.teleport, self.feedback, self.error = nil, nil, nil, nil, nil
     if self.hoons then self.hoons:remove() end
+    if self.pack then self.pack:clear() end
     local settings, why = config.load(env.io)
     if not settings then
       self.error, self.feedback = why, 'Your config.json can\'t be read. Fix it or delete it, then reload.'
@@ -151,6 +156,7 @@ function M.new(env)
     if self.siphon:active() then self:stopSiphon() end
     if self.transfer:active() then self:stopPump() end
     if self.hoons and self.hoons:outId() then self.hoons:putAway(profile.run.drivenKm) end
+    if self.pack then self.pack:clear() end
     self.profile, self.state = nil, 'NEW'
     if not self:startRun() then
       self.profile, self.state = profile, was
@@ -265,6 +271,42 @@ function M.new(env)
     return line ~= nil
   end
 
+  -- The Spawn a Hoon button: one more desert Hoon, from traffic, at a far slot. Pressing again
+  -- while Hoons are out adds another, up to pack.MAX.
+  function c:addHoon()
+    if self.state ~= 'RUNNING' or not self.pack then return false end
+    local line, why = self.pack:add(self.clock)
+    if line then
+      local h = self.pack.hoons[#self.pack.hoons]
+      self.diag:event('pack', 'Hoon ' .. h.n .. ' from ' .. h.source .. ' at ' .. h.slot)
+    else
+      self.diag:event('pack', 'not added: ' .. tostring(why), 'W')
+    end
+    self.feedback = line or (why == 'full' and pack.LINES.full or ('The Hoon could not be sent: ' .. tostring(why)))
+    return line ~= nil
+  end
+
+  function c:clearHoons()
+    if not self.pack or #self.pack.hoons == 0 then return false end
+    self.pack:clear()
+    self.feedback = pack.LINES.cleared
+    return true
+  end
+
+  function c:followPack()
+    if not self.pack or self.state ~= 'RUNNING' then return end
+    local line = self.pack:step(self.clock)
+    if line then self.feedback = line; self.diag:event('pack', line) end
+  end
+
+  -- A Hoon's car said its AI can't do what the pack asked. Logged once.
+  function c:packProblem(vehId, what)
+    self.packProblems = self.packProblems or {}
+    if self.packProblems[what] then return end
+    self.packProblems[what] = true
+    self.diag:event('pack', tostring(what) .. ' in car ' .. tostring(vehId), 'W')
+  end
+
   -- The spawn button for the TankerMob: a fuel tanker ahead of you that drives away.
   function c:spawnTanker()
     if self.state ~= 'RUNNING' or not self.tankerMob then return false end
@@ -377,9 +419,14 @@ function M.new(env)
   -- A hit from either revolver, the VR one or the flatscreen one: they send the same events. A
   -- shot through the driver stops a Hoon at once; otherwise four hits do.
   function c:vrHit(vehId, driver)
-    if not self.hoons then return end
+    if not self.hoons and not self.pack then return end
     local line, wasHoon
-    if driver then line, wasHoon = self.hoons:driverShot(vehId) else line, wasHoon = self.hoons:shot(vehId) end
+    if self.hoons then
+      if driver then line, wasHoon = self.hoons:driverShot(vehId) else line, wasHoon = self.hoons:shot(vehId) end
+    end
+    if not wasHoon and self.pack then
+      if driver then line, wasHoon = self.pack:driverShot(vehId) else line, wasHoon = self.pack:shot(vehId) end
+    end
     if line then
       self.feedback = line
       self.diag:event('hoon', driver and 'driver shot' or 'shot down')
@@ -519,11 +566,17 @@ function M.new(env)
     self:follow()
     self:followSiphon()
     self:followHoons()
+    self:followPack()
     self:followPump()
     if self.parts then self:followWorkshop() end
     if self.gun:step(self.clock) then self.feedback = 'Reloaded.' end
     self.fuel:read()
-    local distances = env.hoonDistances and env.hoonDistances() or (self.hoons and self.hoons:distances())
+    local distances = env.hoonDistances and env.hoonDistances()
+    if not distances then
+      distances = {}
+      for _, d in ipairs(self.hoons and self.hoons:distances() or {}) do distances[#distances + 1] = d end
+      for _, d in ipairs(self.pack and self.pack:distances() or {}) do distances[#distances + 1] = d end
+    end
     self.threat = threat.level(distances)
   end
 
@@ -589,6 +642,11 @@ function M.new(env)
     if self.hoons then
       v.hoonTestAllowed = self.state == 'RUNNING' and self.hoons.state == 'HIDDEN'
       v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil }
+    end
+    if self.pack then
+      v.addHoonAllowed = self.state == 'RUNNING' and #self.pack.hoons < pack.MAX
+      v.clearHoonsAllowed = #self.pack.hoons > 0
+      v.pack = { hoons = self.pack:view(), max = pack.MAX }
     end
     if v.siphon then
       v.siphon.hoons = self.threat ~= 'clear'
@@ -670,6 +728,7 @@ function M.new(env)
   -- Tanker going away puts back the rocks it hid.
   function c:shutdown()
     if self.hoons then self.hoons:remove() end
+    if self.pack then self.pack:remove() end
     if self.tankerMob then self.tankerMob:remove() end
     if self.adapter.restoreRocks then self.adapter:restoreRocks() end
   end
@@ -716,7 +775,7 @@ local function ensure()
   if not active then
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
       vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(), bed = bedTank.new(), parts = parts.new(),
-      aim = aim.new(), tankerMob = tankerMob.new(hoonCar.new()),
+      aim = aim.new(), tankerMob = tankerMob.new(hoonCar.new()), packCar = packCar.new(hoonCar.new()),
       log = rawget(_G, 'log'), drawTri = drawTri, camera = gameCamera(),
       trigger = function(event, payload) if guihooks then guihooks.trigger(event, payload) end end })
   end
@@ -778,6 +837,10 @@ function M.hudHover(on) return safely(function() ensure().hudHover = on == true 
 function M.onDrawDebug() return safely(function() if active and active.aim then active:followAim() end end) end
 function M.spawnTanker() return safely(function() return ensure():spawnTanker() end) end
 function M.sendHoon() return safely(function() return ensure():sendHoon() end) end
+function M.addHoon() return safely(function() return ensure():addHoon() end) end
+function M.clearHoons() return safely(function() return ensure():clearHoons() end) end
+-- A desert Hoon's car could not follow its path (see packCar.lua).
+function M.packProblem(vehId, what) return safely(function() if active then active:packProblem(vehId, what) end end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end
 function M.reload() return safely(function() ensure():reload() end) end

@@ -214,3 +214,12 @@ test('the TankerMob spawn button only works when Lua allows it', () => {
   a.state({ state: 'RUNNING', tankerSpawnAllowed: true })
   a.scope.send('spawnTanker'); assert.equal(a.commands.at(-1), fixed('spawnTanker()'))
 })
+
+test('Spawn a Hoon and Clear Hoons only work when Lua allows them', () => {
+  const a = app()
+  a.scope.send('addHoon'); a.scope.send('clearHoons')
+  assert.ok(!a.commands.includes(fixed('addHoon()'))); assert.ok(!a.commands.includes(fixed('clearHoons()')))
+  a.state({ state: 'RUNNING', addHoonAllowed: true, clearHoonsAllowed: true, pack: { hoons: [], max: 4 } })
+  a.scope.send('addHoon'); assert.equal(a.commands.at(-1), fixed('addHoon()'))
+  a.scope.send('clearHoons'); assert.equal(a.commands.at(-1), fixed('clearHoons()'))
+})
