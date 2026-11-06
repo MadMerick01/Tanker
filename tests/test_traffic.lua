@@ -98,13 +98,23 @@ T.eq(mob:spawn(), true, 'a TankerMob is put ahead of you')
 T.eq(cars[mob.id].model, 'us_semi', 'a TankerMob from the pool')
 T.eq(trafficTable[mob.id], nil, 'taken out of traffic'); T.eq(cars[mob.id].active, 1, 'and switched on')
 
--- Normal traffic switched on later (from the game's menu) is replaced by Tanker's again.
+-- Normal traffic switched on later (from the game's menu) is deleted car by car: traffic is
+-- never set up again, which would load every car again and stutter.
 gameCar(60, 'covet', v3(0, 50, 0)); trafficTable[60] = { isAi = true }
 pool:step(3)
-T.eq(#setups, 1, 'not straight away')
+T.check(cars[60] ~= nil, 'not straight away')
+local before = {}
+for id in pairs(trafficTable) do before[#before + 1] = id end
 line = pool:step(2 + 2 * TP.CHECK_SECONDS)
-T.eq(#setups, 2, 'within a check, traffic is set up again'); T.eq(cars[60], nil, 'the normal car is gone')
-T.check(line:find('replacing 1', 1, true) ~= nil, 'and logged')
+T.eq(#setups, 1, 'traffic is not set up again')
+T.eq(cars[60], nil, 'the normal car is deleted'); T.eq(trafficTable[60], nil, 'and out of traffic')
+T.eq(line, 'deleted 1 normal traffic cars: covet', 'logged, with its model')
+local left = 0
+for id in pairs(trafficTable) do if cars[id] then left = left + 1 end end
+T.eq(left, #before - 1, 'Tanker\'s own cars stay')
+-- Traffic's own record of a car's model is used first, so a pooled car is never mistaken.
+gameCar(61, 'something_else', v3(0, 60, 0)); trafficTable[61] = { isAi = true, model = { key = 'barstow' } }
+T.eq(pool:step(2 + 3 * TP.CHECK_SECONDS), nil, 'a HoonOld1 by traffic\'s record stays'); T.check(cars[61] ~= nil, 'still there')
 
 -- No traffic in the game: no pool, no error, Hoons load their own.
 local none = TP.new({ traffic = function() return nil end, byId = function() return nil end })

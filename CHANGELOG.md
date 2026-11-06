@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Fixed the game stuttering every 15 seconds or so.** Tanker's traffic check could load all of its traffic cars again every few seconds. Now Tanker loads its HoonOld1s and TankerMobs once. Any normal traffic car that turns up later is simply removed. Your save still works.
+
 ## Build 23 · 6 Nov 2026
 
 - **Every Hoon now drives the HoonOld1**, a rusty old Barstow with a rollcage, a cut hood, a tube bumper and offroad tyres. That includes the Hoon that comes for you on the road and the ones from **Spawn a Hoon** on the Rig tab. The car comes with the mod, so you need nothing else, and you can also pick it in the vehicle menu as the Barstow's HoonOld1.
