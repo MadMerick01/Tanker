@@ -55,11 +55,12 @@ M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS = 1, 12, 3
 M.ESCAPE_METRES, M.ESCAPE_SECONDS = 1500, 30
 -- A downed Hoon is given back once you are this far from it.
 M.LEAVE_METRES = 600
+-- This many hits from your revolver stop a Hoon.
+M.SHOTS_TO_STOP = 4
+
 -- A downed Hoon with fuel still in its tank waits for you to come back and siphon it again,
 -- until you are this far from it. Once its tank is siphoned dry, LEAVE_METRES applies.
 M.KEEP_METRES = 2000
--- This many hits from your revolver stop a Hoon.
-M.SHOTS_TO_STOP = 4
 
 -- side: -1 left, 1 right. ahead: 1 front, -1 rear.
 M.SLOTS = {
