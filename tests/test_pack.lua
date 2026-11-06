@@ -257,4 +257,19 @@ T.eq(id, 50, 'then the hidden car, reused, not loaded again')
 pc:removeAll()
 T.eq(removed[#removed], 50, 'loaded cars removed when Tanker goes')
 
+-- A downed Hoon with fuel waits for you to come back and siphon it again; once dry, it goes.
+local car5 = fakeCar()
+local p5 = P.new(car5, random)
+p5:add(0)
+car5.frozen = true
+local h5 = p5.hoons[1]
+for _ = 1, P.SHOTS_TO_STOP do p5:shot(h5.id) end
+T.eq(h5.state, 'DOWN', 'shot down')
+car5.cars[h5.id].x, car5.cars[h5.id].y = (P.LEAVE_METRES + P.KEEP_METRES) / 2, 0
+p5:step(1)
+T.eq(#p5.hoons, 1, 'it waits while its tank has fuel')
+T.eq(p5:siphonedDry(h5.id), true, 'its tank siphoned dry')
+p5:step(1.5)
+T.eq(#p5.hoons, 0, 'then it is given back once you are away')
+T.eq(p5:siphonedDry(h5.id), false, 'a car no longer a Hoon is not one')
 T.done('pack')

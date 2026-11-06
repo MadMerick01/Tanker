@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **You can now siphon a downed Hoon more than once.** Siphon some of its fuel, drive off, then come back, stop beside it and press **Siphon fuel** again, as many times as you like until its tank is dry. A downed Hoon that still has fuel now waits for you until you're 2 km away. Before, it was taken away as soon as you were 600 m from it, so it was often gone when you came back. Once you've siphoned its tank dry, it goes as before when you drive away. Your save still works.
+
 ## Build 18 · 6 Nov 2026
 
 - **Fixed: Reload on a flat screen sometimes never finished.** Pressing **Reload**, or clicking with an empty cylinder, could stay stuck on **Reloading** and never give your rounds back whenever the game briefly lost track of where your truck was. A reload now always finishes after a second and a half and fills the cylinder back up to six from your spares.

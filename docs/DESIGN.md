@@ -124,7 +124,7 @@ How it's built for now (`pack.lua`, `packCar.lua`): moving between slots uses Be
 
 Other tankers drive the highway, alone or in convoys with escorts. When they see you coming they run, using BeamNG's AI in flee mode. You stop them by shooting out their tyres or forcing them off the road.
 
-A downed tanker is the big prize: a lot of fuel, but it takes time to siphon, and the escorts arrive while you do. A siphon moves **1 litre a second** to start (Rowan, 31 Oct), so a few hundred litres means minutes standing still. You can drive away mid-siphon and keep what you have so far; driving off simply stops it. The first siphon works on any car within 10 m, so it can be tried before tankers exist.
+A downed tanker is the big prize: a lot of fuel, but it takes time to siphon, and the escorts arrive while you do. A siphon moves **1 litre a second** to start (Rowan, 31 Oct), so a few hundred litres means minutes standing still. You can drive away mid-siphon and keep what you have so far; driving off simply stops it. You can come back and siphon the same car again (Rowan, 6 Nov): a downed Hoon with fuel left waits until you are 2 km away, and only goes at the usual distance once its tank is siphoned dry. The first siphon works on any car within 10 m, so it can be tried before tankers exist.
 
 ## Spawning from traffic
 
