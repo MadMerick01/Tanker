@@ -251,7 +251,7 @@ local game = {
 local hc = {
   player = function() return { id = 7, x = 0, y = 0, z = 0, dx = 0, dy = 1, speed = 10 } end,
   state = function(_, id) local s = game[id]; return s and { x = s.x, y = s.y, z = s.z, speed = 0 } end,
-  calm = function() end, hide = function(_, id) commands[#commands + 1] = 'hide ' .. id end,
+  calm = function() end, hunt = function() end, hide = function(_, id) commands[#commands + 1] = 'hide ' .. id end,
   load = function() return 50, 'barstow' end, remove = function(_, id) removed[#removed + 1] = id end,
 }
 local pc = PC.new(hc, {
@@ -270,7 +270,11 @@ T.eq(id, 20, 'then the next one, never the same twice')
 id, source = pc:take(hc.player())
 T.eq(id, 50, 'with traffic used up, the Hoon\'s own car is loaded'); T.eq(source, 'own', 'its own')
 T.eq(pc:goTo(21, { x = 4, y = 5, z = 6, speed = 22.5 }), true, 'point sent')
-T.check(commands[#commands]:find('ai.setSlotTrafficTarget, 4.00, 5.00, 6.00, 22.50', 1, true) ~= nil, 'to the slotTraffic AI')
+T.check(commands[#commands]:find('tankerDriver.target(4.00, 5.00, 6.00, 22.50)', 1, true) ~= nil, 'to Tanker\'s own driver')
+T.check(commands[#commands]:find('ai.setSlotTrafficTarget, 4.00, 5.00, 6.00, 22.50', 1, true) ~= nil, 'or BeamNG\'s slotTraffic AI without it')
+T.check((loadstring or load)(commands[#commands]) ~= nil, 'the command is valid Lua')
+pc:strike(21, 7)
+T.check(commands[#commands]:find('tankerDriver.stop()', 1, true) ~= nil, 'an attack takes the wheel back from Tanker\'s driver')
 T.eq(pc:goTo(21, { x = 0 / 0, y = 5, z = 6, speed = 1 }), false, 'a broken point is not sent')
 local chunk = (loadstring or load)(commands[#commands])
 T.check(chunk ~= nil, 'the command is valid Lua')

@@ -23,8 +23,8 @@ M.MAX = 4
 M.NEAR_SIDE, M.FAR_SIDE, M.FAR_BEYOND, M.HALF_LENGTH = 10, 60, 10, 3
 -- A Hoon is at a far slot within this many metres of it, at a near slot within NEAR_ARRIVE.
 M.FAR_ARRIVE, M.NEAR_ARRIVE = 15, 6
--- Driving to a slot uses BeamNG's own "drive at this point at this speed" AI (slotTraffic), fed
--- a new point and speed every STEER_SECONDS (the AI stops if it gets none for half a second).
+-- Driving to a slot uses Tanker's own desert driver in the car (tankerDriver.lua), fed a new
+-- point and speed every STEER_SECONDS (it brakes to a stop if it gets none for 0.6 s).
 -- The speed is yours, plus GAIN metres a second for every metre the Hoon is behind its slot
 -- along your heading (less if it is ahead), plus SIDE_GAIN for every metre it is out to the
 -- side, but never more than CATCH_UP_MPS faster than you. The point is LEAD_SECONDS of your
