@@ -297,6 +297,20 @@ function M.new(env)
     if not self.pack or self.state ~= 'RUNNING' then return end
     local line = self.pack:step(self.clock)
     if line then self.feedback = line; self.diag:event('pack', line) end
+    local st = self.pack.stalled
+    if st then
+      self.pack.stalled = nil
+      self.diag:event('pack', string.format('Hoon %d stalled %d time(s) while %s at %s, %s m away, car from %s',
+        st.n, st.stalls, tostring(st.state), tostring(st.slot), st.metres and tostring(math.floor(st.metres)) or '?', tostring(st.source)), 'W')
+    end
+  end
+
+  -- A Hoon's driver changed what it is doing on the road (catching up, overtaking, cutting in,
+  -- brake-checking...). Shown on the HUD and logged.
+  function c:hoonPhase(vehId, phase)
+    local mine = self.pack and self.pack:roadPhase(vehId, phase)
+    if self.hoons and self.hoons.id == vehId then self.hoons.phase, mine = phase, true end
+    if mine then self.diag:event('hoon', 'car ' .. tostring(vehId) .. ' ' .. tostring(phase)) end
   end
 
   -- A Hoon's car said its AI can't do what the pack asked. Logged once.
@@ -640,12 +654,20 @@ function M.new(env)
     v.tankerSpawnAllowed = self.tankerMob ~= nil and self.state == 'RUNNING'
     if self.hoons then
       v.hoonTestAllowed = self.state == 'RUNNING' and self.hoons.state == 'HIDDEN'
-      v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil }
+      v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil,
+        doing = self.hoons.state == 'HUNTING' and pack.ROAD_DOING[self.hoons.phase] or nil }
     end
     if self.pack then
       v.addHoonAllowed = self.state == 'RUNNING' and #self.pack.hoons < pack.MAX
       v.clearHoonsAllowed = #self.pack.hoons > 0
-      v.pack = { hoons = self.pack:view(), max = pack.MAX }
+      v.pack = { hoons = self.pack:view(), max = pack.MAX, mode = self.pack.mode }
+    end
+    -- The nearest Hoon coming for you, for the strip: a spawned one or the road Hoon.
+    local nearest = self.pack and self.pack:nearest()
+    if self.hoons and self.hoons:hunting() and self.hoons.metres and (not nearest or self.hoons.metres < nearest) then
+      nearest = self.hoons.metres
+    end
+    if nearest then v.nearestHoon = nearest
     end
     if v.siphon then
       v.siphon.hoons = self.threat ~= 'clear'
@@ -723,6 +745,7 @@ function M.new(env)
       self:sample()
       self:publish()
     end
+    if self.pack and self.state == 'RUNNING' then self.pack:steer(self.clock) end
     if self.watchCamera then self:watchCamera() end
     self:drawWrist()
   end
@@ -846,6 +869,7 @@ function M.sendHoon() return safely(function() return ensure():sendHoon() end) e
 function M.addHoon() return safely(function() return ensure():addHoon() end) end
 function M.clearHoons() return safely(function() return ensure():clearHoons() end) end
 -- A desert Hoon's car could not follow its path (see packCar.lua).
+function M.hoonPhase(vehId, phase) return safely(function() if active then active:hoonPhase(vehId, phase) end end) end
 function M.packProblem(vehId, what) return safely(function() if active then active:packProblem(vehId, what) end end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end

@@ -102,7 +102,7 @@ function M.new(car, random)
     if not road then return nil, 'no_solid_road' end
     local ok, why = car:attack(self.id, road.x, road.y, road.z, me.id)
     if not ok then return nil, why end
-    self.state, self.since, self.far, self.slow, self.hits = 'HUNTING', clock, nil, nil, 0
+    self.state, self.since, self.far, self.slow, self.hits, self.phase = 'HUNTING', clock, nil, nil, 0, nil
     return line
   end
 
@@ -138,7 +138,9 @@ function M.new(car, random)
       if metres and metres > M.LEAVE_METRES then self:putAway(drivenKm) end
       return nil
     end
-    if hoon.speed < M.STUCK_MPS then self.slow = self.slow or clock else self.slow = nil end
+    -- Slow while you drive: a Hoon that stops in front of you to block you is not down.
+    local driving = me and (me.speed or 0) >= M.DRIVING_MPS
+    if driving and hoon.speed < M.STUCK_MPS then self.slow = self.slow or clock else self.slow = nil end
     if metres and metres > M.ESCAPE_METRES then self.far = self.far or clock else self.far = nil end
     if self.slow and clock - self.slow >= M.DOWN_SECONDS then
       self.state = 'DOWN'
