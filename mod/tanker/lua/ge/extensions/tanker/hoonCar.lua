@@ -41,9 +41,14 @@ local function xyz(p)
   if ok and finite(x) and finite(y) and finite(z) then return x, y, z end
 end
 
--- Runs inside the Hoon's car: hunt the player, flat out and not avoiding anyone, so it rams.
+-- Runs inside the Hoon's car: hunt the player with Tanker's own driver, which follows the roads
+-- to you with Rowan's country driving limits and rams once close (tankerDriver.lua). If that
+-- can't be loaded, BeamNG's chase AI does it instead, flat out and not avoiding anyone.
 local HUNT = [[
-if ai then
+if extensions and not extensions.tankerDriver then pcall(extensions.load, 'tankerDriver') end
+if extensions and extensions.tankerDriver then
+  extensions.tankerDriver.chase(%d)
+elseif ai then
   pcall(ai.setMode, 'chase')
   pcall(ai.setTargetObjectID, %d)
   pcall(ai.setAggression, 1)
@@ -53,7 +58,10 @@ if ai then
   if ai.setSmartProfile then pcall(ai.setSmartProfile, 'moonhawk_country') end
 end
 ]]
-local STOP = [[if ai then pcall(ai.setMode, 'disabled') end]]
+local STOP = [[
+if extensions and extensions.tankerDriver then extensions.tankerDriver.stop() end
+if ai then pcall(ai.setMode, 'disabled') end
+]]
 
 function M.new(environment)
   local env = environment or defaults()
@@ -191,7 +199,7 @@ function M.new(environment)
   -- Sets car id hunting targetId: BeamNG's chase mode, flat out and not avoiding anyone, so it rams.
   function h:hunt(id, targetId)
     local c = car(id)
-    return c ~= nil and (pcall(function() c:queueLuaCommand(string.format(HUNT, targetId)) end))
+    return c ~= nil and (pcall(function() c:queueLuaCommand(string.format(HUNT, targetId, targetId)) end))
   end
 
   -- Puts the Hoon on the road at x, y, z facing the player, switches it on and sets it hunting.

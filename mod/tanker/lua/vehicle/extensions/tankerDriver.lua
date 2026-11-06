@@ -1,5 +1,6 @@
--- tankerDriver: Tanker's own desert driver, run inside a Hoon's car. Tanker sends it a point to
--- drive at and a speed, a few times a second (target below); every frame it works out steering,
+-- tankerDriver: Tanker's own Hoon driver, run inside a Hoon's car. Off road, Tanker sends it a
+-- point to drive at and a speed, a few times a second (target below). On the roads it chases a
+-- car by itself (chase below, and road mode further down); every frame it works out steering,
 -- throttle and brake itself and drives the car with them, the way BeamNG's AI does. It takes over
 -- from BeamNG's AI while it drives (the AI is switched off) and hands back on stop().
 --
@@ -127,16 +128,133 @@ function M.control(s, car, dt)
   return s.steer, throttle, brake, 0
 end
 
+-- ------------------------------------------------------------ road mode ---
+-- Chasing you on the roads, like BeamNG's chase mode: a route along the road map to you, driven
+-- with a speed plan from Rowan's country limits, then a ram once it is close. The road maths is
+-- here; the route itself comes from the game's road map (in the car, below).
+
+-- Rowan's country cornering limit by speed (smartAI moonhawk_country): {km/h, g}.
+M.LAT_TABLE = { { 0, 0.9 }, { 40, 0.95 }, { 200, 0.95 } }
+-- How far along the route it aims: LOOK_SECONDS of its speed, between LOOK_MIN and LOOK_MAX m.
+M.LOOK_SECONDS, M.LOOK_MIN, M.LOOK_MAX = 0.8, 6, 30
+-- Within RAM_METRES of you, with you ahead of it, it leaves the route and drives at you, at your
+-- speed plus RAM_MPS (BeamNG's chase hits at 10 m/s over the target's speed).
+M.RAM_METRES, M.RAM_MPS = 30, 8
+-- How often the route is worked out again, in seconds.
+M.ROUTE_SECONDS = 0.5
+-- The speed to plan for at the end of the route, where you are: your speed plus a little.
+M.END_EXTRA_MPS = 5
+
+-- The cornering limit at this speed, in g.
+function M.latG(speed)
+  local kmh, t = speed * 3.6, M.LAT_TABLE
+  if kmh <= t[1][1] then return t[1][2] end
+  for i = 2, #t do
+    if kmh <= t[i][1] then
+      local a, b = t[i - 1], t[i]
+      return a[2] + (b[2] - a[2]) * (kmh - a[1]) / (b[1] - a[1])
+    end
+  end
+  return t[#t][2]
+end
+
+-- The curvature (1 / radius) of the circle through three points on the ground.
+function M.curvature(a, b, c)
+  local abx, aby, bcx, bcy = b.x - a.x, b.y - a.y, c.x - b.x, c.y - b.y
+  local cax, cay = a.x - c.x, a.y - c.y
+  local d = math.sqrt((abx * abx + aby * aby) * (bcx * bcx + bcy * bcy) * (cax * cax + cay * cay))
+  if d < 1e-9 then return 0 end
+  return math.abs(2 * (abx * bcy - aby * bcx) / d)
+end
+
+-- The fastest it can take each point of a route: the corner there at the speed-dependent
+-- cornering limit, and no faster than it can brake from to make the corners after it. endSpeed
+-- is the speed at the last point. mu is the ground's grip.
+function M.speedPlan(points, mu, endSpeed)
+  local n, speeds = #points, {}
+  mu = math.min(1, mu or 1)
+  for i = 1, n do
+    local k = (i > 1 and i < n) and M.curvature(points[i - 1], points[i], points[i + 1]) or 0
+    local v = 80
+    if k > 1e-5 then
+      -- The limit depends on speed, so settle it: speed from the limit, the limit from the speed.
+      local lat = M.LAT_TABLE[1][2]
+      for _ = 1, 4 do
+        v = math.sqrt(lat * mu * G / k)
+        lat = M.latG(v)
+      end
+      v = math.min(80, math.sqrt(lat * mu * G / k))
+    end
+    speeds[i] = v
+  end
+  if n > 0 and endSpeed then speeds[n] = math.min(speeds[n], endSpeed) end
+  for i = n - 1, 1, -1 do
+    local a, b = points[i], points[i + 1]
+    local d = math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2)
+    speeds[i] = math.min(speeds[i], math.sqrt(speeds[i + 1] ^ 2 + 2 * M.BRAKE_G * mu * G * d))
+  end
+  return speeds
+end
+
+-- The point dist metres along the route from where x, y is nearest it, and the index of the
+-- route point just past it.
+function M.along(points, x, y, dist)
+  local n = #points
+  if n == 0 then return nil end
+  if n == 1 then return points[1].x, points[1].y, 1 end
+  local best, bestD2, bestT = 1, math.huge, 0
+  for i = 1, n - 1 do
+    local a, b = points[i], points[i + 1]
+    local sx, sy = b.x - a.x, b.y - a.y
+    local len2 = sx * sx + sy * sy
+    local t = len2 > 1e-9 and clamp(((x - a.x) * sx + (y - a.y) * sy) / len2, 0, 1) or 0
+    local px, py = a.x + sx * t, a.y + sy * t
+    local d2 = (px - x) ^ 2 + (py - y) ^ 2
+    if d2 < bestD2 then best, bestD2, bestT = i, d2, t end
+  end
+  local i, t, left = best, bestT, dist
+  while i < n do
+    local a, b = points[i], points[i + 1]
+    local seg = math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2)
+    local rest = seg * (1 - t)
+    if rest >= left and seg > 1e-9 then
+      local u = t + left / seg
+      return a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u, i + 1
+    end
+    left, i, t = left - rest, i + 1, 0
+  end
+  return points[n].x, points[n].y, n
+end
+
+-- Where to drive and how fast, chasing a target (x, y, vx, vy) along a route (or straight at it
+-- with no route). Returns a target for M.control: { x, y, speed }.
+function M.chaseAim(car, route, speeds, them)
+  local dx, dy = them.x - car.x, them.y - car.y
+  local metres = math.sqrt(dx * dx + dy * dy)
+  local theirSpeed = math.sqrt((them.vx or 0) ^ 2 + (them.vy or 0) ^ 2)
+  local ahead = dx * car.fx + dy * car.fy
+  if not route or #route < 2 or (metres <= M.RAM_METRES and ahead > 0) then
+    -- Straight at them, where they will be in half a second.
+    return { x = them.x + (them.vx or 0) * 0.5, y = them.y + (them.vy or 0) * 0.5, speed = theirSpeed + M.RAM_MPS }
+  end
+  local look = clamp(math.max(car.speed, 0) * M.LOOK_SECONDS, M.LOOK_MIN, M.LOOK_MAX)
+  local x, y, i = M.along(route, car.x, car.y, look)
+  local _, _, here = M.along(route, car.x, car.y, 0)
+  local speed = math.huge
+  for j = math.max(1, here - 1), i do speed = math.min(speed, speeds[j] or speed) end
+  return { x = x, y = y, speed = speed }
+end
+
 -- ------------------------------------------------------------ in the car ---
 
 local state, active, savedGearbox
 local lastDir
 
--- Tanker's command: drive at x, y, z at speed m/s.
-function M.target(x, y, z, speed)
+local chasing -- the id of the car being chased on the roads, or nil
+local route, routeSpeeds, routeAt
+
+local function takeOver()
   state = state or M.newState()
-  state.target = { x = x, y = y, z = z, speed = speed }
-  state.age = 0
   if not active then
     active = true
     state.tries, state.pushing, state.backing = 0, 0, 0
@@ -146,6 +264,21 @@ function M.target(x, y, z, speed)
       pcall(controller.mainController.setGearboxMode, 'arcade')
     end
   end
+end
+
+-- Tanker's command: drive at x, y, z at speed m/s.
+function M.target(x, y, z, speed)
+  takeOver()
+  chasing = nil
+  state.target = { x = x, y = y, z = z, speed = speed }
+  state.age = 0
+end
+
+-- Tanker's command: chase car id on the roads, and ram it.
+function M.chase(id)
+  takeOver()
+  chasing, route, routeAt = id, nil, nil
+  if mapmgr and mapmgr.requestMap then pcall(mapmgr.requestMap) end
 end
 
 local function drive(steer, throttle, brake, parking)
@@ -159,7 +292,7 @@ end
 -- Hands the car back: pedals off, wheel straight, gearbox as it was.
 function M.stop()
   if not active then return end
-  active = false
+  active, chasing, route = false, nil, nil
   if state then state.target = nil end
   drive(0, 0, 0, 0)
   if savedGearbox and controller and controller.mainController and controller.mainController.setGearboxMode then
@@ -202,6 +335,42 @@ function M.updateGFX(dt)
     mu = obj.getStaticFrictionCoef and obj:getStaticFrictionCoef() * 0.95 or 1,
     wheelBase = wheelBase(),
   }
+  if chasing then
+    local them = mapmgr and mapmgr.getObjects and mapmgr.getObjects()[chasing]
+    if them and them.pos then
+      local tvx, tvy = them.vel and them.vel.x or 0, them.vel and them.vel.y or 0
+      local t = { x = them.pos.x, y = them.pos.y, vx = tvx, vy = tvy }
+      routeAt = (routeAt or 0) - dt
+      if routeAt <= 0 then
+        routeAt = M.ROUTE_SECONDS
+        route = nil
+        local ok, points = pcall(function()
+          local data = mapmgr.mapData
+          if not (data and mapmgr.findBestRoad and data.getChasePath) then return nil end
+          local me = vec3(px, py, 0)
+          local wp1, wp2 = mapmgr.findBestRoad(obj:getPosition(), obj:getDirectionVector())
+          local pl1, pl2 = mapmgr.findBestRoad(them.pos, them.vel and them.vel:length() > 1 and them.vel or them.dirVec)
+          if not (wp1 and wp2 and pl1 and pl2) then return nil end
+          local path = data:getChasePath(wp1, wp2, pl1, pl2, obj:getPosition(), obj:getVelocity(), them.pos, them.vel, 1)
+          if not path then return nil end
+          local list = { { x = me.x, y = me.y } }
+          for _, node in ipairs(path) do
+            local p = data.positions[node]
+            -- Road points just behind the car are skipped, so it doesn't aim back at them.
+            local behind = p and #list == 1 and ((p.x - px) * fx + (p.y - py) * fy) < 0
+            if p and not behind then list[#list + 1] = { x = p.x, y = p.y } end
+          end
+          list[#list + 1] = { x = t.x, y = t.y }
+          return list
+        end)
+        if ok and points and #points >= 2 then
+          route = points
+          routeSpeeds = M.speedPlan(route, car.mu, math.sqrt(tvx * tvx + tvy * tvy) + M.END_EXTRA_MPS)
+        end
+      end
+      state.target, state.age = M.chaseAim(car, route, routeSpeeds, t), 0
+    end
+  end
   local steer, throttle, brake, parking = M.control(state, car, dt)
   drive(steer, throttle, brake, parking)
   if state.stuckEvent then

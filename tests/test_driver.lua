@@ -90,4 +90,73 @@ s = D.newState(); aim(s, 0, 10, 0)
 st, th, br, pk = D.control(s, car(0), 1 / 60)
 T.eq(br, 0, 'asked to stop and stopped, not on the brake (that reverses)'); T.eq(pk, 1, 'parking brake on')
 
+-- Road mode: the cornering limit, the speed plan and following the route.
+T.eq(D.latG(0), 0.9, 'cornering limit at a crawl'); T.eq(D.latG(100 / 3.6), 0.95, 'and at speed')
+T.near(D.curvature({ x = 0, y = 0 }, { x = 10, y = 10 }, { x = 20, y = 0 }), 0.1, 1e-6, 'curvature of a 10 m circle')
+T.eq(D.curvature({ x = 0, y = 0 }, { x = 0, y = 10 }, { x = 0, y = 20 }), 0, 'a straight has none')
+-- A straight 200 m, then a tight 20 m radius right-hander.
+local road = {}
+for i = 0, 20 do road[#road + 1] = { x = 0, y = i * 10 } end
+for a = 1, 9 do
+  local th = a * math.pi / 18
+  road[#road + 1] = { x = 20 - 20 * math.cos(th), y = 200 + 20 * math.sin(th) }
+end
+local speeds = D.speedPlan(road, 1)
+local corner = speeds[#road - 4]
+T.near(corner, math.sqrt(0.9 * 9.81 * 20), 1.5, 'the corner at about 0.9 g')
+T.check(speeds[1] > corner + 10, 'faster on the straight')
+T.check(speeds[19] < speeds[5], 'braking for the corner before it')
+local d19 = 200 - 180
+T.check(speeds[19] <= math.sqrt(speeds[21] ^ 2 + 2 * D.BRAKE_G * 9.81 * d19) + 1e-6, 'no later than it can brake at 0.65 g')
+T.eq(D.speedPlan({ { x = 0, y = 0 }, { x = 0, y = 50 } }, 1, 12)[2], 12, 'the end speed is kept')
+local px, py, i = D.along(road, 3, 50, 25)
+T.near(px, 0, 1e-6, 'along the route from beside it'); T.near(py, 75, 1e-6, '25 m on'); T.eq(i, 9, 'and which point is next')
+
+-- Chasing: along the route, slowing for the corner ahead; close and ahead, it rams.
+local chaser = car(25)
+local aim1 = D.chaseAim(chaser, road, speeds, { x = 20, y = 230, vx = 10, vy = 0 })
+T.eq(aim1.x, 0, 'follows the road'); T.near(aim1.y, 25 * D.LOOK_SECONDS, 1e-6, 'looking ahead with its speed')
+local late = car(25, { y = 185 })
+T.check(D.chaseAim(late, road, speeds, { x = 20, y = 230, vx = 10, vy = 0 }).speed < 25, 'slows for the corner coming up')
+local ram = D.chaseAim(car(20), road, speeds, { x = 2, y = 20, vx = 0, vy = 15 })
+T.eq(ram.x, 2, 'close and ahead: straight at you'); T.eq(ram.y, 27.5, 'where you will be')
+T.eq(ram.speed, 15 + D.RAM_MPS, 'a little faster than you, to hit')
+T.eq(D.chaseAim(car(20), nil, nil, { x = 100, y = 300 }).x, 100, 'off road it drives straight at you')
+
+-- In a pretend car: Tanker's commands drive it with the game's inputs.
+local sent, gearbox, aiMode, ge = {}, nil, nil, {}
+local function v3(x, y, z) return { x = x, y = y, z = z or 0, length = function(v) return math.sqrt(v.x ^ 2 + v.y ^ 2 + v.z ^ 2) end } end
+local carPos, carVel = v3(0, 0, 0), v3(0, 10, 0)
+_G.vec3 = v3
+_G.input = { event = function(name, value) sent[name] = value end }
+_G.electrics = { values = { gearboxMode = 'realistic', wheelspeed = 10 } }
+_G.controller = { mainController = { setGearboxMode = function(m) gearbox = m end } }
+_G.ai = { setMode = function(m) aiMode = m end }
+_G.obj = {
+  getPositionXYZ = function() return carPos.x, carPos.y, 0 end, getPosition = function() return carPos end,
+  getDirectionVectorXYZ = function() return 0, 1, 0 end, getDirectionVector = function() return v3(0, 1, 0) end,
+  getSmoothRefVelocityXYZ = function() return carVel.x, carVel.y, 0 end, getVelocity = function() return carVel end,
+  getStaticFrictionCoef = function() return 1 end, getInitialLength = function() return 4.6 end, getID = function() return 50 end,
+  queueGameEngineLua = function(_, cmd) ge[#ge + 1] = cmd end,
+}
+local roadNodes = { a = v3(0, -10), b = v3(0, 40), c = v3(0, 90) }
+_G.mapmgr = {
+  requestMap = function() end,
+  findBestRoad = function(pos) if pos.y > 60 then return 'b', 'c', 1 end return 'a', 'b', 1 end,
+  getObjects = function() return { [7] = { pos = v3(0, 120), vel = v3(0, 15), dirVec = v3(0, 1) } } end,
+  mapData = { positions = roadNodes, getChasePath = function() return { 'a', 'b', 'c' } end },
+}
+D.target(10, 50, 0, 20)
+T.eq(aiMode, 'disabled', 'BeamNG\'s AI is switched off while it drives'); T.eq(gearbox, 'arcade', 'arcade gearbox')
+D.updateGFX(1 / 60)
+T.check(sent.throttle and sent.throttle > 0, 'throttle sent'); T.check(sent.steering > 0, 'steering towards the point')
+D.chase(7)
+for _ = 1, 30 do D.updateGFX(1 / 60) end
+T.check(math.abs(sent.steering) < 0.05, 'chasing up a straight road, wheel straight')
+T.check(sent.throttle > 0, 'and on the throttle')
+D.stop()
+T.eq(gearbox, 'realistic', 'the gearbox is put back'); T.eq(sent.throttle, 0, 'pedals off'); T.eq(D.active(), false, 'let go')
+D.updateGFX(1 / 60)
+T.eq(sent.throttle, 0, 'and it no longer drives')
+
 T.done('driver')
