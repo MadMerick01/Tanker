@@ -93,6 +93,12 @@ M.LEAVE_METRES = 400
 -- This many hits from your revolver stop a Hoon.
 M.SHOTS_TO_STOP = 4
 
+-- Robbing you when you can't move (Rowan, 6 Nov; robbery.lua decides when): the Hoon drives to
+-- ROB_SIDE metres off your side at up to ROB_MPS, slowing as it gets there, and stops beside you.
+-- Then it speeds off at FLEE_MPS, away from you and the way you face, and is gone at 400 m.
+M.ROB_SIDE, M.ROB_MPS, M.ROB_STOP_METRES = 4, 12, 2
+M.FLEE_MPS, M.FLEE_AIM_METRES = 30, 120
+
 -- Two modes (Rowan, 6 Nov): desert, the slots above, once you have been more than ROAD_METRES
 -- from the nearest road for MODE_SECONDS; and road, once you have been within ROAD_METRES of a
 -- road for MODE_SECONDS. In road mode each Hoon drives itself in the car (tankerDriver.chase):
@@ -118,6 +124,7 @@ M.DOING = {
   CIRCLING = 'sizing you up', CLOSING = 'closing in', WINDUP = 'lining up', SWIPE = 'attacking',
   PEEL = 'peeling off', BOXING = 'boxing you in, in front', BOX_SIDE = 'boxing you in, beside you', DOWN = 'down',
   BOX_REAR = 'boxing you in, behind you',
+  ROB = 'pulling up to siphon your fuel', FLEE = 'speeding off',
   ROAD = 'on the road',
 }
 -- What a road-mode Hoon is doing, as its driver reports it.
@@ -138,6 +145,7 @@ local LINES = {
   shotDown = 'You shot a Hoon to a stop. Siphon its tank before the others come.',
   driverShot = 'You shot a Hoon\'s driver. Siphon its tank before the others come.',
   escaped = 'A Hoon got more than 400 m away and is gone.',
+  fled = 'The Hoon that robbed you is gone.',
   gone = 'A Hoon is gone.',
   full = 'That\'s as many Hoons as there can be at once.',
   cleared = 'The Hoons are gone.',
@@ -236,6 +244,27 @@ function M.new(car, random)
     if h.replanAt and clock < h.replanAt then return end
     h.replanAt = clock + M.STEER_SECONDS
     relative(me, st)
+    if h.state == 'ROB' then
+      -- Straight to the spot beside you, slowing as it gets there, then stopped.
+      local sx, sy = M.at(me, (h.side or 1) * M.ROB_SIDE, 0, 0)
+      local d = distance2d(st.x, st.y, sx, sy)
+      h.spotMetres = d
+      local speed = d <= M.ROB_STOP_METRES and 0 or math.min(M.ROB_MPS, math.max(2, M.GAIN * d))
+      car:goTo(h.id, { x = sx, y = sy, z = car:ground(sx, sy, me.z) or me.z, speed = speed, slotX = sx, slotY = sy })
+      return
+    end
+    if h.state == 'FLEE' then
+      -- Away from you, and the way you face, flat out.
+      local ax, ay = st.x - me.x, st.y - me.y
+      local len = math.sqrt(ax * ax + ay * ay)
+      if len > 0.5 then ax, ay = ax / len, ay / len else ax, ay = 0, 0 end
+      ax, ay = ax + me.dx, ay + me.dy
+      len = math.sqrt(ax * ax + ay * ay)
+      if len > 0.01 then ax, ay = ax / len, ay / len else ax, ay = me.dx, me.dy end
+      local x, y = st.x + ax * M.FLEE_AIM_METRES, st.y + ay * M.FLEE_AIM_METRES
+      car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = M.FLEE_MPS, slotX = x, slotY = y })
+      return
+    end
     local right, ahead, slow, strikeLead, push = target(h)
     local mine = me.speed or 0
     local aimRight, aimAhead = right, ahead
@@ -519,7 +548,9 @@ function M.new(car, random)
     for _, h in ipairs({ unpack(self.hoons) }) do
       local st = car:state(h.id)
       if st and h.state ~= 'DOWN' then
-        if self.mode == 'road' and h.state ~= 'ROAD' then
+        if h.state == 'ROB' or h.state == 'FLEE' then
+          -- robbing, or running off with your fuel: in either mode
+        elseif self.mode == 'road' and h.state ~= 'ROAD' then
           for _, o in ipairs(self.hoons) do if o.lead == h then peel(o, clock) end end
           toRoad(h, me)
         elseif self.mode == 'desert' and h.state == 'ROAD' then
@@ -532,7 +563,8 @@ function M.new(car, random)
       else
         relative(me, st)
         h.metres = distance2d(me.x, me.y, st.x, st.y)
-        if h.metres <= M.CONTACT_METRES then h.hasHit = true end
+        h.speed = st.speed
+        if h.metres <= M.CONTACT_METRES and h.state ~= 'ROB' then h.hasHit = true end
         if h.state == 'DOWN' then
           if h.metres > M.LEAVE_METRES then release(h) end
         else
@@ -546,7 +578,8 @@ function M.new(car, random)
             p.stalled = { n = h.n, state = h.state, slot = h.slot, source = h.source, metres = h.metres, stalls = h.stalls }
             if h.state == 'ROAD' then car:chase(h.id, me.id) else line = think(h, me, st, clock) end
           elseif h.far and clock - h.far >= M.ESCAPE_SECONDS then
-            release(h); line = LINES.escaped
+            local fled = h.state == 'FLEE'
+            release(h); line = fled and LINES.fled or LINES.escaped
           elseif h.state ~= 'ROAD' then
             line = think(h, me, st, clock) or line
           end
@@ -567,6 +600,54 @@ function M.new(car, random)
         if st then drive(h, me, st, clock) end
       end
     end
+  end
+
+  -- Robbing (robbery.lua): sends the nearest Hoon that is up and not attacking or boxing you to
+  -- pull up beside you. Returns its id, or nil.
+  function p:startRob(clock)
+    if self:robber() then return nil end
+    local best
+    for _, h in ipairs(self.hoons) do
+      local free = h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL' or h.state == 'ROAD'
+      if free and h.metres and (not best or h.metres < best.metres) then best = h end
+    end
+    if not best then return nil end
+    local side = 1
+    if best.slot then side = M.SLOTS[best.slot].side end
+    best.state, best.slot, best.side, best.holdUntil, best.replanAt, best.phase = 'ROB', nil, side, nil, nil, nil
+    best.since = clock
+    return best.id
+  end
+
+  -- The Hoon robbing you: { id, metres, speed }, or nil.
+  function p:robber()
+    for _, h in ipairs(self.hoons) do
+      if h.state == 'ROB' then return { id = h.id, metres = h.metres, speed = h.speed, n = h.n } end
+    end
+  end
+
+  -- It has your fuel (or found none): it speeds off.
+  function p:flee(id, clock)
+    for _, h in ipairs(self.hoons) do
+      if h.id == id and h.state ~= 'DOWN' then
+        h.state, h.slot, h.side, h.replanAt, h.since, h.hasHit = 'FLEE', nil, nil, nil, clock, true
+        return true
+      end
+    end
+    return false
+  end
+
+  -- You drove off before it took anything: back to sizing you up.
+  function p:unrob(id, clock)
+    for _, h in ipairs(self.hoons) do
+      if h.id == id and h.state == 'ROB' then
+        local back = freeFar(h)[1] or M.RING[1]
+        h.state, h.slot, h.side, h.replanAt, h.since = 'CIRCLING', back, nil, nil, clock
+        h.movesLeft = whole({ 0, 1 })
+        return true
+      end
+    end
+    return false
   end
 
   local function find(id)

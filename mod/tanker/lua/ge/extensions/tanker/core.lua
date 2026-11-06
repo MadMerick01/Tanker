@@ -16,6 +16,7 @@ local threat = require('tanker/threat')
 local wrist = require('tanker/wrist')
 local vehicle = require('tanker/vehicle')
 local siphon = require('tanker/siphon')
+local robbery = require('tanker/robbery')
 local nearby = require('tanker/nearby')
 local hoons = require('tanker/hoons')
 local hoonCar = require('tanker/hoonCar')
@@ -84,9 +85,26 @@ function M.new(env)
     if c.bedCapacity and c.bedCapacity > 0 then c.bedLitres = math.min(c.bedLitres, c.bedCapacity) end
     c.bedDirty = true
   end)
-  c.siphon = siphon.new(function(litres, serial, id)
+  -- Changes the bed tank by litres now (negative takes), within its size. Returns how much it
+  -- really changed by, and its litres and size after.
+  local function changeBed(litres)
+    local before = c.bedLitres
+    c.bedLitres = math.max(0, before + litres)
+    if c.bedCapacity and c.bedCapacity > 0 then c.bedLitres = math.min(c.bedLitres, c.bedCapacity) end
+    c.bedDirty = true
+    return c.bedLitres - before, c.bedLitres, c.bedCapacity
+  end
+  local function changeFuel(litres, serial, id)
     return env.fuel.change ~= nil and env.fuel:change(litres, serial, id)
-  end)
+  end
+  c.siphon = siphon.new(changeFuel, changeBed)
+  -- Hoons rob you when you can't move. The pack does the driving.
+  c.robbery = robbery.new(changeFuel, function(litres) return (changeBed(litres)) end, {
+    startRob = function(_, clock) return c.pack and c.pack:startRob(clock) end,
+    robber = function() return c.pack and c.pack:robber() end,
+    flee = function(_, id, clock) return c.pack and c.pack:flee(id, clock) end,
+    unrob = function(_, id, clock) return c.pack and c.pack:unrob(id, clock) end,
+  })
 
   function c:transition(state, why)
     if self.state ~= state then self.diag:event('state', state .. (why and (' ' .. why) or '')) end
@@ -157,6 +175,7 @@ function M.new(env)
     local was, profile = self.state, self.profile
     if self.siphon:active() then self:stopSiphon() end
     if self.transfer:active() then self:stopPump() end
+    self.robbery:cancel(self.clock)
     if self.hoons and self.hoons:outId() then self.hoons:putAway(profile.run.drivenKm) end
     if self.pack then self.pack:clear() end
     -- If the game had put you in a Hoon's car, nothing of the Hoon stays driving it.
@@ -206,11 +225,24 @@ function M.new(env)
     if near.speed > siphon.STILL_MPS then return 'moving' end
   end
 
-  function c:startSiphon()
+  -- Whether there is a bed tank to siphon into.
+  function c:hasBed()
+    return self.bed ~= nil and self.bedCapacity ~= nil and self.bedCapacity > 0
+  end
+  -- The tank the siphon fills: your truck's, or the bed tank ({ litres, capacity }).
+  function c:siphonTank()
+    local run = self.siphon.run
+    if run and run.into == 'bed' then return { litres = self.bedLitres, capacity = self.bedCapacity } end
+    return self.reading
+  end
+
+  -- into: 'truck' (the default) or 'bed', when there is a bed tank.
+  function c:startSiphon(into)
     if self:siphonBlocked() then return false end
-    if not self.siphon:start(self.near.id, self.clock) then return false end
-    self.feedback = 'Siphoning. Stay still beside their car.'
-    self.diag:event('siphon', 'start ' .. tostring(self.near.id))
+    into = (into == 'bed' and self:hasBed()) and 'bed' or 'truck'
+    if not self.siphon:start(self.near.id, self.clock, into) then return false end
+    self.feedback = into == 'bed' and 'Siphoning into the bed tank. Stay still beside their car.' or 'Siphoning. Stay still beside their car.'
+    self.diag:event('siphon', 'start ' .. tostring(self.near.id) .. ' into ' .. into)
     return true
   end
 
@@ -230,7 +262,7 @@ function M.new(env)
     end
     if self.siphon:active() then
       local car, me = self.nearby:closest(self.siphon.run.donor)
-      local line = self.siphon:step(self.clock, car and car.metres, me and me.speed, self.reading)
+      local line = self.siphon:step(self.clock, car and car.metres, me and me.speed, self:siphonTank())
       if line then self.feedback = line; self.diag:event('siphon', line) end
       self.near = nil
       return
@@ -239,8 +271,28 @@ function M.new(env)
     self.near = car and me and { id = car.id, metres = car.metres, speed = me.speed } or nil
   end
 
+  -- Each half second: a Hoon robs you if you can't move.
+  function c:followRobbery()
+    if self.state ~= 'RUNNING' or not self.pack then
+      if self.robbery:active() then self.robbery:cancel(self.clock) end
+      return
+    end
+    local _, me = nil, nil
+    if self.nearby then _, me = self.nearby:closest(self.robbery:robberId()) end
+    local bed = self:hasBed() and { litres = self.bedLitres, capacity = self.bedCapacity } or nil
+    local line = self.robbery:step(self.clock, me and me.speed, self.reading, bed)
+    if line then self.feedback = line; self.diag:event('robbery', line) end
+  end
+
   -- A car's answer to fuel:change(). Litres put into your own tank show at once.
   function c:fuelChanged(id, serial, before, after, capacity)
+    local robber = self.robbery:robberId()
+    if self.robbery:answer(serial, before, after, capacity, self.clock) then
+      if id ~= robber and location.finite(after) and location.finite(capacity) and capacity > 0 then
+        self.reading = { litres = after, capacity = capacity, km = self.profile and self.profile.run.drivenKm }
+      end
+      return
+    end
     local donor = self.siphon.run and self.siphon.run.donor
     local handled, line = self.siphon:answer(serial, before, after, capacity, self.clock)
     if not handled then
@@ -594,6 +646,7 @@ function M.new(env)
     self:followTraffic()
     self:followHoons()
     self:followPack()
+    self:followRobbery()
     self:followPump()
     if self.parts then self:followWorkshop() end
     self.fuel:read()
@@ -655,7 +708,15 @@ function M.new(env)
     if self.near and self.near.metres <= siphon.REACH_METRES and self.state == 'RUNNING' then
       v.siphonNear = { metres = self.near.metres, moving = self.near.speed > siphon.STILL_MPS }
     end
-    v.siphon = self.siphon:view(self.clock, self.reading)
+    v.siphon = self.siphon:view(self.clock, self:siphonTank())
+    -- The centre window's offer: stopped beside a car, choose where its fuel goes.
+    if v.siphonAllowed and not v.siphon then
+      v.siphonOffer = { metres = self.near.metres, bed = self:hasBed(),
+        yours = self.reading and self.reading.litres, yoursCapacity = self.reading and self.reading.capacity,
+        bedLitres = self.bedLitres, bedCapacity = self.bedCapacity }
+    end
+    v.robbery = self.robbery:view(self.clock, self.reading, self:hasBed() and { litres = self.bedLitres, capacity = self.bedCapacity } or nil)
+    if v.robbery then v.siphonOffer = nil end
     if self.bed and self.state == 'RUNNING' then
       v.bed = { litres = self.bedLitres, capacity = self.bedCapacity }
       if self.bedCapacity ~= nil then v.bed.fitted = self.bedCapacity > 0 end
@@ -862,7 +923,9 @@ end
 function M.fuelChanged(vehicleId, serial, before, after, capacity)
   return safely(function() if active then active:fuelChanged(vehicleId, serial, before, after, capacity) end end)
 end
-function M.siphonStart() return safely(function() return ensure():startSiphon() end) end
+function M.siphonStart() return safely(function() return ensure():startSiphon('truck') end) end
+function M.siphonToTruck() return safely(function() return ensure():startSiphon('truck') end) end
+function M.siphonToBed() return safely(function() return ensure():startSiphon('bed') end) end
 function M.siphonStop() return safely(function() return ensure():stopSiphon() end) end
 function M.bedRead(vehicleId, capacity) return safely(function() if active then active:bedRead(vehicleId, capacity) end end) end
 function M.pumpToTruck() return safely(function() return ensure():startPump('toTruck') end) end

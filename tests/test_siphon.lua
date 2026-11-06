@@ -85,6 +85,37 @@ env.hoonDistances = nil
 T.eq(c:stopSiphon(), true, 'Stop'); T.check(c.feedback:find('You took 1 L'), 'says what you took')
 T.eq(c:view().siphon.active, false, 'the box shows the result'); T.eq(c:view().siphonStopAllowed, false, 'Stop gone')
 
+-- The centre window: stopped beside a car it offers the siphon, and with a bed tank asks where
+-- the fuel goes. The last result shows first.
+T.eq(c:view().siphonOffer, nil, 'the result first')
+run(S.RESULT_SECONDS + 1)
+local v2 = c:view()
+T.check(v2.siphonOffer ~= nil, 'the centre window offers the siphon'); T.eq(v2.siphonOffer.bed, false, 'no bed tank, no choice')
+near.speed = 5; run(0.5)
+T.eq(c:view().siphonOffer, nil, 'not while you drive')
+near.speed = 0; run(0.5)
+local adapterB = F.adapter(-31.0, 140.0)
+local nearB = F.nearby({ [42] = 4 })
+local cB, envB = F.controller(adapterB, { nearby = nearB, bed = F.bed() })
+local function runB(seconds) for _ = 1, math.floor(seconds * 2) do cB:tick(0.5) end end
+runB(1); cB:startRun(); adapterB:put(R.START.latitude, R.START.longitude); runB(1)
+cB:bedRead(7, 200); cB:fuelReading(7, 15, 80)
+local bedBefore = cB.bedLitres
+T.eq(cB:view().siphonOffer.bed, true, 'with a bed tank, a choice')
+T.eq(cB:startSiphon('bed'), true, 'siphon into the bed tank')
+T.check(cB.feedback:find('bed tank', 1, true), 'says where')
+runB(0.5)
+local takeB = envB.fuel.changes[#envB.fuel.changes]
+T.eq(takeB.id, 42, 'from their car')
+cB:fuelChanged(42, takeB.serial, 80, 79, 100)
+T.eq(envB.fuel.changes[#envB.fuel.changes], takeB, 'nothing sent into your truck')
+T.near(cB.bedLitres, bedBefore + 1, 1e-9, 'the litre is in the bed tank')
+T.eq(cB:view().siphon.into, 'bed', 'the window says the bed tank'); T.eq(cB:view().siphon.yoursCapacity, 200, 'and shows it')
+cB:stopSiphon()
+local cN = F.controller(F.adapter(-31.0, 140.0), { nearby = F.nearby({ [42] = 4 }) })
+cN.state, cN.near = 'RUNNING', { id = 42, metres = 4, speed = 0 }
+T.eq(cN:startSiphon('bed'), true, 'with no bed tank'); T.eq(cN.siphon.run.into, 'truck', 'it goes into your truck')
+
 -- The command sent into a car is valid Lua, and goes to the car with that id.
 local fuel = require('tanker/fuel')
 local commands, ids = {}, {}
@@ -102,4 +133,28 @@ local plain, on, off = #W.build({}), #W.build({ siphon = { active = true, blink 
 T.eq(on, plain + 2, 'a pip while siphoning')
 T.eq(off[5][7], W.COLOURS.empty, 'it blinks off')
 T.eq(#W.build({ siphon = { active = false } }), plain, 'no pip once it stops')
+-- Into the bed tank (Rowan, 6 Nov): their litres go straight into the bed tank's own number.
+local askedB, bedL = {}, 190
+local sb = S.new(function(litres, serial, id) askedB[#askedB + 1] = { litres = litres, serial = serial, id = id }; return true end,
+  function(litres) local before = bedL; bedL = math.min(200, bedL + litres); return bedL - before, bedL, 200 end)
+T.eq(sb:start(9, 0, 'bed'), true, 'starts into the bed tank'); T.eq(sb.run.into, 'bed', 'into the bed tank')
+sb:step(0, 3, 0, { litres = bedL, capacity = 200 })
+T.eq(askedB[1].litres, -1, 'takes a litre'); T.eq(askedB[1].id, 9, 'from their car')
+sb:answer(askedB[1].serial, 30, 29, 60, 0)
+T.eq(#askedB, 1, 'nothing put into your truck'); T.eq(bedL, 191, 'the bed tank has it')
+T.near(sb:view(0, { litres = bedL, capacity = 200 }).litres, 1, 1e-9, 'one litre taken')
+T.eq(sb:view(0).into, 'bed', 'the window knows where it goes')
+for t = 1, 20 do
+  sb:step(t, 3, 0, { litres = bedL, capacity = 200 })
+  local last = askedB[#askedB]
+  if sb.run and sb.run.pending then sb:answer(last.serial, 29, 29 + last.litres, 60, t) end
+end
+T.eq(sb:active(), false, 'stops when the bed tank is full'); T.eq(bedL, 200, 'filled to the top')
+T.check(sb.result.text:find('The bed tank is full', 1, true), 'and says so')
+T.check(sb.result.text:find('into the bed tank', 1, true), 'and where it went')
+-- Without a bed tank, the fuel goes into the truck.
+local sNo = S.new(function() return true end)
+sNo:start(9, 0, 'bed')
+T.eq(sNo.run.into, 'truck', 'no bed tank: into your truck')
+
 T.done('siphon')
