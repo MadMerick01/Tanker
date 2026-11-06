@@ -309,3 +309,24 @@ test('drone strikes: a countdown banner, the drone heard coming, then the blast'
   a.handlers.$destroy()
   assert.equal(doc.body.children.length, 0, 'and goes with the app')
 })
+
+test('the HUD tidy-up: a Testing tab, one Hoon list and Hoon colours', () => {
+  const a = app()
+  assert.deepEqual(Array.from(a.scope.tabs, t => t.id), ['road', 'rig', 'garage', 'testing'])
+  a.scope.setTab('testing'); a.remount()
+  assert.equal(a.scope.tab, 'testing', 'the Testing tab is kept across rebuilds')
+  assert.equal(a.scope.hoonColour({ state: 'DOWN' }), '#f2c94c')
+  assert.equal(a.scope.hoonColour({ state: 'SWIPE' }), '#eb5757')
+  assert.equal(a.scope.hoonColour({ state: 'BOX_REAR' }), '#eb5757')
+  assert.equal(a.scope.hoonColour({ state: 'CIRCLING' }), '#e0823c')
+  assert.equal(a.scope.hoonColour(undefined), '#e0823c')
+  assert.equal(html.match(/ng-repeat="h in data\.pack\.hoons"/g).length, 1, 'the Hoons are listed once')
+  const testing = html.slice(html.indexOf("tab === 'testing'"))
+  for (const button of ["send('addHoon')", "send('clearHoons')", "send('spawnTanker')", "send('rocksOn')", "send('rocksOff')"]) {
+    assert.ok(testing.includes(button), button + ' is on the Testing tab')
+  }
+  for (const button of ["send('save')", "send('siphonStart')", "send('siphonStop')", "send('toggleRevolver')", "send('reloadRevolver')",
+    "send('pumpToTruck')", "send('pumpToBed')", "send('pumpStop')", "send('startRun')", "send('goToSave')", 'openPartsMenu()', 'hoonColour(']) {
+    assert.ok(html.includes(button), button + ' is still in the HUD')
+  }
+})

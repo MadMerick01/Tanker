@@ -1,23 +1,40 @@
 <div class="bngApp" ng-mouseenter="hover(true)" ng-mouseleave="hover(false)" style="width:100%;box-sizing:border-box;color:#f1ece4;font:14px/1.4 sans-serif;pointer-events:auto;">
   <style>.mm-panel { background: rgba(20,16,12,.92); border: 1px solid #a8522a; border-radius: 6px }
-    .mm-strip { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; box-sizing: border-box; color: #f1ece4; text-align: left; font: 14px/1.3 sans-serif; cursor: pointer }
-    .mm-bar { display: inline-block; width: 48px; height: 8px; border-radius: 4px; background: #3c403c; overflow: hidden; vertical-align: middle }
+    .mm-strip { display: flex; align-items: center; gap: 8px; width: 100%; overflow: hidden; padding: 6px 8px; box-sizing: border-box; color: #f1ece4; text-align: left; font: 13px/1.3 sans-serif; white-space: nowrap; cursor: pointer }
+    .mm-strip > span { flex: none }
+    .mm-strip > .mm-grow { flex: 1 }
+    .mm-bar { display: inline-block; width: 34px; height: 8px; border-radius: 4px; background: #3c403c; overflow: hidden; vertical-align: middle }
     .mm-bar span { display: block; height: 100% }
-    .mm-pip { display: inline-block; width: 7px; height: 7px; margin-right: 2px; border-radius: 50%; background: #3c403c }
+    .mm-bar.wide { flex: 1; width: auto; min-width: 60px }
+    .mm-pip { display: inline-block; width: 6px; height: 6px; margin-right: 2px; border-radius: 50%; background: #3c403c; vertical-align: middle }
     .mm-pip.on { background: #f2c94c }
-    .mm-dot { flex: none; width: 14px; height: 14px; border-radius: 3px }
-    .mm-tab { padding: 3px 12px; background: none; color: #c8bfb2; border: 1px solid #a8522a; border-radius: 4px; cursor: pointer }
+    .mm-threat { min-width: 12px; height: 18px; padding: 0 6px; box-sizing: border-box; border-radius: 9px; font-weight: bold; line-height: 18px; color: #1a140f }
+    .mm-tabs { display: flex; gap: 4px; margin-top: 8px; border-bottom: 1px solid rgba(168,82,42,.6) }
+    .mm-tabs .mm-tab { flex: 1; border-bottom: none; border-radius: 4px 4px 0 0 }
+    .mm-tab { padding: 3px 10px; background: none; color: #c8bfb2; border: 1px solid #a8522a; border-radius: 4px; font: 13px/1.4 sans-serif; cursor: pointer }
     .mm-tab.on { background: #a8522a; color: #f1ece4 }
-    .mm-btn { margin-top: 8px; padding: 7px 12px; background: #e0823c; color: #1a140f; font-weight: bold; border: none; border-radius: 4px; cursor: pointer }
+    .mm-tab[disabled] { opacity: .45; cursor: default }
+    .mm-btn { padding: 6px 12px; background: #e0823c; color: #1a140f; font: bold 13px/1.3 sans-serif; border: none; border-radius: 4px; cursor: pointer }
     .mm-btn[disabled] { opacity: .45; cursor: default }
+    .mm-body { max-height: 330px; overflow-y: auto; padding-top: 8px }
+    .mm-sec { margin-top: 10px }
+    .mm-sec:first-child { margin-top: 0 }
+    .mm-h { margin-bottom: 3px; font-size: 11px; font-weight: bold; letter-spacing: 2px; color: #e0823c }
+    .mm-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap }
+    .mm-row .mm-k { min-width: 64px }
+    .mm-grow { flex: 1 }
+    .mm-hoon { display: flex; gap: 6px; margin-top: 2px; font-weight: bold }
+    .mm-note { margin-top: 4px; font-size: 12px; color: #c8bfb2 }
+    .mm-warn { color: #f2c94c } .mm-bad { color: #eb5757 }
+    .mm-feedback { margin-top: 8px; padding: 4px 8px; border-left: 3px solid #e0823c; background: rgba(224,130,60,.12); color: #f1ece4 }
     .mm-k { color: #c8bfb2 } .mm-v { font-weight: bold }</style>
   <button type="button" ng-if="!start" class="mm-panel mm-strip" ng-click="toggle()" title="{{open ? 'Hide the panel' : 'Show the panel'}}">
-    <span class="mm-dot" ng-style="{background: threatColour(data.threat)}" aria-label="threat {{data.threat}}"></span>
-    <span ng-if="data.nearestHoon != null" title="How far the nearest Hoon is" style="font-weight:bold;color:#eb5757;">Hoon {{whole(data.nearestHoon)}} m</span>
+    <span class="mm-threat" ng-style="{background: threatColour(data.threat)}" aria-label="threat {{data.threat}}" title="How far the nearest Hoon is"><span ng-if="data.nearestHoon != null">{{whole(data.nearestHoon)}} m</span></span>
     <span title="Fuel in your tank"><span class="mm-bar"><span ng-style="{width: fuelShare(data.fuel) + '%', background: fuelColour(data.fuel)}"></span></span> {{whole(data.fuel.litres)}} L</span>
-    <span title="Rounds loaded"><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span><span ng-if="data.ammo" class="mm-k"> +{{data.gun.infinite ? '∞' : data.ammo.spare}}</span></span>
+    <span ng-if="data.ammo" title="Rounds loaded, and spare"><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span><span class="mm-k" style="margin-left:3px;">+{{data.gun.infinite ? '∞' : data.ammo.spare}}</span></span>
     <span ng-if="data.fuelWorth != null" title="What your fuel is worth" style="color:#f2c94c;">${{whole(data.fuelWorth)}}</span>
-    <span style="flex:1;text-align:right;" title="Road distance left to Pine Gap"><b>{{whole(data.goal.roadKm)}} km</b> <span class="mm-k">{{data.goal.letters}}</span></span>
+    <span class="mm-grow" style="text-align:right;" title="Road distance left to Pine Gap"><b ng-if="data.goal">{{whole(data.goal.roadKm)}} km</b> <span class="mm-k">{{data.goal.letters}}</span></span>
+    <span class="mm-k" aria-hidden="true">{{open ? '▾' : '▸'}}</span>
   </button>
   <div class="tk-start" ng-show="start" ng-mouseenter="hover(true)" ng-mouseleave="hover(false)" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;background:rgba(8,6,4,.6);color:#f1ece4;font:15px/1.45 sans-serif;pointer-events:auto;">
     <div role="dialog" aria-label="Tanker start page" style="width:880px;max-width:94vw;max-height:90vh;overflow:auto;box-sizing:border-box;padding:20px 24px;background:rgba(20,16,12,.97);border:3px solid #a8522a;border-radius:12px;box-shadow:0 0 40px rgba(0,0,0,.8);">
@@ -87,98 +104,126 @@
       <div style="margin-top:12px;font-size:12px;color:#8a8278;">Built on BeamNG.Earth, with plumbing from Worldwide Trucking Career. VR revolver from BeamNG VR Controller Poses, mouse aiming from Bolides The Cut.</div>
     </div>
   </div>
-  <div ng-if="open && !start" class="mm-panel" style="margin-top:6px;padding:10px 12px;">
+  <div ng-if="open && !start" class="mm-panel" style="margin-top:6px;padding:8px 10px 10px;">
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="flex:1;font-size:11px;font-weight:bold;letter-spacing:2px;color:#e0823c;">TANKER &middot; {{data.stateLabel}}</div>
-      <button type="button" class="mm-tab" style="padding:1px 9px;" ng-click="openStart()" title="The story, the rules and your save">Start page</button>
+      <button type="button" class="mm-tab" style="padding:1px 8px;font-size:12px;" ng-click="openStart()" title="The story, the rules and your save">Start page</button>
     </div>
-    <div style="display:flex;gap:6px;margin-top:8px;">
-      <button type="button" ng-repeat="t in tabs" class="mm-tab" ng-class="{on: tab === t.id}" ng-click="setTab(t.id)">{{t.label}}</button>
+    <div class="mm-tabs">
+      <button type="button" ng-repeat="t in tabs" class="mm-tab" ng-class="{on: tab === t.id}" ng-click="setTab(t.id)">{{t.label}}<span ng-if="t.id === 'garage' && data.bill" class="mm-warn"> &bull;</span></button>
     </div>
-    <div ng-if="tab === 'road'" style="margin-top:8px;">
-      <div ng-if="data.goal"><span class="mm-k">{{data.goalName}}</span> <span class="mm-v">{{whole(data.goal.roadKm)}} km</span> <span class="mm-k">by road, {{data.goal.letters}}</span></div>
-      <div ng-if="data.progress != null"><span class="mm-k">Trip done</span> <span class="mm-v">{{whole(data.progress * 100)}}%</span><span ng-if="data.drivenKm != null" class="mm-k"> &middot; {{whole(data.drivenKm)}} km driven</span></div>
-      <div ng-if="data.hoon.state === 'HUNTING'" style="margin-top:4px;font-weight:bold;color:#eb5757;">A Hoon is hunting you<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span><span ng-if="data.hoon.doing">, {{data.hoon.doing}}</span>.</div>
-      <div ng-if="data.hoon.state === 'DOWN'" style="margin-top:4px;font-weight:bold;color:#f2c94c;">The Hoon is down<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span>. Stop beside it to siphon its tank.</div>
-      <div ng-repeat="h in data.pack.hoons" ng-style="{color: h.state === 'DOWN' ? '#f2c94c' : (h.state === 'SWIPE' || h.state === 'WINDUP' || h.state === 'BOXING' || h.state === 'BOX_SIDE' ? '#eb5757' : '#e0823c')}" style="margin-top:4px;font-weight:bold;">Hoon {{h.n}}: {{h.doing}}<span ng-if="h.slot"> at {{h.slot}}</span><span ng-if="h.metres != null">, {{whole(h.metres)}} m away</span>.</div>
-      <div ng-if="data.goal.reached" style="margin-top:4px;font-weight:bold;color:#f2c94c;">You made it to Pine Gap.</div>
-      <div ng-if="data.startAllowed">
-        <div style="margin-top:6px;">One run and one save. You start at {{data.startName}}, at the edge of the desert, and head north.</div>
-        <button type="button" class="mm-btn" ng-click="send('startRun')">Start the run</button>
-      </div>
-      <button type="button" ng-if="data.goToSaveAllowed" class="mm-btn" ng-click="send('goToSave')">Go to your save</button>
-      <div ng-if="data.state === 'RUNNING'">
-        <button type="button" class="mm-btn" ng-disabled="!data.saveAllowed" ng-click="send('save')">Save here</button>
-        <span ng-if="data.saveBlockedBy === 'hoons'" style="margin-left:6px;color:#eb5757;">Hoons nearby</span>
-      </div>
-      <div ng-if="data.siphonNear && !data.siphonStopAllowed" style="margin-top:6px;">
-        <button type="button" class="mm-btn" ng-disabled="!data.siphonAllowed" ng-click="send('siphonStart')">Siphon fuel</button>
-        <span class="mm-k" style="margin-left:6px;">{{data.siphonNear.needsFoot ? 'Get out and connect the pump to siphon fuel to your tanks' : data.siphonNear.truckFar ? 'Park your truck closer to siphon' : data.siphonNear.moving ? 'Stop next to the car to siphon' : 'A car ' + whole(data.siphonNear.metres) + ' m away'}}</span>
-      </div>
-      <button type="button" ng-if="data.siphonStopAllowed" class="mm-btn" ng-click="send('siphonStop')">Stop siphoning</button>
-      <div ng-if="data.revolverAllowed" style="margin-top:10px;">
-        <span class="mm-k">Revolver</span> <span class="mm-v">{{whole(data.ammo.loaded)}} of 6</span> <span class="mm-k">loaded, {{data.gun.infinite ? 'unlimited' : whole(data.ammo.spare)}} spare</span>
-        <div>
-          <button type="button" class="mm-tab" ng-class="{on: data.gun.drawn}" ng-click="send('toggleRevolver')">{{data.gun.drawn ? 'Holster' : 'Draw revolver'}}</button>
-          <button type="button" class="mm-tab" ng-disabled="!data.reloadAllowed" ng-click="send('reloadRevolver')">{{data.gun.reloading ? 'Reloading' : data.gun.noSpare ? 'No spare rounds' : 'Reload'}}</button>
+    <div class="mm-body">
+
+    <div ng-if="tab === 'road'">
+      <div class="mm-sec" ng-if="data.goal">
+        <div class="mm-row" style="margin-top:0;"><span class="mm-k">{{data.goalName}}</span> <span class="mm-v" style="font-size:17px;">{{whole(data.goal.roadKm)}} km</span> <span class="mm-k">by road, {{data.goal.letters}}</span></div>
+        <div class="mm-row" ng-if="data.progress != null">
+          <span class="mm-bar wide"><span ng-style="{width: whole(data.progress * 100) + '%', background: '#e0823c'}"></span></span>
+          <span class="mm-k"><b style="color:#f1ece4;">{{whole(data.progress * 100)}}%</b><span ng-if="data.drivenKm != null"> &middot; {{whole(data.drivenKm)}} km driven</span></span>
         </div>
-        <div ng-if="data.gun.drawn" class="mm-k" style="margin-top:2px;">Aim with the mouse and click to shoot. A shot through the driver, or four hits, stops a Hoon.</div>
+        <div ng-if="data.goal.reached" class="mm-v mm-warn" style="margin-top:4px;">You made it to Pine Gap.</div>
       </div>
-      <div ng-if="data.rocksAllowed" style="margin-top:10px;" title="Off clears BeamNG.Earth's scattered rocks for fast desert chases">
-        <span class="mm-k">Desert rocks</span>
-        <button type="button" class="mm-tab" ng-class="{on: data.rocks.on}" ng-click="send('rocksOn')">On</button>
-        <button type="button" class="mm-tab" ng-class="{on: !data.rocks.on}" ng-click="send('rocksOff')">Off</button>
-        <div ng-if="data.rocks.on && data.rocks.status === 'hidden_by_earth'" class="mm-k" style="margin-top:4px;">BeamNG.Earth's own Rocks setting has them off.</div>
-        <div ng-if="data.rocks.status === 'unavailable'" class="mm-k" style="margin-top:4px;">Waiting for BeamNG.Earth's scenery.</div>
+      <div class="mm-sec" ng-if="data.hoon.state === 'HUNTING' || data.hoon.state === 'DOWN' || data.pack.hoons.length">
+        <div class="mm-h">HOONS</div>
+        <div ng-if="data.hoon.state === 'HUNTING'" class="mm-hoon mm-bad"><span class="mm-grow">Road Hoon: hunting you<span ng-if="data.hoon.doing">, {{data.hoon.doing}}</span></span><span ng-if="data.hoon.metres != null">{{whole(data.hoon.metres)}} m</span></div>
+        <div ng-if="data.hoon.state === 'DOWN'" class="mm-hoon mm-warn"><span class="mm-grow">Road Hoon: down. Stop beside it to siphon its tank.</span><span ng-if="data.hoon.metres != null">{{whole(data.hoon.metres)}} m</span></div>
+        <div ng-repeat="h in data.pack.hoons" class="mm-hoon" ng-style="{color: hoonColour(h)}"><span class="mm-grow">Hoon {{h.n}}: {{h.metres != null ? h.doing : 'placing'}}<span ng-if="h.slot" class="mm-k" style="font-weight:normal;"> &middot; {{h.slot}}</span></span><span ng-if="h.metres != null">{{whole(h.metres)}} m</span></div>
+      </div>
+      <div class="mm-sec" ng-if="data.startAllowed || data.goToSaveAllowed || data.state === 'RUNNING' || data.siphonNear || data.siphonStopAllowed">
+        <div class="mm-row" ng-if="data.startAllowed"><button type="button" class="mm-btn" ng-click="send('startRun')">Start the run</button><span class="mm-k">from {{data.startName}}, heading north</span></div>
+        <div class="mm-row" ng-if="data.goToSaveAllowed"><button type="button" class="mm-btn" ng-click="send('goToSave')">Go to your save</button></div>
+        <div class="mm-row" ng-if="data.state === 'RUNNING'">
+          <button type="button" class="mm-btn" ng-disabled="!data.saveAllowed" ng-click="send('save')">Save here</button>
+          <span ng-if="data.saveBlockedBy === 'hoons'" class="mm-bad">Not with Hoons nearby</span>
+          <button type="button" ng-if="data.siphonNear && data.siphonAllowed && !data.siphonStopAllowed" class="mm-btn" ng-click="send('siphonStart')">Siphon fuel</button>
+          <button type="button" ng-if="data.siphonStopAllowed" class="mm-btn" ng-click="send('siphonStop')">Stop siphoning</button>
+        </div>
+        <div class="mm-row" ng-if="data.state !== 'RUNNING' && data.siphonStopAllowed"><button type="button" class="mm-btn" ng-click="send('siphonStop')">Stop siphoning</button></div>
+        <div ng-if="data.siphonNear && !data.siphonStopAllowed" class="mm-note">{{data.siphonNear.needsFoot ? 'Get out and connect the pump to siphon fuel to your tanks.' : data.siphonNear.truckFar ? 'Park your truck closer to siphon.' : data.siphonNear.moving ? 'Stop next to the car to siphon.' : 'A car ' + whole(data.siphonNear.metres) + ' m away to siphon.'}}</div>
+      </div>
+      <div class="mm-sec" ng-if="data.revolverAllowed">
+        <div class="mm-row">
+          <span class="mm-k">Revolver</span>
+          <span><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span> <span class="mm-k">{{data.gun.infinite ? 'unlimited' : whole(data.ammo.spare)}} spare</span></span>
+          <span class="mm-grow"></span>
+          <button type="button" class="mm-tab" ng-class="{on: data.gun.drawn}" ng-click="send('toggleRevolver')">{{data.gun.drawn ? 'Holster' : 'Draw'}}</button>
+          <button type="button" class="mm-tab" ng-disabled="!data.reloadAllowed" ng-click="send('reloadRevolver')">{{data.gun.reloading ? 'Reloading' : data.gun.noSpare ? 'No spare' : 'Reload'}}</button>
+        </div>
+        <div ng-if="data.gun.drawn" class="mm-note">Aim with the mouse and click to shoot. A shot through the driver, or four hits, stops a Hoon.</div>
       </div>
     </div>
-    <div ng-if="tab === 'rig'" style="margin-top:8px;">
-      <div><span class="mm-k">Your tank</span> <span class="mm-v">{{whole(data.fuel.litres)}} of {{whole(data.fuel.capacity)}} L</span></div>
-      <div ng-if="data.bed">
-        <span class="mm-k">Bed tank</span>
-        <span class="mm-bar"><span ng-style="{width: fuelShare(data.bed) + '%', background: '#c48448'}"></span></span>
-        <span class="mm-v">{{whole(data.bed.litres)}}<span ng-if="data.bed.capacity"> of {{whole(data.bed.capacity)}}</span> L</span>
-        <div ng-if="data.bed.fitted === false" class="mm-k" style="margin-top:2px;">No bed tank fitted.</div>
-        <div ng-if="data.bed.fitted" style="margin-top:4px;">
+
+    <div ng-if="tab === 'rig'">
+      <div class="mm-sec">
+        <div class="mm-h">FUEL</div>
+        <div class="mm-row"><span class="mm-k">Your tank</span><span class="mm-bar wide"><span ng-style="{width: fuelShare(data.fuel) + '%', background: fuelColour(data.fuel)}"></span></span><span class="mm-v">{{whole(data.fuel.litres)}} of {{whole(data.fuel.capacity)}} L</span></div>
+        <div class="mm-row" ng-if="data.bed && data.bed.fitted !== false"><span class="mm-k">Bed tank</span><span class="mm-bar wide"><span ng-style="{width: fuelShare(data.bed) + '%', background: '#c48448'}"></span></span><span class="mm-v">{{whole(data.bed.litres)}}<span ng-if="data.bed.capacity"> of {{whole(data.bed.capacity)}}</span> L</span></div>
+        <div class="mm-row"><span class="mm-k">Range</span><span class="mm-v">{{data.fuel.rangeKm != null ? whole(data.fuel.rangeKm) + ' km' : 'measuring'}}</span><span class="mm-k" ng-if="data.bed.fitted">with the bed tank</span></div>
+        <div ng-if="data.bed.fitted === false" class="mm-note">No bed tank fitted.</div>
+        <div class="mm-row" ng-if="data.bed.fitted">
+          <span class="mm-k">Pump</span>
           <button type="button" ng-if="!data.pumpStopAllowed" class="mm-tab" ng-disabled="!data.pumpAllowed" ng-click="send('pumpToTruck')" title="Pump fuel from the bed tank into your truck's tank">Bed tank &rarr; truck</button>
           <button type="button" ng-if="!data.pumpStopAllowed" class="mm-tab" ng-disabled="!data.pumpAllowed" ng-click="send('pumpToBed')" title="Pump fuel from your truck's tank into the bed tank">Truck &rarr; bed tank</button>
           <button type="button" ng-if="data.pumpStopAllowed" class="mm-tab on" ng-click="send('pumpStop')">Stop pumping ({{data.pumping === 'toTruck' ? 'into your truck' : 'into the bed tank'}})</button>
         </div>
       </div>
-      <div><span class="mm-k">Range</span> <span class="mm-v">{{data.fuel.rangeKm != null ? whole(data.fuel.rangeKm) + ' km' : 'measuring'}}</span></div>
-      <div ng-if="!data.revolverAllowed"><span class="mm-k">VR revolver</span> <span class="mm-v">{{data.pistol.installed ? (data.pistol.drawn ? 'drawn' : 'holstered') : 'not installed'}}</span></div>
-      <div ng-if="data.revolverAllowed"><span class="mm-k">Revolver</span> <span class="mm-v">{{data.gun.drawn ? 'drawn' : 'holstered'}}</span> <span class="mm-k">(mouse aiming, on the Road tab)</span></div>
-      <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:4px;color:#f2c94c;">In VR, the revolver needs the BeamNG VR Controller Poses mod.</div>
-      <div ng-if="data.aimAllowed" style="margin-top:6px;" title="Tilts the VR revolver and its shots. Line the red laser up with BeamNG's black pointer line. Remembered between sessions.">
-        <span class="mm-k">VR aim</span> <span class="mm-v">{{degrees(data.pistol.aimPitch)}}</span>
-        <button type="button" class="mm-tab" ng-click="send('aimUp')">Aim up 1°</button>
-        <button type="button" class="mm-tab" ng-click="send('aimDown')">Aim down 1°</button>
-      </div>
-      <div class="mm-k" style="margin-top:6px;">Repairs, spare parts and the tow come next.</div>
-      <div style="margin-top:10px;">
-        <span class="mm-k">Spawn (testing):</span>
-        <button type="button" ng-if="data.pack" class="mm-tab" ng-disabled="!data.addHoonAllowed" ng-click="send('addHoon')" title="One more Hoon at a far slot: it sizes you up, then attacks. Press again for another.">Spawn a Hoon</button>
-        <button type="button" ng-if="data.pack" class="mm-tab" ng-disabled="!data.clearHoonsAllowed" ng-click="send('clearHoons')" title="Send every spawned Hoon away">Clear Hoons</button>
-        <button type="button" class="mm-tab" ng-disabled="!data.tankerSpawnAllowed" ng-click="send('spawnTanker')" title="A fuel tanker ahead of you that drives away">Spawn the TankerMob</button>
-        <div ng-repeat="h in data.pack.hoons" class="mm-k" style="margin-top:2px;">Hoon {{h.n}}: <span class="mm-v">{{h.metres != null ? whole(h.metres) + ' m away' : 'placing'}}</span>, {{h.doing}}<span ng-if="h.slot"> at {{h.slot}}</span></div>
-        <div ng-if="data.pack" class="mm-k" style="margin-top:2px;">Hoon mode: <span class="mm-v">{{data.pack.mode === 'road' ? 'road (overtake and brake-check)' : (data.pack.mode === 'desert' ? 'desert (circling)' : 'decided when one spawns')}}</span>. It switches after 5 s on or off a road. A spawned Hoon more than 400 m away is gone.</div>
-        <div ng-if="data.hoon && data.hoon.state === 'UNAVAILABLE'" style="margin-top:4px;color:#f2c94c;">The Hoon's car could not be loaded, so no Hoons this session.</div>
+      <div class="mm-sec">
+        <div class="mm-h">TRUCK</div>
+        <div class="mm-row" ng-if="data.truck"><span class="mm-k">Truck</span><span class="mm-v">{{data.truck.brand ? data.truck.brand + ' ' : ''}}{{data.truck.name}}</span></div>
+        <div class="mm-row" ng-if="data.truck.repair != null"><span class="mm-k">Condition</span><span class="mm-v" ng-class="{'mm-bad': data.truck.repair > 0}" ng-style="{color: data.truck.repair > 0 ? '' : '#6fcf97'}">{{data.truck.repair > 0 ? 'Damaged, $' + whole(data.truck.repair) + ' to fix' : 'In good shape'}}</span></div>
+        <div class="mm-row" ng-if="data.revolverAllowed"><span class="mm-k">Revolver</span><span class="mm-v">{{data.gun.drawn ? 'drawn' : 'holstered'}}</span><span class="mm-k">draw it on the Road tab</span></div>
+        <div class="mm-row" ng-if="!data.revolverAllowed"><span class="mm-k">VR revolver</span><span class="mm-v">{{data.pistol.installed ? (data.pistol.drawn ? 'drawn' : 'holstered') : 'not installed'}}</span></div>
+        <div ng-if="!data.revolverAllowed && data.pistol && !data.pistol.installed" class="mm-note mm-warn">In VR, the revolver needs the BeamNG VR Controller Poses mod.</div>
+        <div class="mm-row" ng-if="data.aimAllowed" title="Tilts the VR revolver and its shots. Line the red laser up with BeamNG's black pointer line. Remembered between sessions.">
+          <span class="mm-k">VR aim</span><span class="mm-v">{{degrees(data.pistol.aimPitch)}}</span>
+          <button type="button" class="mm-tab" ng-click="send('aimUp')">Aim up 1°</button>
+          <button type="button" class="mm-tab" ng-click="send('aimDown')">Aim down 1°</button>
+        </div>
       </div>
     </div>
-    <div ng-if="tab === 'garage'" style="margin-top:8px;">
-      <div><span class="mm-k">Your fuel is worth</span> <span class="mm-v" style="font-size:18px;color:#f2c94c;">${{whole(data.fuelWorth)}}</span></div>
-      <div class="mm-k">Fuel is money: ${{whole(data.fuelPrice)}} a litre, for the truck's tank and the bed tank together. Every litre you spend is a litre you can't drive on.</div>
-      <button type="button" class="mm-btn" ng-disabled="!data.buyPartsAllowed" ng-click="openPartsMenu()">Buy parts</button>
-      <div ng-if="!data.freeChanges" class="mm-k" style="margin-top:4px;">Change parts in the game's parts menu. The bill shows up here, paid in fuel from the bed tank first.</div>
-      <div ng-if="data.freeChanges" style="margin-top:4px;color:#f2c94c;">Free while testing: change parts, or pick any vehicle in the game's vehicle menu, and it's yours at no cost.</div>
-      <div ng-if="data.bill" ng-style="{borderColor: data.bill.short ? '#eb5757' : '#f2c94c'}" style="margin-top:10px;padding:10px;border:2px solid #f2c94c;border-radius:6px;">
+
+    <div ng-if="tab === 'garage'">
+      <div class="mm-sec">
+        <div class="mm-row" style="margin-top:0;"><span class="mm-k">Your fuel is worth</span><span class="mm-v" style="font-size:18px;color:#f2c94c;">${{whole(data.fuelWorth)}}</span></div>
+        <div class="mm-note">Fuel is money: ${{whole(data.fuelPrice)}} a litre, for the truck's tank and the bed tank together. Every litre you spend is a litre you can't drive on.</div>
+      </div>
+      <div class="mm-sec">
+        <button type="button" class="mm-btn" ng-disabled="!data.buyPartsAllowed" ng-click="openPartsMenu()">Buy parts</button>
+        <div ng-if="!data.freeChanges" class="mm-note">Change parts in the game's parts menu. The bill shows up here, paid in fuel from the bed tank first.</div>
+        <div ng-if="data.freeChanges" class="mm-note mm-warn">Free while testing: change parts, or pick any vehicle in the game's vehicle menu, and it's yours at no cost.</div>
+      </div>
+      <div ng-if="data.bill" class="mm-sec" ng-style="{borderColor: data.bill.short ? '#eb5757' : '#f2c94c'}" style="padding:6px 10px;border:2px solid #f2c94c;border-radius:6px;">
         <div class="mm-v">Parts bill: {{data.bill.total}} = {{data.bill.litresText}}</div>
-        <div ng-repeat="l in data.bill.lines" style="display:flex;gap:8px;"><span style="flex:1;">{{l.label}}</span><span>{{l.amount}}</span></div>
-        <div ng-if="data.bill.short" style="margin-top:4px;color:#eb5757;font-weight:bold;">You are {{whole(data.bill.short)}} L short.</div>
-        <button type="button" class="mm-btn" ng-disabled="!data.payPartsAllowed" ng-click="send('payParts')">Pay {{data.bill.litresText}}</button>
-        <button type="button" class="mm-btn" style="background:none;color:#e0823c;border:1px solid #e0823c;" ng-click="send('undoParts')">Undo changes</button>
+        <div ng-if="data.bill.short" class="mm-v mm-bad">You are {{whole(data.bill.short)}} L short.</div>
+        <div class="mm-note">Pay or undo it in the Parts bill window in the middle of the screen.</div>
       </div>
     </div>
-    <div ng-if="data.feedback" role="status" style="margin-top:8px;color:#c8bfb2;">{{data.feedback}}</div>
+
+    <div ng-if="tab === 'testing'">
+      <div class="mm-sec">
+        <div class="mm-h">SPAWN</div>
+        <div class="mm-row">
+          <button type="button" ng-if="data.pack" class="mm-tab" ng-disabled="!data.addHoonAllowed" ng-click="send('addHoon')" title="One more Hoon at a far slot: it sizes you up, then attacks. Press again for another.">Spawn a Hoon</button>
+          <button type="button" ng-if="data.pack" class="mm-tab" ng-disabled="!data.clearHoonsAllowed" ng-click="send('clearHoons')" title="Send every spawned Hoon away">Clear Hoons</button>
+          <button type="button" class="mm-tab" ng-disabled="!data.tankerSpawnAllowed" ng-click="send('spawnTanker')" title="A fuel tanker that drives away">Spawn the TankerMob</button>
+        </div>
+        <div ng-if="data.pack" class="mm-note"><span ng-if="data.pack.hoons.length">{{data.pack.hoons.length}} of {{data.pack.max}} Hoons out, listed on the Road tab. </span>Hoon mode: <b>{{data.pack.mode === 'road' ? 'road (overtake and brake-check)' : (data.pack.mode === 'desert' ? 'desert (circling)' : 'decided when one spawns')}}</b>. It switches after 5 s on or off a road. A spawned Hoon more than 400 m away is gone.</div>
+        <div ng-if="data.hoon && data.hoon.state === 'UNAVAILABLE'" class="mm-note mm-warn">The Hoon's car could not be loaded, so no Hoons this session.</div>
+      </div>
+      <div class="mm-sec" ng-if="data.rocksAllowed">
+        <div class="mm-h">WORLD</div>
+        <div class="mm-row" title="Off clears BeamNG.Earth's scattered rocks for fast desert chases">
+          <span class="mm-k">Desert rocks</span>
+          <button type="button" class="mm-tab" ng-class="{on: data.rocks.on}" ng-click="send('rocksOn')">On</button>
+          <button type="button" class="mm-tab" ng-class="{on: !data.rocks.on}" ng-click="send('rocksOff')">Off</button>
+        </div>
+        <div class="mm-note">Off clears BeamNG.Earth's scattered rocks for fast desert chases.</div>
+        <div ng-if="data.rocks.on && data.rocks.status === 'hidden_by_earth'" class="mm-note">BeamNG.Earth's own Rocks setting has them off.</div>
+        <div ng-if="data.rocks.status === 'unavailable'" class="mm-note">Waiting for BeamNG.Earth's scenery.</div>
+      </div>
+    </div>
+
+    </div>
+    <div ng-if="data.feedback" role="status" class="mm-feedback">{{data.feedback}}</div>
   </div>
 </div>

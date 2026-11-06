@@ -6,6 +6,14 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **The HUD is tidier and easier to read, with nothing taken away.** The strip along the top now fits on one line: the threat light turns into a pill showing how far the nearest Hoon is, and a small arrow shows whether the panel is open. The panel's tabs now run full width, and each tab is split into short sections.
+- **A new Testing tab** holds Spawn a Hoon, Clear Hoons, Spawn the TankerMob, the Hoon mode note and the Desert rocks switch, so the Rig tab is just about your rig.
+- **The Road tab** shows the trip with a progress bar, then one list of the Hoons around you with their distances lined up on the right (the same list was on the Rig tab too before). Save here, Siphon fuel and the revolver sit together below it, and the revolver row shows your loaded rounds as pips with Draw and Reload beside them. The Siphon fuel button only shows when you can siphon. Otherwise a short line says what to do.
+- **The Rig tab** shows both tanks as bars, your range, the pump buttons and your truck's name and condition. The "coming next" line is gone, and the VR revolver note only shows when you're not using mouse aiming.
+- **The Garage tab** now sums up a waiting parts bill in one box and points you to the Parts bill window in the middle of the screen to pay or undo it, instead of repeating the whole bill. The Garage tab shows a gold dot while a bill is waiting.
+- Messages from the game now sit in a highlighted line at the bottom of the panel.
+- Your save still works, and there's nothing to do except download the new tanker.zip. The VR aim buttons stay on the Rig tab, under your truck.
+
 ## Build 34 · 6 Nov 2026
 
 - **New Aim up 1° and Aim down 1° buttons for the VR revolver.** On the Rig tab, next to the VR revolver, the HUD now shows how far the gun is tilted from your controller (for example -10°, negative is down) with two buttons that tilt it up or down one degree. Use them with the red laser on to line the gun up with BeamNG's black pointer line, instead of typing the setting into the console. The VR revolver remembers the tilt between sessions. The buttons only appear when the BeamNG VR Controller Poses mod is installed and new enough to have the aim setting.

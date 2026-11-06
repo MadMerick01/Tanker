@@ -11,7 +11,7 @@ See [docs/DESIGN.md](docs/DESIGN.md) for the design.
 The first skeleton: one Hoon, siphoning, the bed tank pump and buying parts with fuel. There are no fleeing tankers yet.
 
 - **Start the run** teleports you to Lake Eyre in outback South Australia, puts you in the Tanker starter truck with about 200 km of fuel and starts your one and only run.
-- The **HUD strip** shows the threat light, your fuel, the revolver's rounds and the road distance left to Pine Gap and what your fuel is worth in dollars. Click it to open the **Road**, **Rig** and **Garage** tabs.
+- The **HUD strip** shows the threat light (with the distance to the nearest Hoon), your fuel, the revolver's rounds, what your fuel is worth in dollars and the road distance left to Pine Gap. Click it to open the **Road**, **Rig**, **Garage** and **Testing** tabs. Road has the trip, the Hoons around you, Save here and the revolver. Rig has your tanks, the pump and your truck. Testing has Spawn a Hoon, Clear Hoons, Spawn the TankerMob and the Desert rocks switch.
 - The **start page** opens in a big centre window with the story, the rules, your truck and **Start a new game**, which replaces your save. **Back to the road** brings the HUD back.
 - **Save here** saves where you are and how much fuel you have. You can't save with Hoons nearby. Next session, **Go to your save** takes you back and puts your tank back as it was.
 - On the **Garage** tab, **Buy parts** opens the parts menu. The bill for your changes is paid in fuel at $20 a litre, from the bed tank first, and **Undo** or driving off unpaid puts your old parts back.
