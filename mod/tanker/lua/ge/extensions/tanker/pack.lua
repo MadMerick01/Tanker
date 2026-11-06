@@ -61,7 +61,7 @@ M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS, M.STALL_SECONDS = 1, 12, 3, 5
 -- Further than ESCAPE_METRES from you for ESCAPE_SECONDS, and you have lost it: it is gone.
 M.ESCAPE_METRES, M.ESCAPE_SECONDS = 400, 0
 -- A downed Hoon is given back once you are this far from it.
-M.LEAVE_METRES = 400
+M.LEAVE_METRES = 600
 -- This many hits from your revolver stop a Hoon.
 M.SHOTS_TO_STOP = 4
 

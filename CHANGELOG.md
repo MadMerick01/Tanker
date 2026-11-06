@@ -8,7 +8,7 @@ Changes that are finished but not in a download yet. They move into a numbered b
 
 - **The strip at the top of the HUD now shows how far the nearest Hoon is,** for example "Hoon 85 m" in red beside the threat light, and it updates as you drive. The **Rig** tab lists every spawned Hoon with its distance under the **Spawn a Hoon** button too.
 - **Fixed: spawned Hoons now drive to their spots around you instead of standing still.** They use a different part of BeamNG's own AI, one that drives straight at a point at a set speed, road or no road. A Hoon speeds up when it's behind its spot, slows down when it's ahead, and runs alongside you once it's there. If you have Rowan's smartAI mod installed, an attacking Hoon drives with its open-road settings. A Hoon that was slow to reach its spot also no longer counts as down: a spawned Hoon only counts as down for being stopped once it has hit you.
-- A spawned Hoon that gets more than 400 m away from you is now gone straight away, instead of following you from a long way back. A downed Hoon is taken away once you're 400 m from it. Your save still works.
+- A spawned Hoon that gets more than 400 m away from you is now gone straight away, instead of following you from a long way back. Downed Hoons stay as before, so you can still come back to siphon them. Your save still works.
 
 ## Build 18 · 6 Nov 2026
 
