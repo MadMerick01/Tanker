@@ -2,7 +2,7 @@
 
 The game was called Mad Merick while it was being planned; Rowan renamed it **Tanker** on 31 Oct 2026. The GitHub repository was renamed to Tanker the same day.
 
-Status: **playable skeleton**: the start at Kulgera, fuel, saving, the HUD strip and wrist HUD, the start page, siphoning, the first Hoon, the pump between the bed tank and the truck's tank, and paying for parts with fuel on the Garage tab (see the README and CHANGELOG). Not built yet: buying new vehicles with fuel, ammo loot, fleeing tankers and trailers. This doc collects what Rowan decided in the project thread (first on 31 Oct 2026, the vision on 2 Nov) and marks what is still open. Open questions are tagged **❓ OPEN** inline and gathered in [Open questions](#open-questions) at the end.
+Status: **playable skeleton**: the start by Lake Eyre, fuel, saving, the HUD strip and wrist HUD, the start page, siphoning, the first Hoon, the pump between the bed tank and the truck's tank, and paying for parts with fuel on the Garage tab (see the README and CHANGELOG). Not built yet: buying new vehicles with fuel, ammo loot, fleeing tankers and trailers. This doc collects what Rowan decided in the project thread (first on 31 Oct 2026, the vision on 2 Nov) and marks what is still open. Open questions are tagged **❓ OPEN** inline and gathered in [Open questions](#open-questions) at the end.
 
 ## The pitch
 
@@ -10,7 +10,7 @@ Status: **playable skeleton**: the start at Kulgera, fuel, saving, the HUD strip
 
 It is played on BeamNG.drive, across the real Australian outback on [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth). Rowan set out the vision on 2 Nov:
 
-- You start in a small ute with a fluid tank in the bed holding enough fuel for about 200 km, at **Kulgera Roadhouse**, south of Alice Springs in the desert. You can move fuel between the fluid tank and the vehicle's own tank.
+- You start in a small ute with a fluid tank in the bed holding enough fuel for about 200 km, by **Lake Eyre** in outback South Australia, a long way south-east of Alice Springs. You can move fuel between the fluid tank and the vehicle's own tank.
 - You must get to Pine Gap for the realignment codes that stop the AI, then to Monaco (this may change) to enter them in the mainframe.
 - On the way you meet **Hoons**, muscle cars that try to intercept you on chase mode AI, and **tankers or smaller trucks carrying fuel**, which flee.
 - You siphon fuel and collect ammo from Hoons and tankers.
@@ -33,7 +33,7 @@ Pine Gap is a real facility. Everything about it in the game is fiction.
 
 ## The route
 
-The first goal is **Kulgera Roadhouse** (25.85141 S, 133.27493 E, near the Stuart Highway just north of the SA border; Rowan picked Kulgera on 2 Nov and this exact spot on 6 Nov) to Pine Gap: about 270 km by road. Starting with about 200 km of fuel means you have to take fuel on the way. The run used to start at Yorkeys Crossing, Port Augusta, about 1,230 km out; saves from there still work and carry on from where they were saved.
+The first goal is **Lake Eyre** (28.8807093 S, 137.6024985 E, in outback South Australia; Rowan, 6 Nov) to Pine Gap: about 680 km in a straight line, which the game counts as about 800 km by road. Starting with about 200 km of fuel means you have to take fuel on the way. The run used to start at Kulgera Roadhouse (from 2 Nov, about 270 km out) and before that at Yorkeys Crossing, Port Augusta, about 1,230 km out; saves from there still work and carry on from where they were saved.
 
 | Leg | From → to | Roughly | Character |
 |---|---|---|---|
@@ -42,7 +42,7 @@ The first goal is **Kulgera Roadhouse** (25.85141 S, 133.27493 E, near the Stuar
 | 3 | Stuarts Well → Alice Springs | 90 km | Heavy Hoon country. |
 | 4 | Alice Springs → Pine Gap | 20 km | The final run to the base. |
 
-Distances are rough, from the real highway, and to be checked in game. **❓ OPEN — Q2:** whether the coordinates land on the roadhouse, and how the legs play.
+Distances are rough, from the real highway, and to be checked in game. These legs were planned from Kulgera; the drive up from Lake Eyre to Kulgera (likely via the Oodnadatta Track and Marla) has no legs yet. **❓ OPEN — Q2:** whether the coordinates land on the roadhouse, and how the legs play.
 
 ### The map
 
@@ -79,7 +79,7 @@ The tank is three things at once:
 
 ## Hardcore rules
 
-Decided by Rowan, 31 Oct: **hardcore from the start, no restarts.** You manage your own fuel and repairs. If you run dry or wreck the truck, you have to get yourself out of it with what you are carrying. Rowan added **Start a new game** on 2 Nov: it throws away the run and its save and starts again at Kulgera, so there is still only ever one run on the go.
+Decided by Rowan, 31 Oct: **hardcore from the start, no restarts.** You manage your own fuel and repairs. If you run dry or wreck the truck, you have to get yourself out of it with what you are carrying. Rowan added **Start a new game** on 2 Nov: it throws away the run and its save and starts again at the start, so there is still only ever one run on the go.
 
 **One save.** The game saves where you are, so you can stop playing and carry on later from the same spot. There is no going back to an earlier save. What the truck keeps between play sessions is in [Damage between sessions](#damage-between-sessions).
 
