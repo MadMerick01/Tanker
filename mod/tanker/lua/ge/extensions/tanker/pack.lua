@@ -38,6 +38,11 @@ M.LEAD_SECONDS, M.MIN_LEAD, M.MAX_LEAD = 1, 6, 25
 M.CROSS_METRES = 30
 -- How long a Hoon waits at a far slot, then at a near slot, in seconds (picked between the two).
 M.HOLD_FAR, M.HOLD_NEAR = { 2, 5 }, { 1.5, 3 }
+-- A Hoon never stops (Rowan, 6 Nov): it always drives at MIN_MPS at least. One that would go
+-- slower, because it is at its point or past it (you stopped, or you are chasing it), circles
+-- the point ORBIT_METRES out instead, aiming ORBIT_STEP radians further round, like a hyena
+-- pacing. Only a box parks in front of you on purpose.
+M.MIN_MPS, M.ORBIT_METRES, M.ORBIT_STEP = 8, 20, 0.8
 -- How many far slots a new Hoon circles through before closing in (picked between the two). A
 -- bold one (BOLD_CHANCE of them) moves in after one at most. After an attack it circles 0 to 2.
 M.CIRCLES, M.BOLD_CHANCE, M.CIRCLES_AFTER = { 2, 6 }, 0.3, { 0, 2 }
@@ -212,6 +217,21 @@ function M.new(car, random)
     local lead = strikeLead or math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
     local x, y = M.at(me, aimRight, aimAhead + lead, 0)
     local sx, sy = M.at(me, right, ahead, 0)
+    local boxing = h.state == 'BOXING' or h.state == 'BOX_SIDE'
+    local placing = h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL'
+    h.orbiting = false
+    if speed < M.MIN_MPS and not boxing then
+      -- Never stop: near its point, circle it; further off, keep its aim (back to its point, or
+      -- round you to your other side) at MIN_MPS. A windup or swipe only keeps its speed up.
+      local ox, oy = st.x - sx, st.y - sy
+      local r = math.sqrt(ox * ox + oy * oy)
+      if placing and r < 2 * M.ORBIT_METRES then
+        h.orbiting = true
+        local angle = (r > 0.5 and math.atan2(oy, ox) or 0) + (h.dir or 1) * M.ORBIT_STEP
+        x, y = sx + M.ORBIT_METRES * math.cos(angle), sy + M.ORBIT_METRES * math.sin(angle)
+      end
+      speed = M.MIN_MPS
+    end
     car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = speed, slotX = sx, slotY = sy })
   end
 
@@ -219,6 +239,8 @@ function M.new(car, random)
     local right, ahead = target(h)
     local x, y = M.at(me, right, ahead, 0)
     local reach = (h.state == 'CIRCLING' or h.state == 'PEEL') and M.FAR_ARRIVE or M.NEAR_ARRIVE
+    -- Circling its point because you are slow or stopped counts as being there.
+    if h.orbiting then reach = math.max(reach, M.ORBIT_METRES + 5) end
     return distance2d(st.x, st.y, x, y) <= reach
   end
 
@@ -233,7 +255,7 @@ function M.new(car, random)
     h.since = clock
   end
 
-  -- Gives the car back (to traffic, or hidden for next time) and forgets the Hoon.
+  -- Hides the car for next time and forgets the Hoon.
   local function release(h)
     car:release(h.id, h.source)
     for i, other in ipairs(p.hoons) do
@@ -290,7 +312,7 @@ function M.new(car, random)
     return want == 'road' and LINES.roadMode or LINES.desertMode
   end
 
-  -- Brings in one more Hoon at a free far slot, from traffic or the Hoon's own car. Returns the
+  -- Brings in one more Hoon at a free far slot, in a HoonOld1 (a hidden one, or a new one loaded). Returns the
   -- line to show, or nil and why not.
   function p:add(clock)
     if #self.hoons >= M.MAX then return nil, 'full' end

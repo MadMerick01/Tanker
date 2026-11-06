@@ -23,15 +23,13 @@ T.eq(y, 45, 'a slot moves with you')
 -- A pretend game: goTo puts the Hoon straight at its slot.
 local function fakeCar()
   local car = { me = { id = 7, x = 0, y = 0, z = 0, dx = 0, dy = 1, speed = 20 }, cars = {}, next = 100,
-    paths = {}, strikes = {}, released = {}, calmed = 0, traffic = 1 }
+    paths = {}, strikes = {}, released = {}, calmed = 0 }
   function car:player() return self.me end
   function car:ground() return 0 end
   function car:take()
     if self.refuse then return nil, self.refuse end
     self.next = self.next + 1
-    local source = self.traffic > 0 and 'traffic' or 'own'
-    self.traffic = self.traffic - 1
-    return self.next, source
+    return self.next, 'own'
   end
   function car:place(id, px, py, pz) self.cars[id] = { x = px, y = py, z = pz, speed = 20 }; return true end
   -- Pretend the Hoon gets to its slot at once.
@@ -65,12 +63,12 @@ local function has(lines, line)
   return false
 end
 
--- A Hoon turns up at a far slot, from traffic, and circles the far slots before closing in.
+-- A Hoon turns up at a far slot, in its own car, and circles the far slots before closing in.
 local car = fakeCar()
 local p = P.new(car, random)
 local line = p:add(0)
 local h = p.hoons[1]
-T.eq(h.source, 'traffic', 'the first Hoon comes from traffic')
+T.eq(h.source, 'own', 'the Hoon comes in its own car')
 T.eq(line, P.LINES.arrived(h.slot), 'says where it turned up')
 T.eq(P.SLOTS[h.slot].far, true, 'at a far slot'); T.eq(h.state, 'CIRCLING', 'sizing you up')
 T.eq(h.movesLeft, P.CIRCLES[1], 'circles a few far slots first')
@@ -100,10 +98,22 @@ p:steer(1002)
 T.eq(car.paths[h.id].speed, car.me.speed + P.CATCH_UP_MPS, 'but only so much faster than you')
 car.cars[h.id].y = ny + 50
 p:steer(1003)
-T.eq(car.paths[h.id].speed, 0, 'far past it, it lets you catch up')
+T.eq(car.paths[h.id].speed, P.MIN_MPS, 'far past it, it never stops: it drives back to its point')
+T.eq(car.paths[h.id].x, nx, 'still aiming along its slot')
 car.cars[h.id].y = ny
 p:steer(1003.1)
-T.near(car.paths[h.id].speed, 0, 0.01, 'and is only steered every few frames')
+T.eq(car.paths[h.id].speed, P.MIN_MPS, 'and is only steered every few frames')
+-- You stop beside it: it circles its point instead of parking.
+local mySpeed = car.me.speed
+car.me.speed = 0
+local sx, sy = P.at(car.me, P.offset(h.slot))
+car.cars[h.id].x, car.cars[h.id].y = sx + 5, sy
+p:steer(1004)
+local o = car.paths[h.id]
+T.eq(o.speed, P.MIN_MPS, 'you stopped: it keeps moving')
+T.near(math.sqrt((o.x - sx) ^ 2 + (o.y - sy) ^ 2), P.ORBIT_METRES, 0.01, 'round its point')
+T.check(o.y ~= sy, 'aiming further round, not at the point')
+car.me.speed = mySpeed
 p:steer(1004)
 
 -- At the near slot it waits, lines up (edging in), then swipes with the chase AI.
@@ -135,7 +145,7 @@ T.eq(P.SLOTS[h.slot].far, true, 'a far one')
 -- A second Hoon: one per slot, and only one attacks at a time.
 line = p:add(t)
 local h2 = p.hoons[2]
-T.eq(h2.source, 'own', 'with no traffic left, the Hoon\'s own car')
+T.eq(h2.source, 'own', 'so does the second')
 T.check(h2.slot ~= h.slot, 'a different slot')
 local both = 0
 for tt = t + 0.5, t + 80, 0.5 do
@@ -248,49 +258,34 @@ c:packProblem(101, 'no_script_ai'); c:packProblem(101, 'no_script_ai')
 c:shutdown()
 T.eq(car4.removedAll, true, 'the cars go with Tanker')
 
--- The game's side: a traffic car is taken, its point is sent, and it goes back to traffic.
+-- The game's side: every Hoon gets a HoonOld1 of ours, never a traffic car; its point is sent,
+-- and its car is hidden for the next Hoon.
 local v3 = function(px, py, pz) return { x = px, y = py, z = pz } end
-local commands, removed, inserted = {}, {}, {}
-local game = {
-  [7] = v3(0, 0, 0), [20] = v3(0, 100, 0), [21] = v3(0, 900, 0),
-}
+local commands, removed, loads = {}, {}, 0
 local hc = {
   player = function() return { id = 7, x = 0, y = 0, z = 0, dx = 0, dy = 1, speed = 10 } end,
-  state = function(_, id) local s = game[id]; return s and { x = s.x, y = s.y, z = s.z, speed = 0 } end,
+  state = function() return nil end,
   calm = function() end, hunt = function() end, hide = function(_, id) commands[#commands + 1] = 'hide ' .. id end,
-  load = function() return 50, 'barstow' end, remove = function(_, id) removed[#removed + 1] = id end,
+  load = function() loads = loads + 1; return 49 + loads, 'barstow' end, remove = function(_, id) removed[#removed + 1] = id end,
 }
 local pc = PC.new(hc, {
   byId = function(id) return { queueLuaCommand = function(_, cmd) commands[#commands + 1] = cmd end, id = id } end,
-  traffic = function() return {
-    getTrafficData = function() return { [7] = {}, [20] = {}, [21] = {} } end,
-    removeTraffic = function(id) removed[#removed + 1] = 'traffic ' .. id end,
-    insertTraffic = function(id) inserted[#inserted + 1] = id end,
-  } end,
 })
 local id, source = pc:take(hc.player())
-T.eq(id, 21, 'takes the traffic car furthest from you'); T.eq(source, 'traffic', 'from traffic')
-T.eq(removed[1], 'traffic 21', 'taken out of traffic')
+T.eq(id, 50, 'the Hoon\'s own car is loaded'); T.eq(source, 'own', 'its own, not from traffic')
 id = pc:take(hc.player())
-T.eq(id, 20, 'then the next one, never the same twice')
-id, source = pc:take(hc.player())
-T.eq(id, 50, 'with traffic used up, the Hoon\'s own car is loaded'); T.eq(source, 'own', 'its own')
-T.eq(pc:goTo(21, { x = 4, y = 5, z = 6, speed = 22.5 }), true, 'point sent')
+T.eq(id, 51, 'a second Hoon loads a second car')
+T.eq(pc:goTo(50, { x = 4, y = 5, z = 6, speed = 22.5 }), true, 'point sent')
 T.check(commands[#commands]:find('tankerDriver.target(4.00, 5.00, 6.00, 22.50)', 1, true) ~= nil, 'to Tanker\'s own driver')
 T.check(commands[#commands]:find('ai.setSlotTrafficTarget, 4.00, 5.00, 6.00, 22.50', 1, true) ~= nil, 'or BeamNG\'s slotTraffic AI without it')
 T.check((loadstring or load)(commands[#commands]) ~= nil, 'the command is valid Lua')
-T.eq(pc:goTo(21, { x = 0 / 0, y = 5, z = 6, speed = 1 }), false, 'a broken point is not sent')
-local chunk = (loadstring or load)(commands[#commands])
-T.check(chunk ~= nil, 'the command is valid Lua')
-T.eq(pc:release(21, 'traffic'), true, 'given back'); T.eq(inserted[1], 21, 'to traffic')
-pc:release(50, 'own')
-T.eq(commands[#commands], 'hide 50', 'its own car is hidden')
-id, source = pc:take({ id = 7, x = 0, y = 0, z = 0 })
-T.eq(id, 21, 'traffic first again')
+T.eq(pc:goTo(50, { x = 0 / 0, y = 5, z = 6, speed = 1 }), false, 'a broken point is not sent')
+T.eq(pc:release(50, 'own'), true, 'let go')
+T.eq(commands[#commands], 'hide 50', 'its car is hidden')
 id = pc:take({ id = 7, x = 0, y = 0, z = 0 })
-T.eq(id, 50, 'then the hidden car, reused, not loaded again')
+T.eq(id, 50, 'the hidden car is reused, not loaded again'); T.eq(loads, 2, 'still two loads')
 pc:removeAll()
-T.eq(removed[#removed], 50, 'loaded cars removed when Tanker goes')
+T.eq(removed[#removed], 51, 'loaded cars removed when Tanker goes')
 
 -- Road and desert modes: on a road for 5 s, the Hoons drive themselves (overtake, cut in,
 -- brake-check); off road for 5 s, back to the slots.

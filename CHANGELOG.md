@@ -6,6 +6,10 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Every Hoon now drives the HoonOld1**, a rusty old Barstow with a rollcage, a cut hood, a tube bumper and offroad tyres. That includes the Hoon that comes for you on the road and the ones from **Spawn a Hoon** on the Rig tab. The car comes with the mod, so you need nothing else, and you can also pick it in the vehicle menu as the Barstow's HoonOld1.
+- **Tanker now runs its own traffic.** Once your run is on the road, the game's normal traffic is cleared and replaced by five HoonOld1s and two TankerMobs, loaded in one go. You'll see a few of them driving around, and the rest wait out of sight. Hoons and the TankerMob from **Spawn a TankerMob** are taken from these cars, so they turn up without the game stuttering. If you switch normal traffic back on from the game's menu, Tanker replaces it again within about 10 seconds. The game's parked cars are removed too. Your save still works.
+- **Desert Hoons never stop now.** They always keep moving, at about 30 km/h at least. If you stop, or turn round and chase one, it circles its spot around you like a hyena instead of parking, then carries on with its attack. A Hoon that gets stuck keeps trying to drive out instead of giving up. The only time one parks is when two Hoons box you in on purpose.
+
 ## Build 22 · 6 Nov 2026
 
 - **A new run now starts at Rowan's chosen spot by Kulgera** (25.85141 S, 133.27493 E), about 2.5 km south-west of the roadhouse, instead of at the roadhouse itself. **Start the run** and **Start a new game** take you there. A run you already have going carries on from where it was saved, and the drive to Pine Gap is still about 270 km.

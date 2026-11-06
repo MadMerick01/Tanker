@@ -169,8 +169,19 @@ local game = HC.new({
 })
 local id, model = game:load()
 T.eq(id, 50, 'the Hoon car is loaded'); T.eq(model, 'burnside', 'the first model the game has')
+T.eq(spawned[1].opts.config, nil, 'a plain one, since HoonOld1 is a Barstow')
 T.eq(spawned[1].opts.autoEnterVehicle, false, 'without moving you into it')
 T.eq(cars[50].active, 0, 'and switched off at once')
+local barstowGame = HC.new({
+  player = function() return player end, byId = function(i) return cars[i] end, vec3 = v3,
+  vehicles = function() return {
+    getModel = function(name) return name == 'barstow' and { model = 'barstow' } or {} end,
+    spawnNewVehicle = function(m, opts) spawned[#spawned + 1] = { model = m, opts = opts }; return gameCar(51, opts.pos) end,
+  } end,
+})
+local _, barstow = barstowGame:load()
+T.eq(barstow, 'barstow', 'with a Barstow in the game, the Hoon is a Barstow')
+T.eq(spawned[#spawned].opts.config, 'vehicles/barstow/hoonold1.pc', 'in Rowan\'s HoonOld1 config')
 local road = game:road(3, -390, 5)
 T.near(road.y, -390, 1e-9, 'the nearest point on the road'); T.near(road.metres, 3, 1e-9, 'and how far')
 T.eq(game:solid(0, -390, 5), false, 'no ground, not solid'); T.eq(game:solid(0, -400, 5), true, 'ground under the road is solid')

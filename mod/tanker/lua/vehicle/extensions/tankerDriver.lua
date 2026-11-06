@@ -32,8 +32,9 @@ M.SPEED_TAU = 0.8
 -- Wheel speed above the car's speed by more than this share (plus 2 m/s) is wheelspin: ease off.
 M.SPIN_SHARE = 0.25
 -- Pushing for STUCK_SECONDS at under 1 m/s, it reverses (steering the other way) for
--- BACK_SECONDS; after STUCK_TRIES of those it gives up until it is moving again.
-M.STUCK_SECONDS, M.BACK_SECONDS, M.STUCK_TRIES = 2.5, 2.5, 4
+-- BACK_SECONDS; after STUCK_TRIES of those it rests REST_SECONDS and starts again: a Hoon never
+-- gives up while it can still drive (Rowan, 6 Nov).
+M.STUCK_SECONDS, M.BACK_SECONDS, M.STUCK_TRIES, M.REST_SECONDS = 2.5, 2.5, 4, 3
 -- With no new point for this long, it brakes to a stop.
 M.STALE_SECONDS = 0.6
 -- A point behind the car is turned towards at this speed at most, in m/s.
@@ -107,8 +108,12 @@ function M.control(s, car, dt)
     return s.steer, 0, 0.4 + 0.15 * s.tries, 0
   end
   if s.tries >= M.STUCK_TRIES and math.abs(car.speed) < 1 then
-    s.lastThrottle = 0
-    return s.steer, 0, 0, 1
+    s.resting = (s.resting or 0) + dt
+    if s.resting < M.REST_SECONDS then
+      s.lastThrottle = 0
+      return s.steer, 0, 0, 1
+    end
+    s.resting, s.tries, s.pushing = 0, 0, 0
   end
 
   local speed = math.max(0, math.min(t.speed or 0, speedCap))
