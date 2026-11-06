@@ -22,6 +22,8 @@ M.MAX = 4
 -- FAR_SIDE metres out and FAR_BEYOND metres beyond your front or back. HALF_LENGTH is half your
 -- truck's length, from its middle to its front or back.
 M.NEAR_SIDE, M.FAR_SIDE, M.FAR_BEYOND, M.HALF_LENGTH = 10, 60, 10, 3
+-- Half your truck's width, in metres.
+M.HALF_WIDTH = 1.3
 -- The rear far slots (LRF, RRF) sit only this far out, so a Hoon behind you stays close (Rowan,
 -- 6 Nov): about 30 m from you.
 M.REAR_FAR_SIDE = 30
@@ -69,6 +71,26 @@ M.WINDUP_SIDE, M.WINDUP_SECONDS = 6, 1.5
 -- later.
 M.SWIPE_INTO, M.STRIKE_LEAD = 0.5, 2
 M.SWIPE_SECONDS, M.CONTACT_METRES, M.AFTER_CONTACT_SECONDS = 4, 5, 1
+-- The PIT (Rowan, 6 Nov): a Hoon at one of your rear near slots goes for your back wheel instead
+-- of swiping, PIT_CHANCE of the time (PIT_GUN_CHANCE while your revolver is drawn, since your
+-- back corners are hardest to shoot at). It lines up PIT_SIDE metres off your back corner, then
+-- matches your speed plus PIT_PUSH and steers its nose through your back wheel, PIT_WHEEL metres
+-- ahead of your back, aiming PIT_INTO metres past your middle, so your back end is shoved
+-- sideways and you spin. No brake, as in a swipe.
+M.PIT_CHANCE, M.PIT_GUN_CHANCE = 0.5, 0.8
+M.PIT_SIDE, M.PIT_PUSH, M.PIT_WHEEL, M.PIT_INTO = 3, 2, 1.5, 1
+-- Aiming where you'll be (Rowan, 6 Nov): while you turn faster than TURN_RAD_S (radians a
+-- second), a Hoon aims at its spot around where you will be, following your turn, up to
+-- PREDICT_SECONDS ahead (the time it needs to get there), so it cuts inside your turn instead
+-- of chasing round the outside. Your turn rate is smoothed by TURN_SMOOTH each reading.
+M.TURN_RAD_S, M.PREDICT_SECONDS, M.TURN_SMOOTH = 0.05, 2.5, 0.5
+-- Respecting your revolver (Rowan, 6 Nov): while it is drawn, Hoons getting into place weave
+-- WEAVE_METRES side to side every WEAVE_SECONDS, Hoons at your rear slots stay there instead of
+-- moving up to your front, and more attacks are PITs. A Hoon you hit but don't stop drops back:
+-- for SHY_SECONDS it peels off to a far slot, keeps further out (SHY_SIDE times the usual), may
+-- ease off up to SHY_DROP_MPS below your speed, and won't attack.
+M.WEAVE_METRES, M.WEAVE_SECONDS = 4, 2.5
+M.SHY_SECONDS, M.SHY_SIDE, M.SHY_DROP_MPS = 6, 1.5, 4
 -- This share of attacks are a box instead of a swipe. The lead Hoon gets BOX_AHEAD metres in
 -- front of you and drives at BOX_SLOW of your speed; a second Hoon, if there is one, sits
 -- BOX_SIDE metres off your side. A box lasts up to BOX_SECONDS. Slower than STOPPED_MPS for
@@ -125,6 +147,7 @@ local function where(slot)
 end
 M.DOING = {
   CIRCLING = 'sizing you up', CLOSING = 'closing in', WINDUP = 'lining up', SWIPE = 'attacking',
+  PIT_WINDUP = 'lining up on your back wheel', PIT = 'going for your back wheel', SHY = 'backing off from your gun',
   PEEL = 'peeling off', BOXING = 'boxing you in, in front', BOX_SIDE = 'boxing you in, beside you', DOWN = 'down',
   BOX_REAR = 'boxing you in, behind you',
   ROB = 'pulling up to siphon your fuel', FLEE = 'speeding off',
@@ -138,11 +161,14 @@ M.ROAD_DOING = {
 local LINES = {
   arrived = function(slot) return 'A Hoon has turned up out on your ' .. where(slot) .. '. It is sizing you up.' end,
   windup = function(slot) return 'A Hoon is lining up on your ' .. where(slot) .. '!' end,
+  pit = function(slot) return 'A Hoon is lining up on your ' .. WHERE[slot:sub(1, 1)] .. ' back wheel to spin you!' end,
+  shy = 'You hit a Hoon. It\'s backing off.',
   box = 'A Hoon is getting in front of you to box you in!',
   teamBox = function(n) return n .. ' Hoons are working together to box you in!' end,
   squeeze = 'The Hoons are closing the box. Get out or get stopped!',
   boxed = 'The Hoons have boxed you in.',
   swiped = 'The Hoon hit you and peeled off.',
+  pitted = 'The Hoon shoved your back end and peeled off.',
   missed = 'The Hoon missed and peeled off.',
   down = 'A Hoon is down. Siphon its tank before the others come.',
   shotDown = 'You shot a Hoon to a stop. Siphon its tank before the others come.',
@@ -172,6 +198,16 @@ end
 function M.at(me, right, ahead, t, speed)
   local go = (speed or me.speed or 0) * (t or 0) + ahead
   return me.x + me.dx * go + me.dy * right, me.y + me.dy * go - me.dx * right
+end
+
+-- Where you will be in t seconds if you keep turning as you are: a pose like me.
+function M.future(me, yaw, t)
+  if math.abs(yaw or 0) < M.TURN_RAD_S or not (t and t > 0) then return me end
+  local v = me.speed or 0
+  local h0 = math.atan2(me.dy, me.dx)
+  local h1 = h0 + yaw * t
+  return { id = me.id, z = me.z, speed = v, dx = math.cos(h1), dy = math.sin(h1),
+    x = me.x + v / yaw * (math.sin(h1) - math.sin(h0)), y = me.y - v / yaw * (math.cos(h1) - math.cos(h0)) }
 end
 
 -- The next far slot when circling, always forwards: rear to the front on the same side, front to
@@ -229,10 +265,37 @@ function M.new(car, random)
     if h.state == 'BOX_REAR' then return 0, -(M.HALF_LENGTH + M.BOX_AHEAD), squeeze end
     local right, ahead = M.offset(h.slot)
     local side = M.SLOTS[h.slot].side
+    if h.pit and h.state == 'WINDUP' then return side * (M.HALF_WIDTH + M.PIT_SIDE), ahead, 1 end
+    if h.pit and h.state == 'SWIPE' then
+      return -side * M.PIT_INTO, ahead + M.PIT_WHEEL, 1, M.STRIKE_LEAD
+    end
     if h.state == 'WINDUP' then right = side * M.WINDUP_SIDE end
     if h.state == 'SWIPE' then return side * M.SWIPE_INTO, ahead, 1, M.STRIKE_LEAD end
+    if h.shyUntil and p.clock and p.clock < h.shyUntil then right = right * M.SHY_SIDE end
+    -- Weaving while your revolver is drawn, so it is harder to hit.
+    if p.gunDrawn and (h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL') then
+      right = right + M.WEAVE_METRES * math.sin(2 * math.pi * (p.clock or 0) / M.WEAVE_SECONDS + h.n)
+    end
     return right, ahead, 1
   end
+
+  -- Your turn rate, smoothed, from your heading each time it is read (radians a second, left
+  -- positive).
+  local function track(me, clock)
+    local heading = math.atan2(me.dy, me.dx)
+    local last = p.heading
+    if last and clock > last.clock then
+      local dt = clock - last.clock
+      if dt <= 2 then
+        local turn = heading - last.value
+        if turn > math.pi then turn = turn - 2 * math.pi elseif turn < -math.pi then turn = turn + 2 * math.pi end
+        p.yaw = (p.yaw or 0) + M.TURN_SMOOTH * (turn / dt - (p.yaw or 0))
+      else p.yaw = 0 end
+    end
+    if not last or clock > last.clock then p.heading = { value = heading, clock = clock } end
+    p.clock = clock
+  end
+
 
   -- Where the Hoon is from you: metres to your right and ahead.
   local function relative(me, st)
@@ -277,18 +340,22 @@ function M.new(car, random)
       aimRight, aimAhead = 0, sign * (math.max(math.abs(ahead), math.abs(ha)) + M.CROSS_METRES)
     end
     local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr)
-    -- A swipe matches your speed and turns in suddenly.
-    if h.state == 'SWIPE' then speed = mine end
+    -- A swipe matches your speed and turns in suddenly; a PIT pushes on through your back wheel.
+    if h.state == 'SWIPE' then speed = mine + (h.pit and M.PIT_PUSH or 0) end
     local coasting = h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL' or h.state == 'WINDUP'
       or h.state == 'SWIPE'
-    if coasting then speed = math.max(speed, mine - M.DROP_MPS) end
+    local shy = h.shyUntil and clock < h.shyUntil
+    if coasting then speed = math.max(speed, mine - (shy and M.SHY_DROP_MPS or M.DROP_MPS)) end
     speed = math.max(0, math.min(speed, mine + M.CATCH_UP_MPS))
     local lead = strikeLead or math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
     -- Never aim behind the Hoon: its driver would turn round for a point behind it, slowly, and
     -- fall far behind you. A point it has passed is aimed at a little ahead of it instead, and the
     -- speed law drops it back.
     local aimAt = math.max(aimAhead + lead, ha + (strikeLead or M.MIN_LEAD))
-    local x, y = M.at(me, aimRight, aimAt, 0)
+    -- Turning: aim round your turn, where you will be by the time it gets there.
+    local soon = M.future(me, p.yaw, math.min(M.PREDICT_SECONDS,
+      distance2d(st.x, st.y, M.at(me, right, ahead, 0)) / math.max(mine, M.MIN_MPS)))
+    local x, y = M.at(soon, aimRight, aimAt, 0)
     local sx, sy = M.at(me, right, ahead, 0)
     local boxing = h.state == 'BOXING' or h.state == 'BOX_SIDE' or h.state == 'BOX_REAR'
     h.spotMetres = distance2d(st.x, st.y, sx, sy)
@@ -306,6 +373,7 @@ function M.new(car, random)
       end
       speed = M.MIN_MPS
     end
+    h.aimX, h.aimY = x, y
     local mode = h.state == 'SWIPE' and 'swipe' or (coasting and 'coast' or nil)
     car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = speed, slotX = sx, slotY = sy, mode = mode })
   end
@@ -325,7 +393,7 @@ function M.new(car, random)
       local free = freeFar(h)
       back = free[1] or back or M.RING[1]
     end
-    h.state, h.slot, h.holdUntil, h.replanAt, h.side, h.lead = 'PEEL', back, nil, nil, nil, nil
+    h.state, h.slot, h.holdUntil, h.replanAt, h.side, h.lead, h.pit = 'PEEL', back, nil, nil, nil, nil, nil
     h.movesLeft = whole(M.CIRCLES_AFTER)
     h.since = clock
   end
@@ -448,7 +516,12 @@ function M.new(car, random)
         if not h.holdUntil and arrived(h, me, st) then h.holdUntil = clock + pick(M.HOLD_FAR) end
         if h.holdUntil and clock >= h.holdUntil then
           h.holdUntil = nil
-          if h.movesLeft > 0 then
+          if h.shyUntil and clock < h.shyUntil then
+            h.holdUntil = clock + 1
+          elseif p.gunDrawn and M.SLOTS[h.slot].ahead < 0 and h.movesLeft > 0 then
+            -- Your revolver is drawn: it stays at your back corner, out of your line of fire.
+            h.movesLeft = h.movesLeft - 1
+          elseif h.movesLeft > 0 then
             local nextSlot = M.forward(h.slot)
             if not taken(nextSlot, h) then h.slot, h.replanAt = nextSlot, nil end
             h.movesLeft = h.movesLeft - 1
@@ -463,7 +536,7 @@ function M.new(car, random)
       if not h.holdUntil and arrived(h, me, st) then h.holdUntil = clock + pick(M.HOLD_NEAR) end
       if h.holdUntil and clock >= h.holdUntil then
         h.holdUntil = nil
-        if strikers() > 0 then
+        if strikers() > 0 or (h.shyUntil and clock < h.shyUntil) then
           h.holdUntil = clock + 1
         elseif (function()
           -- Every other Hoon still up and not attacking can help, nearest first.
@@ -497,7 +570,8 @@ function M.new(car, random)
           -- the box is on
         else
           h.state, h.since, h.replanAt = 'WINDUP', clock, nil
-          line = LINES.windup(h.slot)
+          h.pit = M.SLOTS[h.slot].ahead < 0 and chance(p.gunDrawn and M.PIT_GUN_CHANCE or M.PIT_CHANCE)
+          line = h.pit and LINES.pit(h.slot) or LINES.windup(h.slot)
         end
       end
     elseif h.state == 'WINDUP' then
@@ -507,7 +581,8 @@ function M.new(car, random)
     elseif h.state == 'SWIPE' then
       if not h.contactAt and h.metres and h.metres <= M.CONTACT_METRES then h.contactAt, h.hasHit = clock, true end
       if h.contactAt and clock - h.contactAt >= M.AFTER_CONTACT_SECONDS then
-        peel(h, clock); line = LINES.swiped
+        line = h.pit and LINES.pitted or LINES.swiped
+        peel(h, clock)
       elseif clock - h.since >= M.SWIPE_SECONDS then
         peel(h, clock); line = LINES.missed
       end
@@ -550,6 +625,7 @@ function M.new(car, random)
     if #self.hoons == 0 then return nil end
     local me = car:player()
     if not me then return nil end
+    track(me, clock)
     local line = followMode(me, clock)
     for _, h in ipairs({ unpack(self.hoons) }) do
       local st = car:state(h.id)
@@ -600,6 +676,7 @@ function M.new(car, random)
     if #self.hoons == 0 then return end
     local me = car:player()
     if not me then return end
+    track(me, clock)
     for _, h in ipairs(self.hoons) do
       if h.state ~= 'DOWN' and h.state ~= 'ROAD' then
         local st = car:state(h.id)
@@ -666,8 +743,16 @@ function M.new(car, random)
     local h = find(id)
     if not h then return nil, false end
     h.hits = h.hits + 1
-    if h.hits < M.SHOTS_TO_STOP then return nil, true end
-    return down(h, LINES.shotDown), true
+    if h.hits >= M.SHOTS_TO_STOP then return down(h, LINES.shotDown), true end
+    -- Hit but still going: it backs off for a while, unless it is boxing, robbing or fleeing.
+    local placing = h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL'
+    if not (placing or h.state == 'WINDUP' or h.state == 'SWIPE') then return nil, true end
+    local clock = self.clock or 0
+    local already = h.shyUntil and clock < h.shyUntil
+    h.shyUntil = clock + M.SHY_SECONDS
+    if h.state ~= 'CIRCLING' and h.state ~= 'PEEL' then peel(h, clock) end
+    if already then return nil, true end
+    return LINES.shy, true
   end
 
   function p:driverShot(id)
@@ -699,6 +784,8 @@ function M.new(car, random)
     local list = {}
     for _, h in ipairs(self.hoons) do
       local doing = h.state == 'ROAD' and (M.ROAD_DOING[h.phase] or M.DOING.ROAD) or M.DOING[h.state]
+      if h.pit and h.state == 'WINDUP' then doing = M.DOING.PIT_WINDUP elseif h.pit and h.state == 'SWIPE' then doing = M.DOING.PIT end
+      if h.shyUntil and self.clock and self.clock < h.shyUntil and h.state ~= 'DOWN' then doing = M.DOING.SHY end
       list[#list + 1] = { n = h.n, slot = h.slot, doing = doing, state = h.state, metres = h.metres }
     end
     return list
