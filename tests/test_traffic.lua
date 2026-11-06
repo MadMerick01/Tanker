@@ -34,7 +34,7 @@ local game = {
 local function loadGroup(group)
   for i, entry in ipairs(group) do
     nextId = nextId + 1
-    gameCar(nextId, entry.model, v3(0, i * 100, 0))
+    gameCar(nextId, entry.model, v3(0, i * 100, 0)).partConfig = 'vehicles/' .. entry.model .. '/' .. entry.config .. '.pc'
     trafficTable[nextId] = { isAi = true }
   end
 end
@@ -46,14 +46,17 @@ trafficTable[7] = { isAi = false }
 gameCar(50, 'covet', v3(0, 30, 0)); trafficTable[50] = { isAi = true }
 
 local group = TP.group()
-T.eq(#group, 7, 'the pool holds 5 HoonOld1s and 2 TankerMobs')
+T.eq(#group, 8, 'the pool holds 3 HoonOld1s, 3 HoonFast2s and 2 TankerMobs')
+local kinds = {}
+for _, e in ipairs(group) do kinds[e.config] = (kinds[e.config] or 0) + 1 end
+T.eq(kinds.hoonold1, kinds.hoonfast2, 'as many of each Hoon')
 T.eq(group[1].model, 'barstow', 'a Barstow'); T.eq(group[1].config, 'hoonold1', 'Hoons are HoonOld1')
 T.eq(group[#group].model, 'us_semi', 'a semi'); T.eq(group[#group].config, 'tankermob', 'tankers are TankerMobs')
 
 local pool = TP.new(env)
 local line = pool:step(0)
 T.eq(#setups, 1, 'traffic is set up once the run is on the road')
-T.eq(setups[1].amount, 7, 'with every pooled car'); T.eq(setups[1].police, 0, 'and no police')
+T.eq(setups[1].amount, 8, 'with every pooled car'); T.eq(setups[1].police, 0, 'and no police')
 T.eq(setups[1].opts.vehGroup[1].config, 'hoonold1', 'from Tanker\'s own group only')
 T.eq(setups[1].opts.activeAmount, TP.ACTIVE, 'only a few shown at once, the rest hidden')
 T.eq(cars[50], nil, 'normal traffic is cleared'); T.check(cars[7] ~= nil, 'never the player')
@@ -69,18 +72,29 @@ T.eq(pool:loading(), false, 'done loading')
 pool:step(2 + TP.CHECK_SECONDS)
 T.eq(#setups, 1, 'Tanker\'s own traffic is left alone')
 
--- A Hoon's car comes out of the pool, the HoonOld1 furthest from you.
+-- A Hoon's car comes out of the pool: HoonOld1 or HoonFast2 by the roll, the furthest of that kind.
+local roll = 0.1
 local hc = HC.new({ player = function() return player end, byId = function(id) return cars[id] end, vec3 = v3,
+  random = function() return roll end,
   vehicles = function() return {
     getModel = function(name) return name == 'barstow' and { model = 'barstow' } or {} end,
     spawnNewVehicle = function() error('should come from the pool') end,
   } end }, pool)
-local id, model = hc:load()
-T.eq(model, 'barstow', 'a Barstow')
-T.eq(id, 205, 'the HoonOld1 furthest from you, taken from the pool')
-T.eq(removed[1], 205, 'out of traffic'); T.eq(trafficTable[205], nil, 'gone from traffic')
-T.eq(cars[205].active, 0, 'and switched off until it is sent')
-for _ = 1, 4 do T.check(hc:load() ~= nil, 'every Hoon') end
+local id, model, kind = hc:load()
+T.eq(model, 'barstow', 'a Barstow'); T.eq(kind, 'hoonold1', 'a low roll is a HoonOld1')
+T.eq(id, 203, 'the HoonOld1 furthest from you, taken from the pool')
+T.eq(removed[1], 203, 'out of traffic'); T.eq(trafficTable[203], nil, 'gone from traffic')
+T.eq(cars[203].active, 0, 'and switched off until it is sent')
+roll = 0.9
+id, model, kind = hc:load()
+T.eq(kind, 'hoonfast2', 'a high roll is a HoonFast2'); T.eq(cars[id].partConfig, 'vehicles/barstow/hoonfast2.pc', 'from the pool')
+roll = 0.1
+local kinds2 = {}
+for _ = 1, 4 do
+  local i, _, k = hc:load()
+  T.check(i ~= nil, 'every Hoon'); kinds2[#kinds2 + 1] = k
+end
+T.eq(kinds2[3], 'hoonfast2', 'with the HoonOld1s used up, a HoonFast2 instead')
 local spawned = 0
 local hc2 = HC.new({ player = function() return player end, byId = function(i) return cars[i] end, vec3 = v3,
   vehicles = function() return {

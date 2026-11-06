@@ -37,6 +37,8 @@ M.SPIN_SHARE = 0.25
 M.STUCK_SECONDS, M.BACK_SECONDS, M.STUCK_TRIES, M.REST_SECONDS = 2.5, 2.5, 4, 3
 -- With no new point for this long, it brakes to a stop.
 M.STALE_SECONDS = 0.6
+-- Asked for up to this much below its speed, it lifts off instead of braking, in m/s.
+M.COAST_MPS = 3
 -- A point behind the car is turned towards at this speed at most, in m/s.
 M.TURN_MPS = 6
 
@@ -127,7 +129,7 @@ function M.control(s, car, dt)
     -- A little throttle to hold speed against drag and the slope.
     if speed > 1 then throttle = math.max(throttle, 0.15) end
     if car.wheelSpeed and car.wheelSpeed > car.speed * (1 + M.SPIN_SHARE) + 2 then throttle = throttle * 0.5 end
-  else
+  elseif car.speed - speed > M.COAST_MPS then
     brake = clamp(-accel / (M.BRAKE_G * G), 0, 1)
   end
   s.lastThrottle = throttle

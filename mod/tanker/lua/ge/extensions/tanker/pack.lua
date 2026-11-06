@@ -9,8 +9,9 @@
 --
 -- A new Hoon sizes you up first, circling the far slots like a hyena, then closes in to a near
 -- slot, lines up and attacks. Some attacks swipe you and drive back out to a far slot; others try
--- to box you in, one Hoon getting in front and slowing down while another sits beside you, to
--- stop you for your fuel. Only one Hoon attacks at a time; the rest hold their slots and wait.
+-- to box you in as a team: one Hoon gets in front and the others close in on both sides and
+-- behind, then they all slow down together to stop you for your fuel. Only one attack happens at
+-- a time; Hoons not in it hold their slots and wait.
 -- This is the logic only; packCar.lua does the game's side.
 local M = {}
 
@@ -21,6 +22,9 @@ M.MAX = 4
 -- FAR_SIDE metres out and FAR_BEYOND metres beyond your front or back. HALF_LENGTH is half your
 -- truck's length, from its middle to its front or back.
 M.NEAR_SIDE, M.FAR_SIDE, M.FAR_BEYOND, M.HALF_LENGTH = 10, 60, 10, 3
+-- The rear far slots (LRF, RRF) sit only this far out, so a Hoon behind you stays close (Rowan,
+-- 6 Nov): about 30 m from you.
+M.REAR_FAR_SIDE = 30
 -- A Hoon is at a far slot within this many metres of it, at a near slot within NEAR_ARRIVE.
 M.FAR_ARRIVE, M.NEAR_ARRIVE = 15, 6
 -- Driving to a slot uses Tanker's own desert driver in the car (tankerDriver.lua), fed a new
@@ -43,6 +47,11 @@ M.HOLD_FAR, M.HOLD_NEAR = { 2, 5 }, { 1.5, 3 }
 -- the point ORBIT_METRES out instead, aiming ORBIT_STEP radians further round, like a hyena
 -- pacing. Only a box parks in front of you on purpose.
 M.MIN_MPS, M.ORBIT_METRES, M.ORBIT_STEP = 8, 20, 0.8
+-- Changing spot is done by speeding up, not braking (Rowan, 6 Nov): circling only ever moves
+-- forward (a rear slot to the front slot on its side, a front slot round your nose to the other
+-- front slot), and a Hoon getting into place never asks for more than DROP_MPS below your
+-- speed, so it drops back by easing off, not on the brakes.
+M.DROP_MPS = 3
 -- How many far slots a new Hoon circles through before closing in (picked between the two). A
 -- bold one (BOLD_CHANCE of them) moves in after one at most. After an attack it circles 0 to 2.
 M.CIRCLES, M.BOLD_CHANCE, M.CIRCLES_AFTER = { 2, 6 }, 0.3, { 0, 2 }
@@ -63,6 +72,15 @@ M.SWIPE_SECONDS, M.CONTACT_METRES, M.AFTER_CONTACT_SECONDS = 4, 5, 1
 -- BOXED_SECONDS and you are boxed in; they hold you there for BOX_HOLD_SECONDS, then peel off.
 M.BOX_CHANCE, M.BOX_AHEAD, M.BOX_SLOW, M.BOX_SIDE = 0.35, 8, 0.6, 4
 M.BOX_SECONDS, M.STOPPED_MPS, M.BOXED_SECONDS, M.BOX_HOLD_SECONDS = 15, 2, 3, 5
+-- A box is teamwork (Rowan, 6 Nov): it needs at least one other Hoon, and every free Hoon joins.
+-- The first takes the side it is already on, the next the other side, a third sits BOX_AHEAD
+-- behind you, so with three or four Hoons you are boxed in on both sides. With two or more
+-- helpers free, a box is TEAM_BOX_CHANCE of attacks. First they gather: the lead runs in front
+-- at your speed while the others get alongside (within BOX_ARRIVE metres of their spot), or for
+-- at most GATHER_SECONDS. Then they squeeze: all of them slow to BOX_SLOW of your speed together.
+-- A Hoon that goes down or is lost is replaced: a helper takes over the lead, and the team
+-- keeps the box going.
+M.TEAM_BOX_CHANCE, M.BOX_ARRIVE, M.GATHER_SECONDS = 0.6, 8, 8
 -- A Hoon that has hit you and then goes slower than STUCK_MPS for DOWN_SECONDS while you drive
 -- is down (wrecked or stuck). You must be going at least DRIVING_MPS for that to count, since
 -- Hoons wait when you stop. One that hasn't hit you yet is never down for being slow: after
@@ -99,6 +117,7 @@ end
 M.DOING = {
   CIRCLING = 'sizing you up', CLOSING = 'closing in', WINDUP = 'lining up', SWIPE = 'attacking',
   PEEL = 'peeling off', BOXING = 'boxing you in, in front', BOX_SIDE = 'boxing you in, beside you', DOWN = 'down',
+  BOX_REAR = 'boxing you in, behind you',
   ROAD = 'on the road',
 }
 -- What a road-mode Hoon is doing, as its driver reports it.
@@ -110,6 +129,8 @@ local LINES = {
   arrived = function(slot) return 'A Hoon has turned up out on your ' .. where(slot) .. '. It is sizing you up.' end,
   windup = function(slot) return 'A Hoon is lining up on your ' .. where(slot) .. '!' end,
   box = 'A Hoon is getting in front of you to box you in!',
+  teamBox = function(n) return n .. ' Hoons are working together to box you in!' end,
+  squeeze = 'The Hoons are closing the box. Get out or get stopped!',
   boxed = 'The Hoons have boxed you in.',
   swiped = 'The Hoon hit you and peeled off.',
   missed = 'The Hoon missed and peeled off.',
@@ -131,7 +152,7 @@ local function distance2d(ax, ay, bx, by) return math.sqrt((ax - bx) ^ 2 + (ay -
 -- The slot's offset from your middle: metres to your right, metres ahead.
 function M.offset(slot)
   local s = M.SLOTS[slot]
-  local side = s.far and M.FAR_SIDE or M.NEAR_SIDE
+  local side = s.far and (s.ahead < 0 and M.REAR_FAR_SIDE or M.FAR_SIDE) or M.NEAR_SIDE
   local ahead = M.HALF_LENGTH + (s.far and M.FAR_BEYOND or 0)
   return s.side * side, s.ahead * ahead
 end
@@ -140,6 +161,14 @@ end
 function M.at(me, right, ahead, t, speed)
   local go = (speed or me.speed or 0) * (t or 0) + ahead
   return me.x + me.dx * go + me.dy * right, me.y + me.dy * go - me.dx * right
+end
+
+-- The next far slot when circling, always forwards: rear to the front on the same side, front to
+-- the front on the other side (round your nose).
+function M.forward(slot)
+  local side, endOf = slot:sub(1, 1), slot:sub(2, 2)
+  if endOf == 'R' then return side .. 'FF' end
+  return (side == 'L' and 'R' or 'L') .. 'FF'
 end
 
 local function near(slot) return slot:sub(1, 2) .. 'N' end
@@ -182,8 +211,11 @@ function M.new(car, random)
   -- The offset a Hoon drives to now (right, ahead), the share of your speed to match there, how
   -- far ahead of the point to aim (nil: the usual lead), and any extra speed on top.
   local function target(h)
-    if h.state == 'BOXING' then return 0, M.HALF_LENGTH + M.BOX_AHEAD, M.BOX_SLOW end
-    if h.state == 'BOX_SIDE' then return h.side * M.BOX_SIDE, 0, M.BOX_SLOW end
+    local boxLead = h.state == 'BOXING' and h or h.lead
+    local squeeze = boxLead and boxLead.squeeze and M.BOX_SLOW or 1
+    if h.state == 'BOXING' then return 0, M.HALF_LENGTH + M.BOX_AHEAD, squeeze end
+    if h.state == 'BOX_SIDE' then return h.side * M.BOX_SIDE, 0, squeeze end
+    if h.state == 'BOX_REAR' then return 0, -(M.HALF_LENGTH + M.BOX_AHEAD), squeeze end
     local right, ahead = M.offset(h.slot)
     local side = M.SLOTS[h.slot].side
     if h.state == 'WINDUP' then right = side * M.WINDUP_SIDE end
@@ -213,11 +245,19 @@ function M.new(car, random)
       aimRight, aimAhead = 0, sign * (math.max(math.abs(ahead), math.abs(ha)) + M.CROSS_METRES)
     end
     local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr) + (push or 0)
+    if h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL' then
+      speed = math.max(speed, mine - M.DROP_MPS)
+    end
     speed = math.max(0, math.min(speed, mine + M.CATCH_UP_MPS))
     local lead = strikeLead or math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
-    local x, y = M.at(me, aimRight, aimAhead + lead, 0)
+    -- Never aim behind the Hoon: its driver would turn round for a point behind it, slowly, and
+    -- fall far behind you. A point it has passed is aimed at a little ahead of it instead, and the
+    -- speed law drops it back.
+    local aimAt = math.max(aimAhead + lead, ha + (strikeLead or M.MIN_LEAD))
+    local x, y = M.at(me, aimRight, aimAt, 0)
     local sx, sy = M.at(me, right, ahead, 0)
-    local boxing = h.state == 'BOXING' or h.state == 'BOX_SIDE'
+    local boxing = h.state == 'BOXING' or h.state == 'BOX_SIDE' or h.state == 'BOX_REAR'
+    h.spotMetres = distance2d(st.x, st.y, sx, sy)
     local placing = h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL'
     h.orbiting = false
     if speed < M.MIN_MPS and not boxing then
@@ -255,23 +295,38 @@ function M.new(car, random)
     h.since = clock
   end
 
+  -- The Hoons helping h's box.
+  local function helpers(h)
+    local list = {}
+    for _, o in ipairs(p.hoons) do if o ~= h and o.lead == h then list[#list + 1] = o end end
+    return list
+  end
+  -- h is out of its box (down or gone). If it led, a helper takes over the lead, front first.
+  local function leaveBox(h)
+    local team = helpers(h)
+    h.lead = nil
+    if h.state ~= 'BOXING' or #team == 0 then return end
+    local next = team[1]
+    for _, o in ipairs(team) do if o.state == 'BOX_SIDE' then next = o break end end
+    next.state, next.lead, next.side, next.replanAt = 'BOXING', nil, nil, nil
+    next.since, next.squeeze, next.squeezeSince = h.since, h.squeeze, h.squeezeSince
+    next.boxedSince, next.holdTill = h.boxedSince, h.holdTill
+    for _, o in ipairs(team) do if o ~= next then o.lead = next end end
+  end
+
   -- Hides the car for next time and forgets the Hoon.
   local function release(h)
+    leaveBox(h)
     car:release(h.id, h.source)
     for i, other in ipairs(p.hoons) do
       if other == h then table.remove(p.hoons, i) break end
     end
-    for _, other in ipairs(p.hoons) do
-      if other.lead == h then peel(other, 0) end
-    end
   end
 
   local function down(h, line)
+    leaveBox(h)
     h.state, h.slot = 'DOWN', nil
     car:calm(h.id)
-    for _, other in ipairs(p.hoons) do
-      if other.lead == h then peel(other, 0) end
-    end
     return line
   end
 
@@ -359,12 +414,7 @@ function M.new(car, random)
         if h.holdUntil and clock >= h.holdUntil then
           h.holdUntil = nil
           if h.movesLeft > 0 then
-            local i = ringIndex(h.slot) or 1
-            local nextSlot = M.RING[(i - 1 + h.dir) % 4 + 1]
-            if taken(nextSlot, h) then
-              h.dir = -h.dir
-              nextSlot = M.RING[(i - 1 + h.dir) % 4 + 1]
-            end
+            local nextSlot = M.forward(h.slot)
             if not taken(nextSlot, h) then h.slot, h.replanAt = nextSlot, nil end
             h.movesLeft = h.movesLeft - 1
           elseif not taken(near(h.slot), h) then
@@ -380,21 +430,36 @@ function M.new(car, random)
         h.holdUntil = nil
         if strikers() > 0 then
           h.holdUntil = clock + 1
-        elseif chance(M.BOX_CHANCE) then
-          h.state, h.since, h.replanAt, h.boxedSince, h.holdTill = 'BOXING', clock, nil, nil, nil
-          -- The nearest other Hoon still up and not attacking sits beside you.
-          local helper, best
+        elseif (function()
+          -- Every other Hoon still up and not attacking can help, nearest first.
+          local free = {}
           for _, o in ipairs(p.hoons) do
             if o ~= h and (o.state == 'CIRCLING' or o.state == 'CLOSING' or o.state == 'PEEL') and o.metres then
-              if not best or o.metres < best then helper, best = o, o.metres end
+              free[#free + 1] = o
             end
           end
-          if helper then
-            helper.state, helper.lead, helper.replanAt, helper.holdUntil = 'BOX_SIDE', h, nil, nil
-            helper.side = helper.slot and M.SLOTS[helper.slot].side or 1
-            helper.slot = nil
+          table.sort(free, function(x, y) return x.metres < y.metres end)
+          if #free == 0 then return false end
+          if not chance(#free >= 2 and M.TEAM_BOX_CHANCE or M.BOX_CHANCE) then return false end
+          h.state, h.since, h.replanAt, h.boxedSince, h.holdTill = 'BOXING', clock, nil, nil, nil
+          h.squeeze, h.squeezeSince, h.slot = false, nil, h.slot
+          local firstSide
+          for i, o in ipairs(free) do
+            o.lead, o.replanAt, o.holdUntil = h, nil, nil
+            if i == 1 then
+              firstSide = o.slot and M.SLOTS[o.slot].side or 1
+              o.state, o.side = 'BOX_SIDE', firstSide
+            elseif i == 2 then
+              o.state, o.side = 'BOX_SIDE', -firstSide
+            else
+              o.state, o.side = 'BOX_REAR', nil
+            end
+            o.slot = nil
           end
-          line = LINES.box
+          line = #free >= 2 and LINES.teamBox(#free + 1) or LINES.box
+          return true
+        end)() then
+          -- the box is on
         else
           h.state, h.since, h.replanAt = 'WINDUP', clock, nil
           line = LINES.windup(h.slot)
@@ -412,15 +477,33 @@ function M.new(car, random)
         peel(h, clock); line = LINES.missed
       end
     elseif h.state == 'BOXING' then
+      local team = helpers(h)
+      if not h.squeeze then
+        -- Gathering: squeeze once everyone is alongside, or after GATHER_SECONDS.
+        local ready = true
+        for _, o in ipairs(team) do
+          if not (o.spotMetres and o.spotMetres <= M.BOX_ARRIVE) then ready = false end
+        end
+        if ready or clock - h.since >= M.GATHER_SECONDS then
+          h.squeeze, h.squeezeSince, h.replanAt = true, clock, nil
+          for _, o in ipairs(team) do o.replanAt = nil end
+          line = LINES.squeeze
+        end
+      end
       if (me.speed or 0) < M.STOPPED_MPS then h.boxedSince = h.boxedSince or clock else h.boxedSince = nil end
       if h.boxedSince and not h.holdTill and clock - h.boxedSince >= M.BOXED_SECONDS then
         h.holdTill = clock + M.BOX_HOLD_SECONDS
         line = LINES.boxed
       end
-      if (h.holdTill and clock >= h.holdTill) or (not h.holdTill and clock - h.since >= M.BOX_SECONDS) then
-        for _, o in ipairs(p.hoons) do if o.lead == h then peel(o, clock) end end
+      local over = h.holdTill and clock >= h.holdTill
+      if not h.holdTill and h.squeezeSince and clock - h.squeezeSince >= M.BOX_SECONDS then over = true end
+      if over then
+        for _, o in ipairs(team) do peel(o, clock) end
         peel(h, clock)
       end
+    elseif h.state == 'BOX_SIDE' or h.state == 'BOX_REAR' then
+      -- A helper whose box is over (its lead peeled off or left) peels off too.
+      if not (h.lead and h.lead.state == 'BOXING') then peel(h, clock) end
     end
     if h.state ~= 'DOWN' and h.state ~= 'ROAD' then drive(h, me, st, clock) end
     return line

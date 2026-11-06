@@ -10,9 +10,11 @@
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
--- How many of each car the pool holds: enough Hoons for a full pack plus the road Hoon.
+-- How many of each car the pool holds: enough Hoons for a full pack plus the road Hoon, of
+-- either kind, which come up equally often.
 M.CARS = {
-  { model = 'barstow', config = 'hoonold1', count = 5 },
+  { model = 'barstow', config = 'hoonold1', count = 3 },
+  { model = 'barstow', config = 'hoonfast2', count = 3 },
   { model = 'us_semi', config = 'tankermob', count = 2 },
 }
 -- How many pooled cars traffic shows driving around at once; the rest wait hidden.
@@ -68,6 +70,13 @@ function M.new(environment)
     if not (ok and c) then return nil end
     local okModel, name = pcall(function() return c:getJBeamFilename() end)
     if okModel and type(name) == 'string' then return name end
+  end
+  -- A car's config name (hoonold1, tankermob...), from the file it was built from.
+  local function config(id)
+    local ok, c = pcall(env.byId, id)
+    if not (ok and c) then return nil end
+    local okCfg, file = pcall(function() return c.partConfig end)
+    if okCfg and type(file) == 'string' then return file:match('([%w_%-]+)%.pc$') or file end
   end
   local function position(id)
     local ok, c = pcall(env.byId, id)
@@ -157,16 +166,17 @@ function M.new(environment)
   -- Whether the pool is still loading, so a Hoon should wait for it instead of loading a car.
   function p:loading() return self.state == 'LOADING' end
 
-  -- Takes a pooled car of this model out of traffic, the one furthest from x, y (so most likely
-  -- out of sight). Returns its id, or nil.
-  function p:take(name, x, y)
+  -- Takes a pooled car of this model (and config, if given) out of traffic, the one furthest from
+  -- x, y (so most likely out of sight). Returns its id, or nil.
+  function p:take(name, x, y, wanted)
     local t = traffic()
     if not (t and type(t.removeTraffic) == 'function') then return nil end
     local d = data(t)
     if not d then return nil end
     local best, bestMetres
     for id, v in pairs(d) do
-      if type(id) == 'number' and type(v) == 'table' and v.isAi and model(id, v) == name then
+      if type(id) == 'number' and type(v) == 'table' and v.isAi and model(id, v) == name
+        and (not wanted or config(id) == wanted) then
         local cx, cy = position(id)
         local metres = cx and math.sqrt((cx - (x or 0)) ^ 2 + (cy - (y or 0)) ^ 2) or 0
         if not bestMetres or metres > bestMetres then best, bestMetres = id, metres end
