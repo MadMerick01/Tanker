@@ -14,7 +14,7 @@
   <button type="button" ng-if="!start" class="mm-panel mm-strip" ng-click="toggle()" title="{{open ? 'Hide the panel' : 'Show the panel'}}">
     <span class="mm-dot" ng-style="{background: threatColour(data.threat)}" aria-label="threat {{data.threat}}"></span>
     <span title="Fuel in your tank"><span class="mm-bar"><span ng-style="{width: fuelShare(data.fuel) + '%', background: fuelColour(data.fuel)}"></span></span> {{whole(data.fuel.litres)}} L</span>
-    <span title="Rounds loaded"><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span><span ng-if="data.ammo" class="mm-k"> +{{data.ammo.spare}}</span></span>
+    <span title="Rounds loaded"><span ng-repeat="on in pips(data.ammo) track by $index" class="mm-pip" ng-class="{on: on}"></span><span ng-if="data.ammo" class="mm-k"> +{{data.gun.infinite ? '∞' : data.ammo.spare}}</span></span>
     <span ng-if="data.fuelWorth != null" title="What your fuel is worth" style="color:#f2c94c;">${{whole(data.fuelWorth)}}</span>
     <span style="flex:1;text-align:right;" title="Road distance left to Pine Gap"><b>{{whole(data.goal.roadKm)}} km</b> <span class="mm-k">{{data.goal.letters}}</span></span>
   </button>
@@ -116,7 +116,7 @@
       </div>
       <button type="button" ng-if="data.siphonStopAllowed" class="mm-btn" ng-click="send('siphonStop')">Stop siphoning</button>
       <div ng-if="data.revolverAllowed" style="margin-top:10px;">
-        <span class="mm-k">Revolver</span> <span class="mm-v">{{whole(data.ammo.loaded)}} of 6</span> <span class="mm-k">loaded, {{whole(data.ammo.spare)}} spare</span>
+        <span class="mm-k">Revolver</span> <span class="mm-v">{{whole(data.ammo.loaded)}} of 6</span> <span class="mm-k">loaded, {{data.gun.infinite ? 'unlimited' : whole(data.ammo.spare)}} spare</span>
         <div>
           <button type="button" class="mm-tab" ng-class="{on: data.gun.drawn}" ng-click="send('toggleRevolver')">{{data.gun.drawn ? 'Holster' : 'Draw revolver'}}</button>
           <button type="button" class="mm-tab" ng-disabled="!data.reloadAllowed" ng-click="send('reloadRevolver')">{{data.gun.reloading ? 'Reloading' : data.gun.noSpare ? 'No spare rounds' : 'Reload'}}</button>

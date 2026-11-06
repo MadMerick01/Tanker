@@ -679,9 +679,9 @@ function M.new(env)
     if self:flatGun() then
       v.ammo = self.gun:ammo()
       v.gun = { drawn = self.gun.drawn, reloading = self.gun:reloading(),
-        noSpare = self.gun.spare <= 0 and self.gun.loaded < revolver.CYLINDER }
+        noSpare = not self.gun:hasSpare() and self.gun.loaded < revolver.CYLINDER, infinite = revolver.INFINITE }
       v.revolverAllowed = true
-      v.reloadAllowed = not self.gun:reloading() and self.gun.loaded < revolver.CYLINDER and self.gun.spare > 0
+      v.reloadAllowed = not self.gun:reloading() and self.gun.loaded < revolver.CYLINDER and self.gun:hasSpare()
     end
     return v
   end

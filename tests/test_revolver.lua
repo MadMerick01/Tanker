@@ -4,6 +4,15 @@ local R = require('tanker/route')
 local G = require('tanker/revolver')
 local H = require('tanker/hoons')
 
+-- Unlimited rounds while testing: a reload fills the cylinder and leaves the spares alone.
+G.INFINITE = true
+local u = G.new({ loaded = 0, spare = 0 }); u:setDrawn(true)
+T.eq(u:reload(0), true, 'unlimited: a reload with no spares'); u:step(G.RELOAD_SECONDS)
+T.eq(u.loaded, 6, 'six rounds back'); T.eq(u.spare, 0, 'spares untouched')
+u:fire(10); T.eq(u.loaded, 5, 'shots still use the cylinder')
+-- The rest checks real ammo.
+G.INFINITE = false
+
 -- The cylinder, the time between shots and reloading.
 local g = G.new()
 T.eq(g.loaded, 6, 'a full cylinder'); T.eq(g.spare, G.START_SPARE, 'and spare rounds')
