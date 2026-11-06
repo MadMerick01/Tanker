@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 32 · 6 Nov 2026
+
 - **Hoons now steer round solid bushes, rocks and trees.** In the desert a Hoon looks ahead for anything solid in its path and swerves round it, easing off if it's right in front. Hillsides don't count. A Hoon going for a sideswipe still holds its line.
 - **Hoons and tankers no longer get stuck on bushes for good.** If a Hoon or the TankerMob is caught on something for a few seconds while it's behind your camera and at least 50 m away, it's moved a few metres on past it. You never see it happen, and any damage it has stays.
 - Your save still works, and there's nothing to do except download the new tanker.zip.
