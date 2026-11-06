@@ -1,5 +1,6 @@
 -- Rowan's VR revolver (BeamngVRcontrollerPoses), a separate mod Tanker needs installed. This
--- only reads it: whether it is there, whether it is drawn, and its ammo once the pistol has ammo.
+-- reads it (whether it is there, whether it is drawn, its ammo once the pistol has ammo, and its
+-- aim tilt) and nudges the aim tilt up or down for the HUD's Aim buttons.
 -- Every call is guarded, so a missing pistol or a changed function means nothing is shown, never an error.
 local M = {}
 
@@ -12,6 +13,13 @@ end
 
 local function count(n, most)
   return type(n) == 'number' and n == n and n >= 0 and n <= most and n == math.floor(n)
+end
+
+-- The aim tilt the HUD buttons can reach, in degrees (negative is down).
+M.AIM_LIMIT = 90
+
+local function tilt(n)
+  return type(n) == 'number' and n == n and n >= -M.AIM_LIMIT - 1 and n <= M.AIM_LIMIT + 1
 end
 
 function M.new(environment)
@@ -39,7 +47,29 @@ function M.new(environment)
         out.loaded, out.spare = ammo.loaded, ammo.spare
       end
     end
+    -- The gun and shot's tilt from the controller's aim ray (vrPistol.getAimPitch), when the pistol
+    -- can be tilted (vrPistol.setAimPitch).
+    if type(pistol.getAimPitch) == 'function' and type(pistol.setAimPitch) == 'function' then
+      local ok, deg = pcall(pistol.getAimPitch)
+      if ok and tilt(deg) then out.aimPitch = deg end
+    end
     return out
+  end
+
+  -- Tilts the gun and its shots by step degrees (positive is up), the same as typing
+  -- vrPistol.setAimPitch(<current + step>) in the console, so the pistol remembers it between
+  -- sessions. Kept to whole tenths and within AIM_LIMIT. Returns the new tilt, or nil.
+  function p:nudgeAim(step)
+    local pistol = get('pistol')
+    if not pistol or type(step) ~= 'number' or step ~= step then return nil end
+    if type(pistol.getAimPitch) ~= 'function' or type(pistol.setAimPitch) ~= 'function' then return nil end
+    local ok, deg = pcall(pistol.getAimPitch)
+    if not ok or not tilt(deg) then return nil end
+    local want = math.floor((deg + step) * 10 + 0.5) / 10
+    want = math.max(-M.AIM_LIMIT, math.min(M.AIM_LIMIT, want))
+    local set, now = pcall(pistol.setAimPitch, want)
+    if not set then return nil end
+    return tilt(now) and now or want
   end
 
   -- The left controller's grip pose in the world, for the wrist HUD: { pos, dir, up, right } with

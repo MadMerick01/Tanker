@@ -11,7 +11,15 @@ Changes that are finished but not in a download yet. They move into a numbered b
 - **The Road tab** shows the trip with a progress bar, then one list of the Hoons around you with their distances lined up on the right (the same list was on the Rig tab too before). Save here, Siphon fuel and the revolver sit together below it, and the revolver row shows your loaded rounds as pips with Draw and Reload beside them. The Siphon fuel button only shows when you can siphon. Otherwise a short line says what to do.
 - **The Rig tab** shows both tanks as bars, your range, the pump buttons and your truck's name and condition. The "coming next" line is gone, and the VR revolver note only shows when you're not using mouse aiming.
 - **The Garage tab** now sums up a waiting parts bill in one box and points you to the Parts bill window in the middle of the screen to pay or undo it, instead of repeating the whole bill. The Garage tab shows a gold dot while a bill is waiting.
-- Messages from the game now sit in a highlighted line at the bottom of the panel. Your save still works, and there's nothing to do except download the new tanker.zip.
+- Messages from the game now sit in a highlighted line at the bottom of the panel.
+- **New Aim up 1° and Aim down 1° buttons for the VR revolver.** On the Rig tab, next to the VR revolver, the HUD now shows how far the gun is tilted from your controller (for example -10°, negative is down) with two buttons that tilt it up or down one degree. Use them with the red laser on to line the gun up with BeamNG's black pointer line, instead of typing the setting into the console. The VR revolver remembers the tilt between sessions. The buttons only appear when the BeamNG VR Controller Poses mod is installed and new enough to have the aim setting.
+- Your save still works, and there's nothing to do except download the new tanker.zip.
+
+## Build 33 · 6 Nov 2026
+
+- **Hoons are better at getting through the scrub.** A Hoon now looks ahead along both edges of its car as well, so it no longer tries to squeeze through a gap between two bushes that's narrower than itself. When a bush has others beside it, the Hoon goes round the open side of the whole clump. Once it picks a side it sticks to it for a moment instead of weaving left and right.
+- **Hoons now see bushes on hills.** Their view ahead follows the ground, so a Hoon spots a bush up a slope or just over a crest in time instead of running into it. The bottom of a steep hill still isn't mistaken for a bush.
+- Your save still works, and there's nothing to do except download the new tanker.zip.
 
 ## Build 32 · 6 Nov 2026
 

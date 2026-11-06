@@ -75,6 +75,11 @@ function F.pistol(state)
   local p = { state = state or { installed = false } }
   function p:read() return self.state end
   function p:leftHand() return self.hand end
+  function p:nudgeAim(step)
+    if self.state.aimPitch == nil then return nil end
+    self.state.aimPitch = self.state.aimPitch + step
+    return self.state.aimPitch
+  end
   return p
 end
 

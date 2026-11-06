@@ -90,6 +90,85 @@ for _, cmd in ipairs(ge) do if cmd:find('no_feelers', 1, true) then told = told 
 T.eq(told, 1, 'no feelers: told once'); T.check(math.abs(sent.steering) < 0.01, 'and it still drives')
 D2.stop()
 
+-- A pretend desert: ground heights and round bushes, and a ray that marches through them.
+local world = { ground = function() return 0 end, bushes = {} }
+local function groundAt(x, y) return world.ground(x, y) end
+local function solidAt(x, y, z)
+  if z <= groundAt(x, y) then return true end
+  for _, b in ipairs(world.bushes) do
+    if (x - b.x) ^ 2 + (y - b.y) ^ 2 <= b.r * b.r and z <= groundAt(b.x, b.y) + b.top then return true end
+  end
+  return false
+end
+_G.obj = { castRayStatic = function(_, o, d, len)
+  for t = 0, len, 0.02 do
+    if solidAt(o.x + d.x * t, o.y + d.y * t, o.z + d.z * t) then return t end
+  end
+  return len
+end }
+local function sense() return D.feel(0, 0, 0.5, 0, 1, 12.5) end -- 15 m look, feelers at 0.8 m
+local function bush(x, y, r) return { x = x, y = y, r = r or 0.6, top = 1.5 } end
+
+-- A gap narrower than the car: the middle feeler sees through it, the edges don't.
+world.bushes = { bush(-1.4, 5, 0.5), bush(1.4, 5, 0.5) }
+local f = sense()
+T.eq(f.centre, nil, 'the middle feeler threads the gap')
+T.check(f.edgeLeft and f.edgeRight, 'but both edges touch a bush: too narrow for the car')
+nudge, slow = D.avoid(f, 0)
+T.check(nudge ~= 0, 'so it steers off'); T.eq(slow, true, 'and eases off')
+-- A clump: a bush ahead and another beside it on the right. It goes round the left.
+world.bushes = { bush(0, 12), bush(1.5, 12), bush(4.4, 12) }
+f = sense()
+T.check(f.centre and f.edgeRight and f.right, 'feels the clump ahead and to the right')
+nudge = D.avoid(f, 0.5)
+T.check(nudge < 0, 'and goes round its open side, even with its point a little right')
+-- Up a hill: the feelers follow the ground and see a bush up the slope.
+world.ground = function(_, y) return y > 5 and 0.3 * (y - 5) or 0 end
+world.bushes = {}
+f = sense()
+T.check(not f.centre and not f.left and not f.right and not f.edgeLeft and not f.edgeRight, 'a bare hillside is not a bush')
+world.bushes = { bush(0, 12) }
+f = sense()
+T.check(f.centre and f.centre > 9, 'a bush up the hill is felt, about where it is (' .. tostring(f.centre) .. ' m)')
+-- Over a crest: the feelers dip over it and see the bush below.
+world.ground = function(_, y) return y > 5 and -0.3 * (y - 5) or 0 end
+world.bushes = {}
+f = sense()
+T.check(not f.centre and not f.edgeLeft, 'nothing over a bare crest')
+world.bushes = { bush(0, 12) }
+f = sense()
+T.check(f.centre and f.centre > 9, 'a bush below the crest is felt (' .. tostring(f.centre) .. ' m)')
+-- A sharp rise straight after flat ground (the start of a steep hill).
+world.ground = function(_, y) return y > 6 and 0.7 * (y - 6) or 0 end
+world.bushes = {}
+f = sense()
+T.check(not f.centre, 'the foot of a steep hill is not a bush')
+world.ground = function() return 0 end
+world.bushes = {}
+
+-- It keeps to the side it chose for a moment, so it doesn't weave between clumps.
+local look = { look = 20, left = 10, right = 11 }
+local _, _, d1 = D.avoid(look, 0)
+T.eq(d1, 1, 'left a little more blocked: right')
+local _, _, d2 = D.avoid({ look = 20, left = 11, right = 10 }, 0, 1)
+T.eq(d2, 1, 'a moment later the right is a little worse: it keeps right')
+local _, _, d3 = D.avoid({ look = 20, left = 15, right = 3 }, 0, 1)
+T.eq(d3, -1, 'the right is much worse: it changes its mind')
+s = D.newState()
+s.target = { x = 0, y = 40, speed = 20, mode = 'coast' }
+s.feel = { look = 18, left = 8, right = 9 }
+frames(s, car(15), 0.2)
+T.eq(s.keep, 1, 'the driver remembers its side')
+s.feel = { look = 18, left = 9, right = 8 }
+local held = frames(s, car(15), 0.3)
+T.check(held > 0, 'and still steers that way when the other side looks a touch better')
+s.feel = nil
+frames(s, car(15), D.COMMIT_SECONDS + 0.2)
+s.feel = { look = 18, left = 9, right = 8 }
+frames(s, car(15), 0.05)
+T.eq(s.keep, -1, 'once it has been clear a while, it chooses again')
+_G.obj = nil
+
 -- 2. A Hoon caught on a bush out of sight is lifted past it.
 local function fakeCar(camera)
   local c = { me = { id = 7, x = 0, y = 0, z = 0, dx = 0, dy = 1, speed = 20 }, cars = {}, next = 100, hops = {} }

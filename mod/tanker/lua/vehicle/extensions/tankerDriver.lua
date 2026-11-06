@@ -41,34 +41,52 @@ M.STALE_SECONDS = 0.6
 M.COAST_MPS = 3
 -- A point behind the car is turned towards at this speed at most, in m/s.
 M.TURN_MPS = 6
--- Steering round solid bushes, rocks and trees (Rowan, 6 Nov). Three feelers, straight ahead and
--- FEEL_ANGLE radians either side, look FEEL_SECONDS of its speed ahead (FEEL_MIN to FEEL_MAX
--- metres), FEEL_HEIGHT above the car's middle, every FEEL_EVERY seconds. A hit only counts when
--- whatever was hit stands more than FEEL_TALL metres above where the feeler touched it, so a
--- hillside doesn't count and a bush does. The nearer the hit, the harder it steers away, up to
--- AVOID_GAIN of full lock. Something straight ahead in the nearest FEEL_SLOW share of the look
--- also holds its speed to AVOID_MPS (lifting off, never braking in the desert). A swipe holds
--- its line.
+-- Steering round solid bushes, rocks and trees (Rowan, 6 Nov). Five feelers: straight ahead,
+-- FEEL_ANGLE radians either side, and two straight ahead along the car's edges (EDGE_METRES out
+-- from its middle) so it doesn't squeeze into a gap narrower than itself. They look FEEL_SECONDS
+-- of its speed ahead (FEEL_MIN to FEEL_MAX metres) every FEEL_EVERY seconds, starting
+-- FEEL_HEIGHT above the car's middle, and follow the ground: each one aims at the same height
+-- above the ground at its far end as it starts at, so going uphill it doesn't hit the slope
+-- early, and over a crest it doesn't pass over the bushes beyond. A hit only counts when whatever
+-- was hit stands more than FEEL_TALL metres above where the feeler touched it, so a hillside
+-- doesn't count and a bush does. The nearer the hit, the harder it steers away, up to AVOID_GAIN
+-- of full lock, towards the clearer side. Once it picks a side it keeps to it for
+-- COMMIT_SECONDS, unless that side is worse by more than SWITCH_MARGIN, so it doesn't weave
+-- between clumps. Something straight ahead (or on both edges) in the nearest FEEL_SLOW share of
+-- the look also holds its speed to AVOID_MPS (lifting off, never braking in the desert). A swipe
+-- holds its line.
 M.FEEL_ANGLE, M.FEEL_SECONDS, M.FEEL_MIN, M.FEEL_MAX, M.FEEL_EVERY = 0.35, 1.2, 8, 30, 0.1
-M.FEEL_HEIGHT, M.FEEL_TALL = 0.3, 0.3
+M.FEEL_HEIGHT, M.FEEL_TALL, M.EDGE_METRES = 0.3, 0.3, 1.1
 M.AVOID_GAIN, M.FEEL_SLOW, M.AVOID_MPS = 0.8, 0.4, 10
+M.COMMIT_SECONDS, M.SWITCH_MARGIN = 1, 0.3
+M.FEEL_SEGMENTS = 3
 
 local function clamp(x, a, b) return math.max(a, math.min(b, x)) end
 
--- Which way to steer round what the feelers found. feel is { left, centre, right, look }: metres
--- to something solid on each feeler (nil when clear) and how far they looked. side is where the
--- point it is driving at is (positive: to its right). Returns a steering nudge (positive: right)
--- and whether to hold its speed down.
-function M.avoid(feel, side)
+-- Which way to steer round what the feelers found. feel is { left, centre, right, edgeLeft,
+-- edgeRight, look }: metres to something solid on each feeler (nil when clear) and how far they
+-- looked. side is where the point it is driving at is (positive: to its right). keep is the side
+-- it chose a moment ago (1 right, -1 left) or nil. Returns a steering nudge (positive: right),
+-- whether to hold its speed down, and the side it chose.
+function M.avoid(feel, side, keep)
   local look = feel and feel.look
   if not look or look <= 0 then return 0, false end
   local function near(d) return d and clamp(1 - d / look, 0, 1) or 0 end
-  local l, c, r = near(feel.left), near(feel.centre), near(feel.right)
+  local c = near(feel.centre)
+  local el, er = near(feel.edgeLeft), near(feel.edgeRight)
+  local l, r = math.max(near(feel.left), el), math.max(near(feel.right), er)
   local worst = math.max(l, c, r)
   if worst <= 0 then return 0, false end
+  -- l is how blocked the left is: steer right (1) away from it, and the other way round.
   local dir
   if l > r then dir = 1 elseif r > l then dir = -1 else dir = (side or 0) >= 0 and 1 or -1 end
-  return dir * M.AVOID_GAIN * worst, c >= 1 - M.FEEL_SLOW
+  if keep and keep ~= dir then
+    local towardKeep = keep > 0 and r or l
+    local towardDir = dir > 0 and r or l
+    if towardKeep - towardDir < M.SWITCH_MARGIN then dir = keep end
+  end
+  local slow = c >= 1 - M.FEEL_SLOW or (el >= 1 - M.FEEL_SLOW and er >= 1 - M.FEEL_SLOW)
+  return dir * M.AVOID_GAIN * worst, slow, dir
 end
 
 -- The driver's memory between frames.
@@ -115,8 +133,14 @@ function M.control(s, car, dt)
   local yawWanted = car.speed * curvature
   want = want - M.YAW_DAMP * ((car.yawRate or 0) - yawWanted)
   -- Round a bush, rock or tree the feelers found.
+  s.keepFor = (s.keepFor or 0) - dt
+  if s.keepFor <= 0 then s.keep = nil end
   if s.feel and t.mode ~= 'swipe' then
-    local nudge, slow = M.avoid(s.feel, side)
+    local nudge, slow, dir = M.avoid(s.feel, side, s.keep)
+    if dir then
+      if dir ~= s.keep then s.keep = dir end
+      s.keepFor = M.COMMIT_SECONDS
+    end
     want = want + nudge
     if slow then speedCap = math.min(speedCap, M.AVOID_MPS) end
   end
@@ -422,25 +446,66 @@ end
 
 -- The feelers (see FEEL_ANGLE): what is solid ahead, from the car at px, py, pz facing fx, fy.
 -- Every game call is guarded; with no ray to cast, the car simply doesn't feel.
+local FEELERS = {
+  { key = 'centre', angle = 0, off = 0 }, { key = 'left', angle = -1, off = 0 }, { key = 'right', angle = 1, off = 0 },
+  { key = 'edgeLeft', angle = 0, off = -1 }, { key = 'edgeRight', angle = 0, off = 1 },
+}
 local function feel(px, py, pz, fx, fy, speed)
   if not (obj and obj.castRayStatic and vec3) then return nil end
+  local function ray(x, y, z, dx, dy, dz, len)
+    return pcall(function() return obj:castRayStatic(vec3(x, y, z), vec3(dx, dy, dz), len) end)
+  end
+  -- The ground below a point, looking down from up to `above` metres over z; nil if none.
+  local function ground(x, y, z, above)
+    local ok, d = ray(x, y, z + above, 0, 0, -1, above * 2 + 3)
+    if ok and type(d) == 'number' and d < above * 2 + 3 - 0.01 then return z + above - d end
+  end
   local look = clamp(math.abs(speed) * M.FEEL_SECONDS, M.FEEL_MIN, M.FEEL_MAX)
   local out = { look = look }
   local z = pz + M.FEEL_HEIGHT
-  for key, a in pairs({ left = -M.FEEL_ANGLE, centre = 0, right = M.FEEL_ANGLE }) do
-    local c, s = math.cos(a), math.sin(a)
-    local dx, dy = fx * c + fy * s, fy * c - fx * s
-    local ok, d = pcall(function() return obj:castRayStatic(vec3(px, py, z), vec3(dx, dy, 0), look) end)
-    if not ok then return nil, 'no_feelers' end
-    if type(d) == 'number' and d < look - 0.01 then
-      -- Standing up (a bush) or the ground rising (a hill)? Look down on the spot just past it.
-      local hx, hy = px + dx * (d + 0.2), py + dy * (d + 0.2)
-      local okDown, down = pcall(function() return obj:castRayStatic(vec3(hx, hy, z + 3), vec3(0, 0, -1), 6) end)
-      if okDown and type(down) == 'number' and (z + 3 - down) - z > M.FEEL_TALL then out[key] = d end
+  local okTest = ray(px, py, z, fx, fy, 0, 0.1)
+  if not okTest then return nil, 'no_feelers' end
+  -- How high the feelers start above the ground under the car.
+  local under = ground(px, py, z, 1)
+  local height = under and (z - under) or M.FEEL_HEIGHT
+  local rx, ry = fy, -fx
+  for _, f in ipairs(FEELERS) do
+    local a = f.angle * M.FEEL_ANGLE
+    local c, sn = math.cos(a), math.sin(a)
+    local dx, dy = fx * c + rx * sn, fy * c + ry * sn
+    local ox, oy = px + rx * f.off * M.EDGE_METRES, py + ry * f.off * M.EDGE_METRES
+    -- Follow the ground: aim at the same height above it at the far end (no ground found there,
+    -- straight on). A feeler that touches the ground on the way (a crest, or a hill steeper than
+    -- the aim) carries on from just past that spot, at its height again, up to FEEL_SEGMENTS times.
+    local ex, ey = ox + dx * look, oy + dy * look
+    local endGround = ground(ex, ey, z, look)
+    local ez = endGround and clamp(endGround + height, z - look, z + look) or z
+    local sx, sy, sz, done = ox, oy, z, 0
+    for _ = 1, M.FEEL_SEGMENTS do
+      local hx, hy, hz = ex - sx, ey - sy, ez - sz
+      local flat = math.sqrt(hx * hx + hy * hy)
+      if flat < 1 then break end
+      local len = math.sqrt(flat * flat + hz * hz)
+      local ux, uy, uz = hx / len, hy / len, hz / len
+      local ok, d = ray(sx, sy, sz, ux, uy, uz, len)
+      if not (ok and type(d) == 'number' and d < len - 0.01) then break end
+      local px2, py2, pz2 = sx + ux * d, sy + uy * d, sz + uz * d
+      local along = done + d * flat / len
+      -- Standing up (a bush) or the ground (a hill or crest)? Look down on the spot just past it.
+      local okDown, down = ray(px2 + dx * 0.2, py2 + dy * 0.2, pz2 + 3, 0, 0, -1, 6)
+      if okDown and type(down) == 'number' and (pz2 + 3 - down) - pz2 > M.FEEL_TALL then
+        out[f.key] = along
+        break
+      end
+      -- The ground: carry on from just past it, at the feelers' height above the ground there.
+      sx, sy, done = px2 + dx * 0.3, py2 + dy * 0.3, along + 0.3
+      local g = ground(sx, sy, pz2, 2)
+      sz = (g or pz2) + height
     end
   end
   return out
 end
+M.feel = feel
 
 function M.updateGFX(dt)
   if not active or not state or not obj or dt <= 0 then return end

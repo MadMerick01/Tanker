@@ -256,6 +256,16 @@ test('revolver buttons only work on a flat screen on the road, and HUD clicks ar
   a.handlers.$destroy(); assert.ok(a.commands.includes(fixed('hudHover(false)')), 'the hover ends with the app')
 })
 
+test('the VR aim buttons nudge the pistol only when it can be tilted', () => {
+  const a = app()
+  a.scope.send('aimUp'); assert.ok(!a.commands.includes(fixed('aimUp()')))
+  a.state({ state: 'RUNNING', aimAllowed: true, pistol: { installed: true, aimPitch: -10 } })
+  a.scope.send('aimUp'); assert.equal(a.commands.at(-1), fixed('aimUp()'))
+  a.scope.send('aimDown'); assert.equal(a.commands.at(-1), fixed('aimDown()'))
+  assert.equal(a.scope.degrees(-10), '-10°'); assert.equal(a.scope.degrees(-9.5), '-9.5°'); assert.equal(a.scope.degrees(null), '–')
+  assert.ok(html.includes("send('aimUp')") && html.includes("send('aimDown')"), 'both buttons are on the HUD')
+})
+
 test('the TankerMob spawn button only works when Lua allows it', () => {
   const a = app()
   a.scope.send('spawnTanker'); assert.ok(!a.commands.includes(fixed('spawnTanker()')))
