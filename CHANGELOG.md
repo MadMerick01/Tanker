@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 16 · 6 Nov 2026
+
 - **Tanker now calls itself an open-world, long-haul road warrior simulation.** The start page shows it under the title with the new line "Raid tankers, fight off Hoons, keep your tanks full and push on.", and the app's description in BeamNG's app list says the same and adds that it's built for VR, triples and telemetry. Nothing else in the game changes, and your save still works.
 
 ## Build 15 · 3 Nov 2026
