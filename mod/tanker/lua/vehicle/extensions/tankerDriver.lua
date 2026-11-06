@@ -41,8 +41,35 @@ M.STALE_SECONDS = 0.6
 M.COAST_MPS = 3
 -- A point behind the car is turned towards at this speed at most, in m/s.
 M.TURN_MPS = 6
+-- Steering round solid bushes, rocks and trees (Rowan, 6 Nov). Three feelers, straight ahead and
+-- FEEL_ANGLE radians either side, look FEEL_SECONDS of its speed ahead (FEEL_MIN to FEEL_MAX
+-- metres), FEEL_HEIGHT above the car's middle, every FEEL_EVERY seconds. A hit only counts when
+-- whatever was hit stands more than FEEL_TALL metres above where the feeler touched it, so a
+-- hillside doesn't count and a bush does. The nearer the hit, the harder it steers away, up to
+-- AVOID_GAIN of full lock. Something straight ahead in the nearest FEEL_SLOW share of the look
+-- also holds its speed to AVOID_MPS (lifting off, never braking in the desert). A swipe holds
+-- its line.
+M.FEEL_ANGLE, M.FEEL_SECONDS, M.FEEL_MIN, M.FEEL_MAX, M.FEEL_EVERY = 0.35, 1.2, 8, 30, 0.1
+M.FEEL_HEIGHT, M.FEEL_TALL = 0.3, 0.3
+M.AVOID_GAIN, M.FEEL_SLOW, M.AVOID_MPS = 0.8, 0.4, 10
 
 local function clamp(x, a, b) return math.max(a, math.min(b, x)) end
+
+-- Which way to steer round what the feelers found. feel is { left, centre, right, look }: metres
+-- to something solid on each feeler (nil when clear) and how far they looked. side is where the
+-- point it is driving at is (positive: to its right). Returns a steering nudge (positive: right)
+-- and whether to hold its speed down.
+function M.avoid(feel, side)
+  local look = feel and feel.look
+  if not look or look <= 0 then return 0, false end
+  local function near(d) return d and clamp(1 - d / look, 0, 1) or 0 end
+  local l, c, r = near(feel.left), near(feel.centre), near(feel.right)
+  local worst = math.max(l, c, r)
+  if worst <= 0 then return 0, false end
+  local dir
+  if l > r then dir = 1 elseif r > l then dir = -1 else dir = (side or 0) >= 0 and 1 or -1 end
+  return dir * M.AVOID_GAIN * worst, c >= 1 - M.FEEL_SLOW
+end
 
 -- The driver's memory between frames.
 function M.newState()
@@ -87,6 +114,12 @@ function M.control(s, car, dt)
   -- Turning faster than the arc needs: take some steering off.
   local yawWanted = car.speed * curvature
   want = want - M.YAW_DAMP * ((car.yawRate or 0) - yawWanted)
+  -- Round a bush, rock or tree the feelers found.
+  if s.feel and t.mode ~= 'swipe' then
+    local nudge, slow = M.avoid(s.feel, side)
+    want = want + nudge
+    if slow then speedCap = math.min(speedCap, M.AVOID_MPS) end
+  end
 
   -- Stuck: pushing without moving; reverse for a bit, steering the other way.
   local reverse = false
@@ -387,6 +420,28 @@ local function wheelBase()
   return state.wheelBase
 end
 
+-- The feelers (see FEEL_ANGLE): what is solid ahead, from the car at px, py, pz facing fx, fy.
+-- Every game call is guarded; with no ray to cast, the car simply doesn't feel.
+local function feel(px, py, pz, fx, fy, speed)
+  if not (obj and obj.castRayStatic and vec3) then return nil end
+  local look = clamp(math.abs(speed) * M.FEEL_SECONDS, M.FEEL_MIN, M.FEEL_MAX)
+  local out = { look = look }
+  local z = pz + M.FEEL_HEIGHT
+  for key, a in pairs({ left = -M.FEEL_ANGLE, centre = 0, right = M.FEEL_ANGLE }) do
+    local c, s = math.cos(a), math.sin(a)
+    local dx, dy = fx * c + fy * s, fy * c - fx * s
+    local ok, d = pcall(function() return obj:castRayStatic(vec3(px, py, z), vec3(dx, dy, 0), look) end)
+    if not ok then return nil, 'no_feelers' end
+    if type(d) == 'number' and d < look - 0.01 then
+      -- Standing up (a bush) or the ground rising (a hill)? Look down on the spot just past it.
+      local hx, hy = px + dx * (d + 0.2), py + dy * (d + 0.2)
+      local okDown, down = pcall(function() return obj:castRayStatic(vec3(hx, hy, z + 3), vec3(0, 0, -1), 6) end)
+      if okDown and type(down) == 'number' and (z + 3 - down) - z > M.FEEL_TALL then out[key] = d end
+    end
+  end
+  return out
+end
+
 function M.updateGFX(dt)
   if not active or not state or not obj or dt <= 0 then return end
   local px, py
@@ -412,6 +467,18 @@ function M.updateGFX(dt)
     mu = obj.getStaticFrictionCoef and obj:getStaticFrictionCoef() * 0.95 or 1,
     wheelBase = wheelBase(),
   }
+  state.feelAt = (state.feelAt or 0) - dt
+  if state.feelAt <= 0 and not state.noFeelers then
+    state.feelAt = M.FEEL_EVERY
+    local pz = 0
+    if obj.getPositionXYZ then pz = select(3, obj:getPositionXYZ()) or 0 else pz = obj:getPosition().z end
+    local found, why = feel(px, py, pz, fx, fy, car.speed)
+    state.feel = found
+    if why then
+      state.noFeelers = true
+      obj:queueGameEngineLua(string.format('if tanker_core then tanker_core.packProblem(%d, "%s") end', obj:getID(), why))
+    end
+  end
   if chasing then
     local them = mapmgr and mapmgr.getObjects and mapmgr.getObjects()[chasing]
     if them and them.pos then

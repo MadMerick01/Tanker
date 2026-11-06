@@ -13,6 +13,10 @@ M.CONFIG = 'vehicles/us_semi/tankermob.pc'
 M.SPAWN_METRES = 60
 -- How high above the ground it is put down, so it drops onto its wheels.
 M.DROP_METRES = 0.5
+-- Caught on a bush out of sight (Rowan, 6 Nov): slower than STUCK_MPS for UNSTICK_SECONDS, at
+-- least UNSTICK_METRES from you and behind the camera, it is lifted UNSTICK_HOP metres on, away
+-- from you, landing behind the camera too. At most UNSTICK_TRIES times before it gets going again.
+M.STUCK_MPS, M.UNSTICK_SECONDS, M.UNSTICK_METRES, M.UNSTICK_HOP, M.UNSTICK_TRIES = 1, 5, 50, 8, 2
 
 -- Runs inside the tanker: drive away from the player.
 local FLEE = [[
@@ -95,6 +99,33 @@ function M.new(car, environment)
       t.id, c = id, made
     end
     pcall(function() c:queueLuaCommand(string.format(FLEE, me.id)) end)
+    return true
+  end
+
+  -- Called every half second while the run is on the road: lifts it past a bush it is caught on,
+  -- out of sight. Returns true when it did.
+  function t:step(clock)
+    if not t.id or not car.state then return false end
+    local st, me = car:state(t.id), car:player()
+    if not (st and me) then return false end
+    if st.speed >= M.STUCK_MPS * 3 then t.slow, t.hops = nil, nil return false end
+    if st.speed >= M.STUCK_MPS then t.slow = nil return false end
+    t.slow = t.slow or clock
+    if clock - t.slow < M.UNSTICK_SECONDS or (t.hops or 0) >= M.UNSTICK_TRIES then return false end
+    local ax, ay = st.x - me.x, st.y - me.y
+    local metres = math.sqrt(ax * ax + ay * ay)
+    if metres < M.UNSTICK_METRES then return false end
+    ax, ay = ax / metres, ay / metres
+    local view = behind.view(car, me)
+    local x, y = st.x + ax * M.UNSTICK_HOP, st.y + ay * M.UNSTICK_HOP
+    if not (behind.isBehind(view, st.x, st.y) and behind.isBehind(view, x, y)) then return false end
+    local z = car.ground and car:ground(x, y, st.z or me.z)
+    if not z then return false end
+    local hop = car.hop or car.put
+    if not (hop and hop(car, t.id, x, y, z, ax, ay)) then return false end
+    t.slow, t.hops = clock, (t.hops or 0) + 1
+    local c = existing()
+    if c then pcall(function() c:queueLuaCommand(string.format(FLEE, me.id)) end) end
     return true
   end
 

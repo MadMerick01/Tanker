@@ -6,6 +6,10 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Hoons now steer round solid bushes, rocks and trees.** In the desert a Hoon looks ahead for anything solid in its path and swerves round it, easing off if it's right in front. Hillsides don't count. A Hoon going for a sideswipe still holds its line.
+- **Hoons and tankers no longer get stuck on bushes for good.** If a Hoon or the TankerMob is caught on something for a few seconds while it's behind your camera and at least 50 m away, it's moved a few metres on past it. You never see it happen, and any damage it has stays.
+- Your save still works, and there's nothing to do except download the new tanker.zip.
+
 ## Build 31 · 6 Nov 2026
 
 - **The rogue AI now watches the roads, and sends drones.** Stay on a road for more than 30 seconds and a drone hits you: you hear it coming for the last 5 seconds, then an explosion beside your truck damages it and may burst a tyre. A banner at the top of the screen counts down once you've been on a road for 5 seconds, so crossing a road is safe. Stay on the road and another drone comes 20 seconds later. Get off the road before it arrives and it misses. Stay off the road for 5 seconds and the AI loses you, and the count starts again. Tanker is meant to be played off road, so build a truck that can handle it and navigate by compass.
