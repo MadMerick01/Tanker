@@ -91,6 +91,14 @@ end
 T.check(pushed, 'and tries again within a rest, it never gives up')
 T.check(s.tries < D.STUCK_TRIES, 'starting its tries afresh')
 
+-- A little slower wanted: it lifts off rather than braking; much slower, it brakes.
+s = D.newState(); aim(s, 0, 40, 18)
+st, th, br = D.control(s, car(20), 1 / 60)
+T.eq(th, 0, 'lifts off'); T.eq(br, 0, 'without touching the brakes')
+s = D.newState(); aim(s, 0, 40, 10)
+st, th, br = D.control(s, car(20), 1 / 60)
+T.check(br > 0, 'a lot slower wanted, it brakes')
+
 -- Stopping the car: asked for nought, it holds the brake once stopped.
 s = D.newState(); aim(s, 0, 10, 0)
 st, th, br, pk = D.control(s, car(0), 1 / 60)

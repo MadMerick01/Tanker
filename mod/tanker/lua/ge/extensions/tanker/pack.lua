@@ -43,6 +43,11 @@ M.HOLD_FAR, M.HOLD_NEAR = { 2, 5 }, { 1.5, 3 }
 -- the point ORBIT_METRES out instead, aiming ORBIT_STEP radians further round, like a hyena
 -- pacing. Only a box parks in front of you on purpose.
 M.MIN_MPS, M.ORBIT_METRES, M.ORBIT_STEP = 8, 20, 0.8
+-- Changing spot is done by speeding up, not braking (Rowan, 6 Nov): circling only ever moves
+-- forward (a rear slot to the front slot on its side, a front slot round your nose to the other
+-- front slot), and a Hoon getting into place never asks for more than DROP_MPS below your
+-- speed, so it drops back by easing off, not on the brakes.
+M.DROP_MPS = 3
 -- How many far slots a new Hoon circles through before closing in (picked between the two). A
 -- bold one (BOLD_CHANCE of them) moves in after one at most. After an attack it circles 0 to 2.
 M.CIRCLES, M.BOLD_CHANCE, M.CIRCLES_AFTER = { 2, 6 }, 0.3, { 0, 2 }
@@ -142,6 +147,14 @@ function M.at(me, right, ahead, t, speed)
   return me.x + me.dx * go + me.dy * right, me.y + me.dy * go - me.dx * right
 end
 
+-- The next far slot when circling, always forwards: rear to the front on the same side, front to
+-- the front on the other side (round your nose).
+function M.forward(slot)
+  local side, endOf = slot:sub(1, 1), slot:sub(2, 2)
+  if endOf == 'R' then return side .. 'FF' end
+  return (side == 'L' and 'R' or 'L') .. 'FF'
+end
+
 local function near(slot) return slot:sub(1, 2) .. 'N' end
 local function far(slot) return slot:sub(1, 2) .. 'F' end
 
@@ -213,6 +226,9 @@ function M.new(car, random)
       aimRight, aimAhead = 0, sign * (math.max(math.abs(ahead), math.abs(ha)) + M.CROSS_METRES)
     end
     local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr) + (push or 0)
+    if h.state == 'CIRCLING' or h.state == 'CLOSING' or h.state == 'PEEL' then
+      speed = math.max(speed, mine - M.DROP_MPS)
+    end
     speed = math.max(0, math.min(speed, mine + M.CATCH_UP_MPS))
     local lead = strikeLead or math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
     local x, y = M.at(me, aimRight, aimAhead + lead, 0)
@@ -359,12 +375,7 @@ function M.new(car, random)
         if h.holdUntil and clock >= h.holdUntil then
           h.holdUntil = nil
           if h.movesLeft > 0 then
-            local i = ringIndex(h.slot) or 1
-            local nextSlot = M.RING[(i - 1 + h.dir) % 4 + 1]
-            if taken(nextSlot, h) then
-              h.dir = -h.dir
-              nextSlot = M.RING[(i - 1 + h.dir) % 4 + 1]
-            end
+            local nextSlot = M.forward(h.slot)
             if not taken(nextSlot, h) then h.slot, h.replanAt = nextSlot, nil end
             h.movesLeft = h.movesLeft - 1
           elseif not taken(near(h.slot), h) then

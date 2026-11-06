@@ -72,15 +72,21 @@ T.eq(h.source, 'own', 'the Hoon comes in its own car')
 T.eq(line, P.LINES.arrived(h.slot), 'says where it turned up')
 T.eq(P.SLOTS[h.slot].far, true, 'at a far slot'); T.eq(h.state, 'CIRCLING', 'sizing you up')
 T.eq(h.movesLeft, P.CIRCLES[1], 'circles a few far slots first')
-local seen = { [h.slot] = true }
+local moves, last, forwards = 0, h.slot, true
 for t = 0.5, 30, 0.5 do
   p:step(t)
   if h.state ~= 'CIRCLING' then break end
-  seen[h.slot] = true
+  if h.slot ~= last then
+    moves = moves + 1
+    if P.SLOTS[h.slot].ahead < 0 then forwards = false end
+    last = h.slot
+  end
 end
-local farSeen = 0
-for s in pairs(seen) do if P.SLOTS[s].far then farSeen = farSeen + 1 end end
-T.eq(farSeen, P.CIRCLES[1] + 1, 'moved round the far slots like a hyena')
+T.eq(moves, P.CIRCLES[1], 'moved round the far slots like a hyena')
+T.check(forwards, 'always forwards, to a front slot, never dropping back')
+T.eq(P.forward('RRF'), 'RFF', 'rear to the front on the same side')
+T.eq(P.forward('RFF'), 'LFF', 'front to the other front, round your nose')
+T.eq(P.forward('LFF'), 'RFF', 'and back')
 T.eq(h.state, 'CLOSING', 'then closes in'); T.eq(P.SLOTS[h.slot].far, nil, 'to a near slot')
 -- It drives at its slot, and once there keeps pace with you, aiming a little beyond the slot.
 local aim = car.paths[h.id]
@@ -98,11 +104,11 @@ p:steer(1002)
 T.eq(car.paths[h.id].speed, car.me.speed + P.CATCH_UP_MPS, 'but only so much faster than you')
 car.cars[h.id].y = ny + 50
 p:steer(1003)
-T.eq(car.paths[h.id].speed, P.MIN_MPS, 'far past it, it never stops: it drives back to its point')
+T.eq(car.paths[h.id].speed, car.me.speed - P.DROP_MPS, 'far past it, it eases off to drop back, never braking hard')
 T.eq(car.paths[h.id].x, nx, 'still aiming along its slot')
 car.cars[h.id].y = ny
 p:steer(1003.1)
-T.eq(car.paths[h.id].speed, P.MIN_MPS, 'and is only steered every few frames')
+T.eq(car.paths[h.id].speed, car.me.speed - P.DROP_MPS, 'and is only steered every few frames')
 -- You stop beside it: it circles its point instead of parking.
 local mySpeed = car.me.speed
 car.me.speed = 0
