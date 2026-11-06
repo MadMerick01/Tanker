@@ -112,6 +112,12 @@ M.TEAM_BOX_CHANCE, M.BOX_ARRIVE, M.GATHER_SECONDS = 0.6, 8, 8
 -- Hoons wait when you stop. One that hasn't hit you yet is never down for being slow: after
 -- STALL_SECONDS its path is sent again and the stall is logged, to find out why.
 M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS, M.STALL_SECONDS = 1, 12, 3, 5
+-- Caught on a bush out of sight (Rowan, 6 Nov): a Hoon slower than STUCK_MPS for UNSTICK_SECONDS
+-- while you drive, at least UNSTICK_METRES from you and behind the camera (tanker/behind.lua), is
+-- lifted UNSTICK_HOP metres on towards where it was heading, past what it is caught on. It lands
+-- behind the camera too, so you never see it jump. At most UNSTICK_TRIES times before it gets
+-- going again; a wrecked Hoon that still doesn't move is down as before.
+M.UNSTICK_SECONDS, M.UNSTICK_METRES, M.UNSTICK_HOP, M.UNSTICK_TRIES = 4, 50, 8, 3
 -- Further than ESCAPE_METRES from you for ESCAPE_SECONDS, and you have lost it: it is gone.
 M.ESCAPE_METRES, M.ESCAPE_SECONDS = 400, 0
 -- A downed Hoon is given back once you are this far from it, and can't be siphoned after.
@@ -320,6 +326,7 @@ function M.new(car, random)
       local d = distance2d(st.x, st.y, sx, sy)
       h.spotMetres = d
       local speed = d <= M.ROB_STOP_METRES and 0 or math.min(M.ROB_MPS, math.max(2, M.GAIN * d))
+      h.aimX, h.aimY = sx, sy
       car:goTo(h.id, { x = sx, y = sy, z = car:ground(sx, sy, me.z) or me.z, speed = speed, slotX = sx, slotY = sy })
       return
     end
@@ -332,6 +339,7 @@ function M.new(car, random)
       len = math.sqrt(ax * ax + ay * ay)
       if len > 0.01 then ax, ay = ax / len, ay / len else ax, ay = me.dx, me.dy end
       local x, y = st.x + ax * M.FLEE_AIM_METRES, st.y + ay * M.FLEE_AIM_METRES
+      h.aimX, h.aimY = x, y
       car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = M.FLEE_MPS, slotX = x, slotY = y })
       return
     end
@@ -377,8 +385,8 @@ function M.new(car, random)
       end
       speed = M.MIN_MPS
     end
-    h.aimX, h.aimY = x, y
     local mode = h.state == 'SWIPE' and 'swipe' or (coasting and 'coast' or nil)
+    h.aimX, h.aimY = x, y
     car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = speed, slotX = sx, slotY = sy, mode = mode })
   end
 
@@ -635,6 +643,28 @@ function M.new(car, random)
 
   -- Called every half second while the run is on the road. Returns a line to show when something
   -- happens.
+  -- Lifts a Hoon caught on something out of sight a few metres on, towards where it was heading.
+  -- Returns true if it did.
+  local function unstick(h, me, st, clock)
+    if h.state == 'ROB' or h.state == 'BOXING' or h.state == 'BOX_SIDE' or h.state == 'BOX_REAR' then return false end
+    if (h.hops or 0) >= M.UNSTICK_TRIES or (h.hopAt and clock - h.hopAt < M.UNSTICK_SECONDS) then return false end
+    if not h.aimX or (h.metres or 0) < M.UNSTICK_METRES then return false end
+    local view = behind.view(car, me)
+    if not behind.isBehind(view, st.x, st.y) then return false end
+    local dx, dy = h.aimX - st.x, h.aimY - st.y
+    local len = math.sqrt(dx * dx + dy * dy)
+    if len < 1 then return false end
+    dx, dy = dx / len, dy / len
+    local x, y = st.x + dx * M.UNSTICK_HOP, st.y + dy * M.UNSTICK_HOP
+    if not behind.isBehind(view, x, y) then return false end
+    local z = car:ground(x, y, st.z or me.z)
+    if not z then return false end
+    if not (car.hop and car:hop(h.id, x, y, z, dx, dy) or (not car.hop and car:place(h.id, x, y, z, dx, dy))) then return false end
+    h.hops, h.hopAt, h.replanAt = (h.hops or 0) + 1, clock, nil
+    p.unstuck = (p.unstuck or 0) + 1
+    return true
+  end
+
   function p:step(clock)
     if #self.hoons == 0 then return nil end
     local me = car:player()
@@ -666,8 +696,11 @@ function M.new(car, random)
         else
           local driving = (me.speed or 0) >= M.DRIVING_MPS
           if driving and st.speed < M.STUCK_MPS then h.slow = h.slow or clock else h.slow = nil end
+          if st.speed >= M.DRIVING_MPS then h.hops, h.hopAt = nil, nil end
           if h.metres > M.ESCAPE_METRES then h.far = h.far or clock else h.far = nil end
-          if h.slow and h.hasHit and clock - h.slow >= M.DOWN_SECONDS then
+          if h.slow and clock - h.slow >= M.UNSTICK_SECONDS and unstick(h, me, st, clock) then
+            -- lifted past what it was caught on; the down and stall clocks run on
+          elseif h.slow and h.hasHit and clock - h.slow >= M.DOWN_SECONDS then
             line = down(h, LINES.down)
           elseif h.slow and not h.hasHit and clock - h.slow >= M.STALL_SECONDS then
             h.slow, h.replanAt, h.stalls = nil, nil, (h.stalls or 0) + 1

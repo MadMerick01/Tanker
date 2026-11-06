@@ -401,11 +401,23 @@ function M.new(env)
     self.pack.gunDrawn = (self:flatGun() and self.gun.drawn) or (vr and vr.drawn == true) or false
     local line = self.pack:step(self.clock)
     if line then self.feedback = line; self.diag:event('pack', line) end
+    if self.pack.unstuck and self.pack.unstuck ~= self.unstuckLogged then
+      self.unstuckLogged = self.pack.unstuck
+      self.diag:event('pack', 'A Hoon was lifted past something it was caught on, out of sight (' .. self.pack.unstuck .. ' so far)')
+    end
     local st = self.pack.stalled
     if st then
       self.pack.stalled = nil
       self.diag:event('pack', string.format('Hoon %d stalled %d time(s) while %s at %s, %s m away, car from %s',
         st.n, st.stalls, tostring(st.state), tostring(st.slot), st.metres and tostring(math.floor(st.metres)) or '?', tostring(st.source)), 'W')
+    end
+  end
+
+  -- The TankerMob, if one is out: lifted past a bush it is caught on, out of sight.
+  function c:followTanker()
+    if not self.tankerMob or not self.tankerMob.step or self.state ~= 'RUNNING' then return end
+    if self.tankerMob:step(self.clock) then
+      self.diag:event('tanker_mob', 'The TankerMob was lifted past something it was caught on, out of sight')
     end
   end
 
@@ -690,6 +702,7 @@ function M.new(env)
     self:followTraffic()
     self:followHoons()
     self:followPack()
+    self:followTanker()
     self:followDrone()
     self:followRobbery()
     self:followPump()

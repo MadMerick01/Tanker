@@ -258,6 +258,16 @@ function M.new(environment, pool)
     return true
   end
 
+  -- Moves car id a little way to x, y, z without resetting it, so its damage (shot tyres and
+  -- all) stays as it was: for lifting a car past a bush out of sight. Falls back to put().
+  function h:hop(id, x, y, z, dx, dy)
+    local c = car(id)
+    if not c then return false, 'no_car' end
+    local okPos, pos = pcall(env.vec3, x, y, z + 0.5)
+    if okPos and pcall(function() c:setPositionNoPhysicsReset(pos) end) then return true end
+    return self:put(id, x, y, z, dx, dy)
+  end
+
   -- Sets car id hunting targetId: BeamNG's chase mode, flat out and not avoiding anyone, so it rams.
   function h:hunt(id, targetId)
     local c = car(id)
