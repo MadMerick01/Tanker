@@ -527,6 +527,18 @@ function M.new(env)
     return ok
   end
 
+  -- The HUD's Aim up / Aim down buttons: tilt the VR revolver's aim by step degrees.
+  function c:nudgeAim(step)
+    local deg = self.pistol and self.pistol.nudgeAim and self.pistol:nudgeAim(step)
+    if not deg then
+      self.feedback = 'The VR revolver\'s aim can\'t be changed from here. Update the BeamNG VR Controller Poses mod.'
+      return false
+    end
+    self.feedback = string.format('VR revolver aim: %s degrees%s.', string.format('%g', deg),
+      deg < 0 and ' (down)' or deg > 0 and ' (up)' or '')
+    return true
+  end
+
   -- Each frame: the crosshair while the revolver is drawn, and a shot on each click.
   function c:followAim()
     if self.gun.drawn and not self:flatGun() then self.gun:setDrawn(false) end
@@ -835,7 +847,8 @@ function M.new(env)
       v.truck = truck
     end
     local gun = self.pistol:read()
-    v.pistol = { installed = gun.installed, drawn = gun.drawn }
+    v.pistol = { installed = gun.installed, drawn = gun.drawn, aimPitch = gun.aimPitch }
+    v.aimAllowed = gun.aimPitch ~= nil
     if gun.loaded then v.ammo = { loaded = gun.loaded, spare = gun.spare } end
     -- Without VR, the flatscreen revolver's rounds are the ones that count.
     if self:flatGun() then
@@ -1005,6 +1018,8 @@ function M.payPartsBill() return safely(function() return ensure():payPartsBill(
 function M.undoParts() return safely(function() return ensure():undoParts(false) end) end
 function M.toggleRevolver() return safely(function() return ensure():toggleRevolver() end) end
 function M.reloadRevolver() return safely(function() return ensure():reloadRevolver() end) end
+function M.aimUp() return safely(function() return ensure():nudgeAim(1) end) end
+function M.aimDown() return safely(function() return ensure():nudgeAim(-1) end) end
 -- The crosshair and the shots, each frame (ImGui draws here).
 -- The VR revolver's hit events (the flatscreen revolver sends the same ones).
 function M.onVrPistolHit(vehId) return safely(function() if active then active:vrHit(vehId, false) end end) end

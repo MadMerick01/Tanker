@@ -15,4 +15,18 @@ local hands = P.new({ hands = function() return { getPose = function(hand, kind)
 T.check(hands:leftHand() ~= nil, 'left hand pose')
 local stale = P.new({ hands = function() return { getPose = function() return { valid = false } end } end })
 T.eq(stale:leftHand(), nil, 'no pose when tracking is stale')
+-- The aim tilt: read from the pistol and nudged by the HUD's buttons, as setAimPitch in the console.
+local pitch, sets = -10, {}
+local tiltable = P.new({ pistol = function() return {
+  getAimPitch = function() return pitch end,
+  setAimPitch = function(d) sets[#sets + 1] = d; pitch = d; return pitch end } end })
+T.eq(tiltable:read().aimPitch, -10, 'aim tilt read')
+T.eq(tiltable:nudgeAim(1), -9, 'up one degree'); T.eq(sets[1], -9, 'set through setAimPitch')
+T.eq(tiltable:nudgeAim(-1), -10, 'down one degree'); T.eq(tiltable:nudgeAim(-1), -11, 'and again')
+pitch = -10.04; T.eq(tiltable:nudgeAim(1), -9, 'kept to tenths')
+pitch = 90; T.eq(tiltable:nudgeAim(1), 90, 'no further than straight up')
+T.eq(armed:read().aimPitch, nil, 'an older pistol has no aim tilt'); T.eq(armed:nudgeAim(1), nil, 'and cannot be nudged')
+T.eq(none:nudgeAim(1), nil, 'no pistol, no nudge')
+local broken = P.new({ pistol = function() return { getAimPitch = function() return -10 end, setAimPitch = function() error('x') end } end })
+T.eq(broken:nudgeAim(1), nil, 'a failing setAimPitch is no nudge')
 T.done('pistol')

@@ -149,6 +149,11 @@
       <div ng-if="!data.revolverAllowed"><span class="mm-k">VR revolver</span> <span class="mm-v">{{data.pistol.installed ? (data.pistol.drawn ? 'drawn' : 'holstered') : 'not installed'}}</span></div>
       <div ng-if="data.revolverAllowed"><span class="mm-k">Revolver</span> <span class="mm-v">{{data.gun.drawn ? 'drawn' : 'holstered'}}</span> <span class="mm-k">(mouse aiming, on the Road tab)</span></div>
       <div ng-if="data.pistol && !data.pistol.installed" style="margin-top:4px;color:#f2c94c;">In VR, the revolver needs the BeamNG VR Controller Poses mod.</div>
+      <div ng-if="data.aimAllowed" style="margin-top:6px;" title="Tilts the VR revolver and its shots. Line the red laser up with BeamNG's black pointer line. Remembered between sessions.">
+        <span class="mm-k">VR aim</span> <span class="mm-v">{{degrees(data.pistol.aimPitch)}}</span>
+        <button type="button" class="mm-tab" ng-click="send('aimUp')">Aim up 1°</button>
+        <button type="button" class="mm-tab" ng-click="send('aimDown')">Aim down 1°</button>
+      </div>
       <div class="mm-k" style="margin-top:6px;">Repairs, spare parts and the tow come next.</div>
       <div style="margin-top:10px;">
         <span class="mm-k">Spawn (testing):</span>

@@ -105,6 +105,15 @@ c6:tick(0.01)
 T.check(drawn > 0, 'wrist HUD drawn with hand tracking')
 T.eq(F.controller(F.adapter(-31.0, 140.0)):view().ammo, nil, 'no ammo shown without the pistol')
 
+-- The Aim up / Aim down buttons tilt the VR revolver one degree at a time.
+T.eq(c6:view().aimAllowed, false, 'no aim buttons when the pistol cannot be tilted')
+T.eq(c6:nudgeAim(1), false, 'and no nudge'); T.check(c6.feedback:find('VR Controller Poses'), 'says to update the pistol mod')
+local c7 = F.controller(F.adapter(-31.0, 140.0), { pistol = F.pistol({ installed = true, aimPitch = -10 }) })
+T.eq(c7:view().aimAllowed, true, 'aim buttons when the pistol can be tilted'); T.eq(c7:view().pistol.aimPitch, -10, 'tilt shown')
+T.eq(c7:nudgeAim(1), true, 'aim up'); T.eq(c7:view().pistol.aimPitch, -9, 'one degree up')
+T.eq(c7.feedback, 'VR revolver aim: -9 degrees (down).', 'says the new tilt')
+c7:nudgeAim(-1); c7:nudgeAim(-1); T.eq(c7:view().pistol.aimPitch, -11, 'two degrees down')
+
 -- Desert rocks: On by default, Off hides them and is remembered; shutting down puts them back.
 local adapter8 = F.adapter(-31.0, 140.0)
 local c8, env8 = F.controller(adapter8)
