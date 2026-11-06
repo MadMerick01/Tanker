@@ -1,6 +1,7 @@
 -- tankerDriver: Tanker's own Hoon driver, run inside a Hoon's car. Off road, Tanker sends it a
--- point to drive at and a speed, a few times a second (target below). On the roads it chases a
--- car by itself (chase below, and road mode further down); every frame it works out steering,
+-- point to drive at and a speed, a few times a second (target below). On the roads it hunts a
+-- car by itself (chase below, and road mode further down): it catches up along the roads,
+-- overtakes, cuts in front and brake-checks; every frame it works out steering,
 -- throttle and brake itself and drives the car with them, the way BeamNG's AI does. It takes over
 -- from BeamNG's AI while it drives (the AI is switched off) and hands back on stop().
 --
@@ -137,9 +138,20 @@ end
 M.LAT_TABLE = { { 0, 0.9 }, { 40, 0.95 }, { 200, 0.95 } }
 -- How far along the route it aims: LOOK_SECONDS of its speed, between LOOK_MIN and LOOK_MAX m.
 M.LOOK_SECONDS, M.LOOK_MIN, M.LOOK_MAX = 0.8, 6, 30
--- Within RAM_METRES of you, with you ahead of it, it leaves the route and drives at you, at your
--- speed plus RAM_MPS (BeamNG's chase hits at 10 m/s over the target's speed).
-M.RAM_METRES, M.RAM_MPS = 30, 8
+-- The road attack (Rowan, 6 Nov): no ramming. Further than ENGAGE_METRES it catches up along the
+-- route. Closer, it overtakes in the lane PASS_SIDE metres to your right (Australia drives on the
+-- left), PASS_MPS faster than you; once CUT_AHEAD metres clear of your front it cuts in front of
+-- you, settles for SETTLE_SECONDS, then brake-checks: down to BRAKE_SHARE of your speed for
+-- BRAKE_SECONDS. It drives on ahead for RECOVER_SECONDS and does it again, or overtakes again if
+-- you got past. If you stop (under STOPPED_MPS), it parks BLOCK_AHEAD metres in front of you.
+-- Further than LOSE_METRES, it goes back to catching up.
+M.ENGAGE_METRES, M.LOSE_METRES = 50, 80
+M.PASS_SIDE, M.PASS_MPS, M.PASS_LOOK = 3.5, 8, 15
+M.CUT_AHEAD, M.SETTLE_SECONDS, M.IN_LANE = 10, 1, 1.5
+M.BRAKE_SHARE, M.BRAKE_SECONDS, M.RECOVER_SECONDS = 0.2, 1.5, 4
+M.STOPPED_MPS, M.BLOCK_AHEAD = 2, 6
+-- Catching up with no route, it aims this far behind you, up to CATCH_MPS faster than you.
+M.FOLLOW_BEHIND, M.CATCH_MPS = 15, 15
 -- How often the route is worked out again, in seconds.
 M.ROUTE_SECONDS = 0.5
 -- The speed to plan for at the end of the route, where you are: your speed plus a little.
@@ -226,23 +238,76 @@ function M.along(points, x, y, dist)
   return points[n].x, points[n].y, n
 end
 
--- Where to drive and how fast, chasing a target (x, y, vx, vy) along a route (or straight at it
--- with no route). Returns a target for M.control: { x, y, speed }.
-function M.chaseAim(car, route, speeds, them)
-  local dx, dy = them.x - car.x, them.y - car.y
-  local metres = math.sqrt(dx * dx + dy * dy)
-  local theirSpeed = math.sqrt((them.vx or 0) ^ 2 + (them.vy or 0) ^ 2)
-  local ahead = dx * car.fx + dy * car.fy
-  if not route or #route < 2 or (metres <= M.RAM_METRES and ahead > 0) then
-    -- Straight at them, where they will be in half a second.
-    return { x = them.x + (them.vx or 0) * 0.5, y = them.y + (them.vy or 0) * 0.5, speed = theirSpeed + M.RAM_MPS }
-  end
+-- Where to drive along the route and how fast: a point LOOK_SECONDS of speed along it, at the
+-- slowest planned speed between here and there.
+function M.routeAim(car, route, speeds)
   local look = clamp(math.max(car.speed, 0) * M.LOOK_SECONDS, M.LOOK_MIN, M.LOOK_MAX)
   local x, y, i = M.along(route, car.x, car.y, look)
   local _, _, here = M.along(route, car.x, car.y, 0)
   local speed = math.huge
   for j = math.max(1, here - 1), i do speed = math.min(speed, speeds[j] or speed) end
   return { x = x, y = y, speed = speed }
+end
+
+-- The road attack, one frame. s keeps the phase; them is the target (x, y, vx, vy, fx, fy).
+-- Returns the target for M.control ({ x, y, speed }) and the phase: CATCH, PASS, CUT_IN,
+-- BRAKE_CHECK, RECOVER or BLOCK.
+function M.roadAttack(s, car, route, speeds, them, dt)
+  local vx, vy = them.vx or 0, them.vy or 0
+  local theirSpeed = math.sqrt(vx * vx + vy * vy)
+  local hx, hy = them.fx or 0, them.fy or 1
+  if theirSpeed > 1 then hx, hy = vx / theirSpeed, vy / theirSpeed end
+  local h = math.sqrt(hx * hx + hy * hy)
+  if h < 1e-6 then hx, hy, h = 0, 1, 1 end
+  hx, hy = hx / h, hy / h
+  local rx, ry = hy, -hx
+  local dx, dy = car.x - them.x, car.y - them.y
+  local along, right = dx * hx + dy * hy, dx * rx + dy * ry
+  local metres = math.sqrt(dx * dx + dy * dy)
+  -- A point from them: right metres to their right, ahead metres ahead.
+  local function at(r, a) return them.x + hx * a + rx * r, them.y + hy * a + ry * r end
+
+  s.phase = s.phase or 'CATCH'
+  s.phaseTime = (s.phaseTime or 0) + dt
+  local function go(phase) if s.phase ~= phase then s.phase, s.phaseTime = phase, 0 end end
+
+  if metres > M.LOSE_METRES then go('CATCH') end
+  if s.phase == 'CATCH' and metres <= M.ENGAGE_METRES then go(along >= M.CUT_AHEAD and 'CUT_IN' or 'PASS') end
+  if s.phase ~= 'CATCH' and theirSpeed < M.STOPPED_MPS and along > 0 then go('BLOCK') end
+  if s.phase == 'BLOCK' and theirSpeed >= M.STOPPED_MPS * 2 then go(along > 0 and 'CUT_IN' or 'PASS') end
+  if s.phase == 'PASS' and along >= M.CUT_AHEAD then go('CUT_IN') end
+  if s.phase == 'CUT_IN' then
+    if along < 0 then go('PASS')
+    elseif math.abs(right) <= M.IN_LANE and along <= M.CUT_AHEAD * 2.5 then
+      s.settled = (s.settled or 0) + dt
+      if s.settled >= M.SETTLE_SECONDS then s.settled = 0; go('BRAKE_CHECK') end
+    else s.settled = 0 end
+  end
+  if s.phase == 'BRAKE_CHECK' and s.phaseTime >= M.BRAKE_SECONDS then go('RECOVER') end
+  if s.phase == 'RECOVER' and s.phaseTime >= M.RECOVER_SECONDS then go(along > 0 and 'CUT_IN' or 'PASS') end
+
+  local x, y, speed
+  if s.phase == 'CATCH' then
+    if route and #route >= 2 and speeds then return M.routeAim(car, route, speeds), s.phase end
+    x, y = at(0, -M.FOLLOW_BEHIND)
+    speed = theirSpeed + clamp((-M.FOLLOW_BEHIND - along) * 0.6, -theirSpeed, M.CATCH_MPS)
+  elseif s.phase == 'PASS' then
+    x, y = at(M.PASS_SIDE, along + M.PASS_LOOK)
+    speed = theirSpeed + M.PASS_MPS
+  elseif s.phase == 'CUT_IN' then
+    x, y = at(0, M.CUT_AHEAD + M.PASS_LOOK)
+    speed = theirSpeed + clamp((M.CUT_AHEAD - along) * 0.6, -5, M.PASS_MPS)
+  elseif s.phase == 'BRAKE_CHECK' then
+    x, y = at(0, along + M.PASS_LOOK)
+    speed = theirSpeed * M.BRAKE_SHARE
+  elseif s.phase == 'RECOVER' then
+    x, y = at(0, along + M.PASS_LOOK)
+    speed = theirSpeed + clamp((M.CUT_AHEAD - along) * 0.6, -5, 3)
+  else -- BLOCK
+    x, y = at(0, M.BLOCK_AHEAD + M.PASS_LOOK)
+    speed = along > M.BLOCK_AHEAD and 0 or 2
+  end
+  return { x = x, y = y, speed = math.max(0, speed) }, s.phase
 end
 
 -- ------------------------------------------------------------ in the car ---
@@ -278,6 +343,7 @@ end
 function M.chase(id)
   takeOver()
   chasing, route, routeAt = id, nil, nil
+  state.road = {}
   if mapmgr and mapmgr.requestMap then pcall(mapmgr.requestMap) end
 end
 
@@ -339,7 +405,8 @@ function M.updateGFX(dt)
     local them = mapmgr and mapmgr.getObjects and mapmgr.getObjects()[chasing]
     if them and them.pos then
       local tvx, tvy = them.vel and them.vel.x or 0, them.vel and them.vel.y or 0
-      local t = { x = them.pos.x, y = them.pos.y, vx = tvx, vy = tvy }
+      local t = { x = them.pos.x, y = them.pos.y, vx = tvx, vy = tvy,
+        fx = them.dirVec and them.dirVec.x, fy = them.dirVec and them.dirVec.y }
       routeAt = (routeAt or 0) - dt
       if routeAt <= 0 then
         routeAt = M.ROUTE_SECONDS
@@ -368,7 +435,12 @@ function M.updateGFX(dt)
           routeSpeeds = M.speedPlan(route, car.mu, math.sqrt(tvx * tvx + tvy * tvy) + M.END_EXTRA_MPS)
         end
       end
-      state.target, state.age = M.chaseAim(car, route, routeSpeeds, t), 0
+      local aim, phase = M.roadAttack(state.road, car, route, routeSpeeds, t, dt)
+      state.target, state.age = aim, 0
+      if phase ~= state.lastPhase then
+        state.lastPhase = phase
+        obj:queueGameEngineLua(string.format('if tanker_core then tanker_core.hoonPhase(%d, "%s") end', obj:getID(), phase))
+      end
     end
   end
   local steer, throttle, brake, parking = M.control(state, car, dt)

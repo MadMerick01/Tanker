@@ -98,7 +98,7 @@
     <div ng-if="tab === 'road'" style="margin-top:8px;">
       <div ng-if="data.goal"><span class="mm-k">{{data.goalName}}</span> <span class="mm-v">{{whole(data.goal.roadKm)}} km</span> <span class="mm-k">by road, {{data.goal.letters}}</span></div>
       <div ng-if="data.progress != null"><span class="mm-k">Trip done</span> <span class="mm-v">{{whole(data.progress * 100)}}%</span><span ng-if="data.drivenKm != null" class="mm-k"> &middot; {{whole(data.drivenKm)}} km driven</span></div>
-      <div ng-if="data.hoon.state === 'HUNTING'" style="margin-top:4px;font-weight:bold;color:#eb5757;">A Hoon is hunting you<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span>.</div>
+      <div ng-if="data.hoon.state === 'HUNTING'" style="margin-top:4px;font-weight:bold;color:#eb5757;">A Hoon is hunting you<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span><span ng-if="data.hoon.doing">, {{data.hoon.doing}}</span>.</div>
       <div ng-if="data.hoon.state === 'DOWN'" style="margin-top:4px;font-weight:bold;color:#f2c94c;">The Hoon is down<span ng-if="data.hoon.metres != null">, {{whole(data.hoon.metres)}} m away</span>. Stop beside it to siphon its tank.</div>
       <div ng-repeat="h in data.pack.hoons" ng-style="{color: h.state === 'DOWN' ? '#f2c94c' : (h.state === 'SWIPE' || h.state === 'WINDUP' || h.state === 'BOXING' || h.state === 'BOX_SIDE' ? '#eb5757' : '#e0823c')}" style="margin-top:4px;font-weight:bold;">Hoon {{h.n}}: {{h.doing}}<span ng-if="h.slot"> at {{h.slot}}</span><span ng-if="h.metres != null">, {{whole(h.metres)}} m away</span>.</div>
       <div ng-if="data.goal.reached" style="margin-top:4px;font-weight:bold;color:#f2c94c;">You made it to Pine Gap.</div>
@@ -156,7 +156,7 @@
         <button type="button" ng-if="data.pack" class="mm-tab" ng-disabled="!data.clearHoonsAllowed" ng-click="send('clearHoons')" title="Send every spawned Hoon away">Clear Hoons</button>
         <button type="button" class="mm-tab" ng-disabled="!data.tankerSpawnAllowed" ng-click="send('spawnTanker')" title="A fuel tanker ahead of you that drives away">Spawn the TankerMob</button>
         <div ng-repeat="h in data.pack.hoons" class="mm-k" style="margin-top:2px;">Hoon {{h.n}}: <span class="mm-v">{{h.metres != null ? whole(h.metres) + ' m away' : 'placing'}}</span>, {{h.doing}}<span ng-if="h.slot"> at {{h.slot}}</span></div>
-        <div ng-if="data.pack" class="mm-k" style="margin-top:2px;">A spawned Hoon more than 400 m away is gone.</div>
+        <div ng-if="data.pack" class="mm-k" style="margin-top:2px;">Hoon mode: <span class="mm-v">{{data.pack.mode === 'road' ? 'road (overtake and brake-check)' : (data.pack.mode === 'desert' ? 'desert (circling)' : 'decided when one spawns')}}</span>. It switches after 5 s on or off a road. A spawned Hoon more than 400 m away is gone.</div>
         <div ng-if="data.hoon && data.hoon.state === 'UNAVAILABLE'" style="margin-top:4px;color:#f2c94c;">The Hoon's car could not be loaded, so no Hoons this session.</div>
       </div>
     </div>

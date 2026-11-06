@@ -70,6 +70,13 @@ M.LEAVE_METRES = 400
 -- This many hits from your revolver stop a Hoon.
 M.SHOTS_TO_STOP = 4
 
+-- Two modes (Rowan, 6 Nov): desert, the slots above, once you have been more than ROAD_METRES
+-- from the nearest road for MODE_SECONDS; and road, once you have been within ROAD_METRES of a
+-- road for MODE_SECONDS. In road mode each Hoon drives itself in the car (tankerDriver.chase):
+-- it catches up along the roads, overtakes you, cuts in front and brake-checks. A Hoon that
+-- turns up in road mode is put on the road ROAD_START_METRES behind you.
+M.ROAD_METRES, M.MODE_SECONDS, M.ROAD_START_METRES = 30, 5, 80
+
 -- side: -1 left, 1 right. ahead: 1 front, -1 rear.
 M.SLOTS = {
   LFF = { side = -1, ahead = 1, far = true }, RFF = { side = 1, ahead = 1, far = true },
@@ -87,6 +94,12 @@ end
 M.DOING = {
   CIRCLING = 'sizing you up', CLOSING = 'closing in', WINDUP = 'lining up', SWIPE = 'attacking',
   PEEL = 'peeling off', BOXING = 'boxing you in, in front', BOX_SIDE = 'boxing you in, beside you', DOWN = 'down',
+  ROAD = 'on the road',
+}
+-- What a road-mode Hoon is doing, as its driver reports it.
+M.ROAD_DOING = {
+  CATCH = 'catching up on the road', PASS = 'overtaking you', CUT_IN = 'cutting in front of you',
+  BRAKE_CHECK = 'brake-checking you', RECOVER = 'pulling ahead', BLOCK = 'blocking you in',
 }
 local LINES = {
   arrived = function(slot) return 'A Hoon has turned up out on your ' .. where(slot) .. '. It is sizing you up.' end,
@@ -102,6 +115,9 @@ local LINES = {
   gone = 'A Hoon is gone.',
   full = 'That\'s as many Hoons as there can be at once.',
   cleared = 'The Hoons are gone.',
+  roadMode = 'You\'re on the road: the Hoons will try to get in front of you and brake-check you.',
+  desertMode = 'You\'re off road: the Hoons spread out around you.',
+  arrivedRoad = 'A Hoon is coming up the road behind you.',
 }
 M.LINES = LINES
 
@@ -127,7 +143,8 @@ local function far(slot) return slot:sub(1, 2) .. 'F' end
 -- car is packCar (or a fake), random(lo, hi) a number between them.
 function M.new(car, random)
   random = random or function(lo, hi) return lo + math.random() * (hi - lo) end
-  local p = { hoons = {}, count = 0 }
+  local p = { hoons = {}, count = 0, mode = nil }
+  local toRoad
 
   local function pick(range) return random(range[1], range[2]) end
   local function whole(range) return math.min(range[2], math.floor(random(range[1], range[2] + 1))) end
@@ -236,6 +253,43 @@ function M.new(car, random)
     return line
   end
 
+  -- Hands a Hoon to its own driver for the road attack.
+  toRoad = function(h, me)
+    h.state, h.slot, h.lead, h.side, h.holdUntil, h.replanAt, h.phase = 'ROAD', nil, nil, nil, nil, nil, 'CATCH'
+    car:chase(h.id, me.id)
+  end
+
+  -- Back to the desert slots: the nearest free far slot, sizing you up again briefly.
+  local function toDesert(h, me, st)
+    local best, bestD
+    for _, slot in ipairs(freeFar(h)) do
+      local r, a = M.offset(slot)
+      local x, y = M.at(me, r, a, 0)
+      local d = distance2d(st.x, st.y, x, y)
+      if not bestD or d < bestD then best, bestD = slot, d end
+    end
+    h.state, h.slot, h.replanAt, h.holdUntil, h.phase = 'CIRCLING', best or M.RING[1], nil, nil, nil
+    h.movesLeft = whole({ 0, 1 })
+  end
+
+  -- Whether you are on a road now: within ROAD_METRES of one.
+  function p:onRoad(me)
+    local r = car.road and car:road(me.x, me.y, me.z)
+    return r ~= nil and r.metres <= M.ROAD_METRES
+  end
+
+  -- Follows whether you are on a road, and switches mode after MODE_SECONDS one way or the other.
+  local function followMode(me, clock)
+    local onRoad = p:onRoad(me)
+    local want = onRoad and 'road' or 'desert'
+    if not p.mode then p.mode = want end
+    if want == p.mode then p.wantSince = nil return nil end
+    p.wantSince = p.wantSince or clock
+    if clock - p.wantSince < M.MODE_SECONDS then return nil end
+    p.mode, p.wantSince = want, nil
+    return want == 'road' and LINES.roadMode or LINES.desertMode
+  end
+
   -- Brings in one more Hoon at a free far slot, from traffic or the Hoon's own car. Returns the
   -- line to show, or nil and why not.
   function p:add(clock)
@@ -245,10 +299,16 @@ function M.new(car, random)
     local free = freeFar()
     if #free == 0 then return nil, 'full' end
     local slot = free[math.min(#free, math.floor(random(1, #free + 1)))]
+    self.mode = self.mode or (self:onRoad(me) and 'road' or 'desert')
     local id, source = car:take(me)
     if not id then return nil, source or 'no_car' end
     local right, ahead = M.offset(slot)
     local x, y = M.at(me, right, ahead, 0)
+    if self.mode == 'road' then
+      x, y = M.at(me, 0, -M.ROAD_START_METRES, 0)
+      local r = car.road and car:road(x, y, me.z)
+      if r and r.metres <= M.ROAD_METRES then x, y = r.x, r.y end
+    end
     local z = car:ground(x, y, me.z) or me.z
     local ok, why = car:place(id, x, y, z, me.dx, me.dy)
     if not ok then
@@ -260,6 +320,10 @@ function M.new(car, random)
       hits = 0, dir = chance(0.5) and 1 or -1 }
     h.movesLeft = chance(M.BOLD_CHANCE) and whole({ 0, 1 }) or whole(M.CIRCLES)
     self.hoons[#self.hoons + 1] = h
+    if self.mode == 'road' then
+      toRoad(h, me)
+      return LINES.arrivedRoad
+    end
     return LINES.arrived(slot)
   end
 
@@ -336,7 +400,7 @@ function M.new(car, random)
         peel(h, clock)
       end
     end
-    if h.state ~= 'DOWN' then drive(h, me, st, clock) end
+    if h.state ~= 'DOWN' and h.state ~= 'ROAD' then drive(h, me, st, clock) end
     return line
   end
 
@@ -346,14 +410,24 @@ function M.new(car, random)
     if #self.hoons == 0 then return nil end
     local me = car:player()
     if not me then return nil end
-    local line
+    local line = followMode(me, clock)
     for _, h in ipairs({ unpack(self.hoons) }) do
       local st = car:state(h.id)
+      if st and h.state ~= 'DOWN' then
+        if self.mode == 'road' and h.state ~= 'ROAD' then
+          for _, o in ipairs(self.hoons) do if o.lead == h then peel(o, clock) end end
+          toRoad(h, me)
+        elseif self.mode == 'desert' and h.state == 'ROAD' then
+          relative(me, st)
+          toDesert(h, me, st)
+        end
+      end
       if not st then
         release(h); line = LINES.gone
       else
         relative(me, st)
         h.metres = distance2d(me.x, me.y, st.x, st.y)
+        if h.metres <= M.CONTACT_METRES then h.hasHit = true end
         if h.state == 'DOWN' then
           if h.metres > M.LEAVE_METRES then release(h) end
         else
@@ -365,10 +439,10 @@ function M.new(car, random)
           elseif h.slow and not h.hasHit and clock - h.slow >= M.STALL_SECONDS then
             h.slow, h.replanAt, h.stalls = nil, nil, (h.stalls or 0) + 1
             p.stalled = { n = h.n, state = h.state, slot = h.slot, source = h.source, metres = h.metres, stalls = h.stalls }
-            line = think(h, me, st, clock)
+            if h.state == 'ROAD' then car:chase(h.id, me.id) else line = think(h, me, st, clock) end
           elseif h.far and clock - h.far >= M.ESCAPE_SECONDS then
             release(h); line = LINES.escaped
-          else
+          elseif h.state ~= 'ROAD' then
             line = think(h, me, st, clock) or line
           end
         end
@@ -383,7 +457,7 @@ function M.new(car, random)
     local me = car:player()
     if not me then return end
     for _, h in ipairs(self.hoons) do
-      if h.state ~= 'DOWN' then
+      if h.state ~= 'DOWN' and h.state ~= 'ROAD' then
         local st = car:state(h.id)
         if st then drive(h, me, st, clock) end
       end
@@ -432,9 +506,18 @@ function M.new(car, random)
   function p:view()
     local list = {}
     for _, h in ipairs(self.hoons) do
-      list[#list + 1] = { n = h.n, slot = h.slot, doing = M.DOING[h.state], state = h.state, metres = h.metres }
+      local doing = h.state == 'ROAD' and (M.ROAD_DOING[h.phase] or M.DOING.ROAD) or M.DOING[h.state]
+      list[#list + 1] = { n = h.n, slot = h.slot, doing = doing, state = h.state, metres = h.metres }
     end
     return list
+  end
+
+  -- A road-mode Hoon's driver says what it is doing now. Returns whether car id is one of ours.
+  function p:roadPhase(id, phase)
+    for _, h in ipairs(self.hoons) do
+      if h.id == id then h.phase = phase; return true end
+    end
+    return false
   end
 
   -- Sends every Hoon away: the clear button, a new run, or Tanker going away.

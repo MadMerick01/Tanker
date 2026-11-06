@@ -305,6 +305,14 @@ function M.new(env)
     end
   end
 
+  -- A Hoon's driver changed what it is doing on the road (catching up, overtaking, cutting in,
+  -- brake-checking...). Shown on the HUD and logged.
+  function c:hoonPhase(vehId, phase)
+    local mine = self.pack and self.pack:roadPhase(vehId, phase)
+    if self.hoons and self.hoons.id == vehId then self.hoons.phase, mine = phase, true end
+    if mine then self.diag:event('hoon', 'car ' .. tostring(vehId) .. ' ' .. tostring(phase)) end
+  end
+
   -- A Hoon's car said its AI can't do what the pack asked. Logged once.
   function c:packProblem(vehId, what)
     self.packProblems = self.packProblems or {}
@@ -646,12 +654,13 @@ function M.new(env)
     v.tankerSpawnAllowed = self.tankerMob ~= nil and self.state == 'RUNNING'
     if self.hoons then
       v.hoonTestAllowed = self.state == 'RUNNING' and self.hoons.state == 'HIDDEN'
-      v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil }
+      v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil,
+        doing = self.hoons.state == 'HUNTING' and pack.ROAD_DOING[self.hoons.phase] or nil }
     end
     if self.pack then
       v.addHoonAllowed = self.state == 'RUNNING' and #self.pack.hoons < pack.MAX
       v.clearHoonsAllowed = #self.pack.hoons > 0
-      v.pack = { hoons = self.pack:view(), max = pack.MAX }
+      v.pack = { hoons = self.pack:view(), max = pack.MAX, mode = self.pack.mode }
     end
     -- The nearest Hoon coming for you, for the strip: a spawned one or the road Hoon.
     local nearest = self.pack and self.pack:nearest()
@@ -860,6 +869,7 @@ function M.sendHoon() return safely(function() return ensure():sendHoon() end) e
 function M.addHoon() return safely(function() return ensure():addHoon() end) end
 function M.clearHoons() return safely(function() return ensure():clearHoons() end) end
 -- A desert Hoon's car could not follow its path (see packCar.lua).
+function M.hoonPhase(vehId, phase) return safely(function() if active then active:hoonPhase(vehId, phase) end end) end
 function M.packProblem(vehId, what) return safely(function() if active then active:packProblem(vehId, what) end end) end
 function M.uiMounted(on) return safely(function() ensure():mount(on == true) end) end
 function M.getState() return safely(function() return ensure():view() end) end

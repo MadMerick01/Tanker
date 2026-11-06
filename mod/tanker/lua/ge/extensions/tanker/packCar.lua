@@ -60,6 +60,9 @@ function M.new(hc, environment)
   end
   function p:calm(id) letGo(id); return hc:calm(id) end
   function p:place(id, x, y, z, dx, dy) return hc:put(id, x, y, z, dx, dy) end
+  function p:road(x, y, z) return hc:road(x, y, z) end
+  -- Road mode: the Hoon's own driver hunts targetId along the roads.
+  function p:chase(id, targetId) return hc:hunt(id, targetId) end
 
   -- The traffic car furthest from you, taken out of traffic, or nil.
   local function takeTraffic(me)

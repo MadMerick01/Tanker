@@ -44,6 +44,9 @@ local function fakeCar()
   function car:calm() self.calmed = self.calmed + 1 end
   function car:release(id, source) self.released[#self.released + 1] = { id = id, source = source }; self.cars[id] = nil end
   function car:removeAll() self.removedAll = true end
+  function car:road(x, y, z) if self.onRoad then return { x = x, y = y, z = z, metres = 0 } end end
+  car.chases = {}
+  function car:chase(id, target) self.chases[#self.chases + 1] = { id = id, target = target } end
   return car
 end
 -- Random: the low end, except coin flips (0 to 1), which the test sets.
@@ -237,6 +240,9 @@ T.eq(c:view().nearestHoon, c.pack:nearest(), 'the strip shows the nearest Hoon')
 local hit = c.pack.hoons[1].id
 for _ = 1, P.SHOTS_TO_STOP do c:vrHit(hit, false) end
 T.eq(c.pack.hoons[1].state, 'DOWN', 'the revolver stops a desert Hoon')
+c:hoonPhase(c.pack.hoons[2].id, 'BRAKE_CHECK')
+T.eq(c.pack.hoons[2].phase, 'BRAKE_CHECK', 'the driver\'s reports reach the Hoon')
+T.check(c:view().pack.mode ~= nil, 'the Rig tab shows the mode')
 T.eq(c:clearHoons(), true, 'clear'); T.eq(#c.pack.hoons, 0, 'all gone'); T.eq(c.feedback, P.LINES.cleared, 'and says so')
 c:packProblem(101, 'no_script_ai'); c:packProblem(101, 'no_script_ai')
 c:shutdown()
@@ -285,5 +291,33 @@ id = pc:take({ id = 7, x = 0, y = 0, z = 0 })
 T.eq(id, 50, 'then the hidden car, reused, not loaded again')
 pc:removeAll()
 T.eq(removed[#removed], 50, 'loaded cars removed when Tanker goes')
+
+-- Road and desert modes: on a road for 5 s, the Hoons drive themselves (overtake, cut in,
+-- brake-check); off road for 5 s, back to the slots.
+local car6 = fakeCar()
+car6.onRoad = true
+local p6 = P.new(car6, random)
+T.eq(p6:add(0), P.LINES.arrivedRoad, 'on the road, a Hoon comes up the road behind you')
+local h6 = p6.hoons[1]
+T.eq(h6.state, 'ROAD', 'in road mode'); T.eq(car6.chases[1].target, 7, 'its own driver hunts you')
+T.eq(car6.cars[h6.id].y, -P.ROAD_START_METRES, 'put on the road behind you')
+p6:steer(1)
+T.eq(car6.paths[h6.id], nil, 'not steered to a slot')
+T.eq(p6:roadPhase(h6.id, 'PASS'), true, 'its driver says what it is doing')
+T.eq(p6:view()[1].doing, P.ROAD_DOING.PASS, 'and the HUD shows it')
+car6.onRoad = nil
+local l6 = run(p6, 1, P.MODE_SECONDS - 1)
+T.eq(h6.state, 'ROAD', 'a few seconds off road changes nothing')
+l6 = run(p6, 1 + P.MODE_SECONDS - 0.5, 2)
+T.check(has(l6, P.LINES.desertMode), 'off road for 5 s: desert mode'); T.eq(h6.state, 'CIRCLING', 'back to the slots')
+T.eq(P.SLOTS[h6.slot].far, true, 'at a far slot'); T.check(car6.paths[h6.id] ~= nil, 'driven to it')
+car6.onRoad = true
+l6 = run(p6, 20, P.MODE_SECONDS + 1)
+T.check(has(l6, P.LINES.roadMode), 'on the road for 5 s: road mode again'); T.eq(h6.state, 'ROAD', 'driving itself')
+T.eq(#car6.chases, 2, 'hunting you on the road again')
+car6.onRoad = nil
+local p7 = P.new(fakeCar(), random)
+p7:add(0)
+T.eq(p7.mode, 'desert', 'off road, a new Hoon starts in desert mode'); T.eq(p7.hoons[1].state, 'CIRCLING', 'circling')
 
 T.done('pack')

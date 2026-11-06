@@ -112,16 +112,45 @@ T.eq(D.speedPlan({ { x = 0, y = 0 }, { x = 0, y = 50 } }, 1, 12)[2], 12, 'the en
 local px, py, i = D.along(road, 3, 50, 25)
 T.near(px, 0, 1e-6, 'along the route from beside it'); T.near(py, 75, 1e-6, '25 m on'); T.eq(i, 9, 'and which point is next')
 
--- Chasing: along the route, slowing for the corner ahead; close and ahead, it rams.
+-- Catching up along the route, slowing for the corner ahead.
 local chaser = car(25)
-local aim1 = D.chaseAim(chaser, road, speeds, { x = 20, y = 230, vx = 10, vy = 0 })
+local aim1 = D.routeAim(chaser, road, speeds)
 T.eq(aim1.x, 0, 'follows the road'); T.near(aim1.y, 25 * D.LOOK_SECONDS, 1e-6, 'looking ahead with its speed')
 local late = car(25, { y = 185 })
-T.check(D.chaseAim(late, road, speeds, { x = 20, y = 230, vx = 10, vy = 0 }).speed < 25, 'slows for the corner coming up')
-local ram = D.chaseAim(car(20), road, speeds, { x = 2, y = 20, vx = 0, vy = 15 })
-T.eq(ram.x, 2, 'close and ahead: straight at you'); T.eq(ram.y, 27.5, 'where you will be')
-T.eq(ram.speed, 15 + D.RAM_MPS, 'a little faster than you, to hit')
-T.eq(D.chaseAim(car(20), nil, nil, { x = 100, y = 300 }).x, 100, 'off road it drives straight at you')
+T.check(D.routeAim(late, road, speeds).speed < 25, 'slows for the corner coming up')
+
+-- The road attack: you drive north at 20 m/s from the origin. No ramming: it overtakes on the
+-- right, cuts in front, brake-checks, and does it again.
+local you = { x = 0, y = 0, vx = 0, vy = 20 }
+local rs = {}
+local far, phase = D.roadAttack(rs, car(25, { y = -300 }), road, speeds, you, 0.1)
+T.eq(phase, 'CATCH', 'far behind, it catches up'); T.eq(far.x, 0, 'along the road')
+local a2
+a2, phase = D.roadAttack(rs, car(25, { y = -40 }), road, speeds, you, 0.1)
+T.eq(phase, 'PASS', 'close behind, it overtakes'); T.eq(a2.x, D.PASS_SIDE, 'in the lane to your right')
+T.eq(a2.speed, 20 + D.PASS_MPS, 'faster than you'); T.check(a2.y > -40, 'heading up past you')
+a2, phase = D.roadAttack(rs, car(28, { x = 3.5, y = 0 }), road, speeds, you, 0.1)
+T.eq(phase, 'PASS', 'still alongside, still passing')
+a2, phase = D.roadAttack(rs, car(28, { x = 3.5, y = D.CUT_AHEAD + 1 }), road, speeds, you, 0.1)
+T.eq(phase, 'CUT_IN', 'clear of your front, it cuts in'); T.eq(a2.x, 0, 'into your lane')
+local inFront = car(20, { y = D.CUT_AHEAD })
+for _ = 1, 9 do a2, phase = D.roadAttack(rs, inFront, road, speeds, you, 0.1) end
+T.eq(phase, 'CUT_IN', 'settles in front first')
+for _ = 1, 3 do a2, phase = D.roadAttack(rs, inFront, road, speeds, you, 0.1) end
+T.eq(phase, 'BRAKE_CHECK', 'then brake-checks'); T.near(a2.speed, 20 * D.BRAKE_SHARE, 1e-6, 'hard')
+for _ = 1, 16 do a2, phase = D.roadAttack(rs, inFront, road, speeds, you, 0.1) end
+T.eq(phase, 'RECOVER', 'then drives on'); T.check(a2.speed > 15, 'back up to speed')
+for _ = 1, 41 do a2, phase = D.roadAttack(rs, inFront, road, speeds, you, 0.1) end
+T.eq(phase, 'CUT_IN', 'and lines up to do it again')
+a2, phase = D.roadAttack(rs, car(20, { y = -5 }), road, speeds, you, 0.1)
+T.eq(phase, 'PASS', 'if you get past, it overtakes again')
+-- You stop: it parks in front of you.
+a2, phase = D.roadAttack(rs, car(5, { y = 12 }), road, speeds, { x = 0, y = 0, vx = 0, vy = 0, fx = 0, fy = 1 }, 0.1)
+T.eq(phase, 'BLOCK', 'you stop, it blocks you'); T.eq(a2.speed, 0, 'parked in front')
+-- No route: it still catches up, from behind you.
+local nr = {}
+a2, phase = D.roadAttack(nr, car(20, { y = -300 }), nil, nil, you, 0.1)
+T.eq(phase, 'CATCH', 'catching up with no route'); T.eq(a2.y, -D.FOLLOW_BEHIND, 'aiming behind you'); T.eq(a2.speed, 20 + D.CATCH_MPS, 'fast')
 
 -- In a pretend car: Tanker's commands drive it with the game's inputs.
 local sent, gearbox, aiMode, ge = {}, nil, nil, {}
@@ -154,6 +183,7 @@ D.chase(7)
 for _ = 1, 30 do D.updateGFX(1 / 60) end
 T.check(math.abs(sent.steering) < 0.05, 'chasing up a straight road, wheel straight')
 T.check(sent.throttle > 0, 'and on the throttle')
+T.check(ge[#ge]:find('hoonPhase(50, "CATCH")', 1, true) ~= nil, 'and tells Tanker what it is doing')
 D.stop()
 T.eq(gearbox, 'realistic', 'the gearbox is put back'); T.eq(sent.throttle, 0, 'pedals off'); T.eq(D.active(), false, 'let go')
 D.updateGFX(1 / 60)
