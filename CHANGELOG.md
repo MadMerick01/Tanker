@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Tanker now calls itself an open-world, long-haul road warrior simulation.** The start page shows it under the title with the new line "Raid tankers, fight off Hoons, keep your tanks full and push on.", and the app's description in BeamNG's app list says the same and adds that it's built for VR, triples and telemetry. Nothing else in the game changes, and your save still works.
+
 ## Build 15 · 3 Nov 2026
 
 - **After you press Pay on the parts bill, you're back on your normal camera.** The parts menu closed itself but left you in the free camera, so you had to press Shift+C to get back. Now you return to the camera you were driving with. Your save still works.

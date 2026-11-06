@@ -6,7 +6,9 @@ Status: **playable skeleton**: the start at Kulgera, fuel, saving, the HUD strip
 
 ## The pitch
 
-A hardcore post-apocalyptic trucking game for BeamNG.drive, played across the real Australian outback on [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth). Rowan set out the vision on 2 Nov:
+**Tanker: an open-world, long-haul road warrior simulation.** *Raid tankers, fight off Hoons, keep your tanks full and push on.* Built for VR, triples and telemetry. (Rowan, 6 Nov. Rowan turned down "survival", "roguelike", "combat" and "challenge" as the label: sim racers are here to drive, not to play a shooter.)
+
+It is played on BeamNG.drive, across the real Australian outback on [BeamNG.Earth](https://github.com/TecnaGamer/BeamNG.Earth). Rowan set out the vision on 2 Nov:
 
 - You start in a small ute with a fluid tank in the bed holding enough fuel for about 200 km, at **Kulgera Roadhouse**, south of Alice Springs in the desert. You can move fuel between the fluid tank and the vehicle's own tank.
 - You must get to Pine Gap for the realignment codes that stop the AI, then to Monaco (this may change) to enter them in the mainframe.
