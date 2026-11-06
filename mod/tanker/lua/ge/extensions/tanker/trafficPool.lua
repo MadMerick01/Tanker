@@ -1,7 +1,8 @@
 -- Tanker's traffic: BeamNG's own traffic, but holding only Tanker's cars (Rowan, 6 Nov). Once the
 -- run is on the road, traffic is set up with a pool of HoonOld1s and TankerMobs and nothing else,
--- which loads them all in one go. Any normal traffic already running is cleared first, and if
--- normal traffic turns up later (from the game's own menu, say) it is replaced by Tanker's again.
+-- which loads them all in one go, once. Any normal traffic already running is cleared first. A
+-- normal traffic car that turns up later (from the game's own menu, say) is deleted on its own:
+-- traffic is never set up a second time, since that loads every car again and the game stutters.
 -- Traffic drives the pooled cars around and keeps the ones it doesn't need hidden, so when a Hoon
 -- or a TankerMob is wanted, one is taken out of traffic and put into place, which doesn't hitch.
 -- Parked cars aren't wanted either (Rowan, 6 Nov): any the game parked are deleted and parking is
@@ -16,7 +17,7 @@ M.CARS = {
 }
 -- How many pooled cars traffic shows driving around at once; the rest wait hidden.
 M.ACTIVE = 4
--- How often to look for normal traffic to replace, in seconds.
+-- How often to look for normal traffic to delete, in seconds.
 M.CHECK_SECONDS = 10
 -- How long to wait for the pool to load before Hoons load their own car instead, in seconds.
 M.WAIT_SECONDS = 20
@@ -59,7 +60,10 @@ function M.new(environment)
     local ok, d = pcall(t.getTrafficData)
     if ok and type(d) == 'table' then return d end
   end
-  local function model(id)
+  -- A car's model: from traffic's own record of it when there is one, else from the car.
+  local function model(id, v)
+    local key = type(v) == 'table' and type(v.model) == 'table' and v.model.key
+    if type(key) == 'string' then return key end
     local ok, c = pcall(env.byId, id)
     if not (ok and c) then return nil end
     local okModel, name = pcall(function() return c:getJBeamFilename() end)
@@ -72,15 +76,16 @@ function M.new(environment)
     if okPos and finite(x) and finite(y) then return x, y end
   end
 
-  -- Counts the AI cars in traffic: Tanker's, and any others (normal traffic).
+  -- Counts the AI cars in traffic: Tanker's, and lists any others (normal traffic) by id.
   local function count(d)
-    local mine, other = 0, 0
+    local mine, others = 0, {}
     for id, v in pairs(d) do
       if type(id) == 'number' and type(v) == 'table' and v.isAi then
-        if ours(model(id)) then mine = mine + 1 else other = other + 1 end
+        local name = model(id, v)
+        if ours(name) then mine = mine + 1 else others[id] = tostring(name) end
       end
     end
-    return mine, other
+    return mine, others
   end
 
   -- Deletes the game's parked cars and switches parking off. Returns how many went.
@@ -135,9 +140,17 @@ function M.new(environment)
     end
     if clock < self.nextCheck or not d then return nil end
     self.nextCheck = clock + M.CHECK_SECONDS
-    local _, other = count(d)
-    if other > 0 then
-      return setUp(t, clock) or ('replacing ' .. other .. ' normal traffic cars with Tanker\'s')
+    local _, others = count(d)
+    local gone = {}
+    for id, name in pairs(others) do
+      if type(t.removeTraffic) == 'function' then pcall(t.removeTraffic, id, true) end
+      local ok, c = pcall(env.byId, id)
+      if ok and c then pcall(function() c:delete() end) end
+      gone[#gone + 1] = name
+    end
+    if #gone > 0 then
+      table.sort(gone)
+      return 'deleted ' .. #gone .. ' normal traffic cars: ' .. table.concat(gone, ', ')
     end
   end
 
@@ -153,7 +166,7 @@ function M.new(environment)
     if not d then return nil end
     local best, bestMetres
     for id, v in pairs(d) do
-      if type(id) == 'number' and type(v) == 'table' and v.isAi and model(id) == name then
+      if type(id) == 'number' and type(v) == 'table' and v.isAi and model(id, v) == name then
         local cx, cy = position(id)
         local metres = cx and math.sqrt((cx - (x or 0)) ^ 2 + (cy - (y or 0)) ^ 2) or 0
         if not bestMetres or metres > bestMetres then best, bestMetres = id, metres end
