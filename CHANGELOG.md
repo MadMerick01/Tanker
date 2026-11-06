@@ -6,6 +6,13 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **The HUD is tidier and easier to read, with nothing taken away.** The strip along the top now fits on one line: the threat light turns into a pill showing how far the nearest Hoon is, and a small arrow shows whether the panel is open. The panel's tabs now run full width, and each tab is split into short sections.
+- **A new Testing tab** holds Spawn a Hoon, Clear Hoons, Spawn the TankerMob, the Hoon mode note and the Desert rocks switch, so the Rig tab is just about your rig.
+- **The Road tab** shows the trip with a progress bar, then one list of the Hoons around you with their distances lined up on the right (the same list was on the Rig tab too before). Save here, Siphon fuel and the revolver sit together below it, and the revolver row shows your loaded rounds as pips with Draw and Reload beside them. The Siphon fuel button only shows when you can siphon. Otherwise a short line says what to do.
+- **The Rig tab** shows both tanks as bars, your range, the pump buttons and your truck's name and condition. The "coming next" line is gone, and the VR revolver note only shows when you're not using mouse aiming.
+- **The Garage tab** now sums up a waiting parts bill in one box and points you to the Parts bill window in the middle of the screen to pay or undo it, instead of repeating the whole bill. The Garage tab shows a gold dot while a bill is waiting.
+- Messages from the game now sit in a highlighted line at the bottom of the panel. Your save still works, and there's nothing to do except download the new tanker.zip.
+
 ## Build 32 · 6 Nov 2026
 
 - **Hoons now steer round solid bushes, rocks and trees.** In the desert a Hoon looks ahead for anything solid in its path and swerves round it, easing off if it's right in front. Hillsides don't count. A Hoon going for a sideswipe still holds its line.

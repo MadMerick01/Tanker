@@ -255,7 +255,9 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
       // While the mouse is over the HUD, a click is for the HUD, not a shot from the revolver.
       scope.hover = function (on) { core('hudHover(' + (on ? 'true' : 'false') + ')') }
 
-      scope.tabs = [{ id: 'road', label: 'Road' }, { id: 'rig', label: 'Rig' }, { id: 'garage', label: 'Garage' }]
+      // Road for the drive and the fight, Rig for your tanks and truck, Garage for parts, and
+      // Testing for the spawn buttons and world switches, kept out of the way of play.
+      scope.tabs = [{ id: 'road', label: 'Road' }, { id: 'rig', label: 'Rig' }, { id: 'garage', label: 'Garage' }, { id: 'testing', label: 'Testing' }]
       // Opens the game's own parts menu (Ctrl+W); the bill then shows up over it and on the Garage tab.
       scope.openPartsMenu = function () {
         if (scope.data.buyPartsAllowed !== true) return
@@ -312,6 +314,12 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
         return [1, 2, 3, 4, 5, 6].map(function (i) { return i <= loaded })
       }
       scope.threatColour = function (t) { return t === 'red' ? '#eb5757' : t === 'amber' ? '#f2994a' : '#3c403c' }
+      // A Hoon's line on the Road tab: gold when down, red when it is coming for you, orange otherwise.
+      var ATTACKING = { SWIPE: true, WINDUP: true, BOXING: true, BOX_SIDE: true, BOX_REAR: true, ROB: true }
+      scope.hoonColour = function (h) {
+        var state = h && h.state
+        return state === 'DOWN' ? '#f2c94c' : ATTACKING[state] ? '#eb5757' : '#e0823c'
+      }
 
       scope.$on('TankerState', function (event, data) {
         if (disposed || !data || typeof data.state !== 'string') return
