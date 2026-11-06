@@ -186,6 +186,59 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
     box = next
     boxKey = key
   }
+  // Drone strikes on roads (Rowan, 6 Nov): a red banner at the top of the screen counts down while
+  // you are on a road, and the drone is heard coming, then the blast. The sounds play in the page,
+  // from the mod's own files.
+  var SOUNDS = '/ui/modules/apps/Tanker/sounds/'
+  var play = function (name, volume) {
+    try {
+      if (typeof Audio === 'undefined') return
+      var a = new Audio(SOUNDS + name + '.ogg')
+      a.volume = volume == null ? 1 : volume
+      var started = a.play()
+      if (started && started.catch) started.catch(function () {})
+    } catch (e) {}
+  }
+  var heard = { strikes: null, misses: null, inbound: false }
+  var banner = null
+  var bannerKey = null
+  var closeBanner = function () {
+    if (banner && banner.parentNode) banner.parentNode.removeChild(banner)
+    banner = bannerKey = null
+  }
+  var showDrone = function (d) {
+    d = d || {}
+    var inbound = d.state === 'INBOUND'
+    if (inbound && !heard.inbound) play('drone', 1)
+    heard.inbound = inbound
+    if (typeof d.strikes === 'number') {
+      if (heard.strikes !== null && d.strikes > heard.strikes) play('blast', 1)
+      heard.strikes = d.strikes
+    }
+    if (typeof d.misses === 'number') {
+      if (heard.misses !== null && d.misses > heard.misses) play('blast', 0.35)
+      heard.misses = d.misses
+    }
+    if (!d.state || d.state === 'CLEAR') return closeBanner()
+    if (typeof document === 'undefined' || !document.body) return
+    var text = inbound ? 'DRONE INBOUND · ' + whole(d.seconds) + ' s · GET OFF THE ROAD!'
+      : d.offRoad ? 'Off the road · the AI is losing you'
+        : 'ROAD SURVEILLANCE · drone in ' + whole(d.seconds) + ' s · get off the road'
+    var key = text
+    if (banner && key === bannerKey) return
+    var next = document.createElement('div')
+    next.setAttribute('role', 'alert')
+    next.className = 'tk-drone'
+    next.textContent = text
+    next.style.cssText = 'position:fixed;top:4%;left:50%;transform:translateX(-50%);z-index:2147483647;' +
+      'padding:8px 18px;border-radius:8px;font:bold 17px/1.3 sans-serif;letter-spacing:1px;pointer-events:none;' +
+      'box-shadow:0 0 18px rgba(0,0,0,.7);color:' + (d.offRoad ? '#1a140f' : '#f1ece4') + ';background:' +
+      (inbound ? '#c0392b' : d.offRoad ? '#f2c94c' : 'rgba(150,30,20,.92)') + ';'
+    closeBanner()
+    document.body.appendChild(next)
+    banner = next
+    bannerKey = key
+  }
   return {
     templateUrl: '/ui/modules/apps/Tanker/app.html',
     replace: true,
@@ -273,6 +326,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
         })
         showBox(data, function (name) { scope.send(name) }, scope.hover)
         showBill(data, function (name) { scope.send(name) })
+        showDrone(data.drone)
       })
       mount(true)
       var heartbeat = setInterval(function () {
@@ -291,6 +345,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
         clearInterval(heartbeat)
         closeBox()
         closeBill()
+        closeBanner()
         if (startPage && startPage.parentNode) startPage.parentNode.removeChild(startPage)
         scope.hover(false)
         mount(false)

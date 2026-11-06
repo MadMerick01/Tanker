@@ -6,6 +6,9 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **The rogue AI now watches the roads, and sends drones.** Stay on a road for more than 30 seconds and a drone hits you: you hear it coming for the last 5 seconds, then an explosion beside your truck damages it and may burst a tyre. A banner at the top of the screen counts down once you've been on a road for 5 seconds, so crossing a road is safe. Stay on the road and another drone comes 20 seconds later. Get off the road before it arrives and it misses. Stay off the road for 5 seconds and the AI loses you, and the count starts again. Tanker is meant to be played off road, so build a truck that can handle it and navigate by compass.
+- Your save still works, and there's nothing to do except download the new tanker.zip.
+
 ## Build 30 · 6 Nov 2026
 
 - **Hoons now cut you off when you turn.** In the desert, a Hoon reads how fast you're turning and heads for where you'll be by the time it gets there. It cuts across the inside of your turn instead of chasing round the outside, so a hard turn no longer shakes them off.

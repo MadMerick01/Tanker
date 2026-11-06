@@ -20,7 +20,8 @@ class PackageTest(unittest.TestCase):
             for name in ('scripts/tanker/modScript.lua', 'lua/ge/extensions/tanker/core.lua',
                          'lua/ge/extensions/tanker/wrist.lua', 'ui/modules/apps/Tanker/app.json',
                          'ui/modules/apps/Tanker/app.js', 'ui/modules/apps/Tanker/app.html',
-                         'ui/modules/apps/Tanker/app.png', 'README.md', 'CHANGELOG.md', 'docs/DESIGN.md', 'config.example.json'):
+                         'ui/modules/apps/Tanker/app.png', 'ui/modules/apps/Tanker/sounds/drone.ogg',
+                        'ui/modules/apps/Tanker/sounds/blast.ogg', 'lua/ge/extensions/tanker/drone.lua', 'README.md', 'CHANGELOG.md', 'docs/DESIGN.md', 'config.example.json'):
                 self.assertIn(name, names)
             self.assertFalse(any(n.startswith(('settings/', 'tests/', 'tools/', 'tanker/')) for n in names))
             self.assertFalse(any(n.endswith(('.pyc', 'save-a.json', 'save-b.json')) for n in names))

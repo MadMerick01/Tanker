@@ -17,6 +17,7 @@ local wrist = require('tanker/wrist')
 local vehicle = require('tanker/vehicle')
 local siphon = require('tanker/siphon')
 local robbery = require('tanker/robbery')
+local drone = require('tanker/drone')
 local nearby = require('tanker/nearby')
 local hoons = require('tanker/hoons')
 local hoonCar = require('tanker/hoonCar')
@@ -72,6 +73,8 @@ function M.new(env)
   c.hoons = env.hoonCar and hoons.new(env.hoonCar, env.random)
   -- The desert Hoons, for now only from the spawn button: they circle you and take turns attacking.
   c.pack = env.packCar and pack.new(env.packCar, env.random)
+  -- Drone strikes on roads.
+  c.drone = env.drone
   -- The flatscreen revolver: mouse aiming when there is no VR.
   c.aim, c.gun = env.aim, revolver.new()
   c.tankerMob = env.tankerMob
@@ -292,6 +295,17 @@ function M.new(env)
     end
     local car, me = self.nearby:closest(nil, self.foot and self.truckId or nil)
     self.near = car and me and { id = car.id, metres = car.metres, speed = me.speed } or nil
+  end
+
+  -- Each half second: the rogue AI watches the roads, and sends a drone if you stay on one.
+  function c:followDrone()
+    if not self.drone then return end
+    if self.state ~= 'RUNNING' then
+      if self.drone.since or self.drone.blastUntil then self.drone:clear() end
+      return
+    end
+    local line = self.drone:step(self.clock, self.drone:onRoad())
+    if line then self.feedback = line; self.diag:event('drone', line) end
   end
 
   -- Each half second: a Hoon robs you if you can't move.
@@ -676,6 +690,7 @@ function M.new(env)
     self:followTraffic()
     self:followHoons()
     self:followPack()
+    self:followDrone()
     self:followRobbery()
     self:followPump()
     -- On foot, the parts and the fuel are your parked truck's.
@@ -763,6 +778,7 @@ function M.new(env)
       v.pumping = self.transfer:direction()
     end
     v.tankerSpawnAllowed = self.tankerMob ~= nil and self.state == 'RUNNING'
+    if self.drone and self.state == 'RUNNING' then v.drone = self.drone:view(self.clock) end
     if self.hoons then
       v.hoonTestAllowed = self.state == 'RUNNING' and self.hoons.state == 'HIDDEN'
       v.hoon = { state = self.hoons.state, metres = self.hoons:outId() and self.hoons.metres or nil,
@@ -857,6 +873,8 @@ function M.new(env)
       self:publish()
     end
     if self.pack and self.state == 'RUNNING' then self.pack:steer(self.clock) end
+    -- A drone's blast lasts a fraction of a second: ended on time, not at the next sample.
+    if self.drone and self.drone.blastUntil and self.clock >= self.drone.blastUntil then self.drone:blastOff() end
     if self.watchCamera then self:watchCamera() end
     self:drawWrist()
   end
@@ -870,6 +888,7 @@ function M.new(env)
     if self.hoons then self.hoons:remove() end
     if self.pack then self.pack:remove() end
     if self.tankerMob then self.tankerMob:remove() end
+    if self.drone then self.drone:clear() end
     if self.adapter.restoreRocks then self.adapter:restoreRocks() end
   end
 
@@ -915,7 +934,7 @@ local function ensure()
   if not active then
     local pool = trafficPool.new()
     active = M.new({ io = gameIO(), adapter = earthAdapter.new(), fuel = fuel.new(), pistol = pistol.new(),
-      vehicles = vehicle.new(), nearby = nearby.new(), hoonCar = hoonCar.new(nil, pool), bed = bedTank.new(), parts = parts.new(),
+      vehicles = vehicle.new(), nearby = nearby.new(), drone = drone.new(), hoonCar = hoonCar.new(nil, pool), bed = bedTank.new(), parts = parts.new(),
       aim = aim.new(), tankerMob = tankerMob.new(hoonCar.new(nil, pool)), packCar = packCar.new(hoonCar.new(nil, pool)),
       trafficPool = pool,
       log = rawget(_G, 'log'), drawTri = drawTri, camera = gameCamera(),
