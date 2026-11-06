@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Hoons now box you in as a team.** When two or more Hoons are out, they work together. One gets in front of you, the others close in on your left and right (and one behind you when there are four). They wait until everyone is alongside, then all slow down together to squeeze you to a stop. You're told when they start and when they close the box. Shoot the lead Hoon and another takes its place, so the box carries on. A Hoon on its own no longer tries to box you; it swipes instead.
+
 - **Hoons no longer brake when they change spot around you, so they don't get left behind at speed.** While a Hoon sizes you up, it now only ever moves forwards: from behind you up to your front, or across in front of your nose to your other side, speeding up to get there. When it does need to drop back, it eases off the throttle instead of braking. Your save still works.
 - **Fixed Hoons falling hundreds of metres behind you.** A Hoon that overshot its spot used to turn right round and crawl back to it, ending up 200 to 400 m back, where it could vanish. Now it eases off and lets its spot come back to it. The two spots behind you are also closer in: about 30 m from you instead of 60 m.
 

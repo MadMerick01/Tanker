@@ -191,8 +191,17 @@ local side = lead == a and b or a
 T.eq(lead.state, 'BOXING', 'one Hoon leads'); T.eq(side.state, 'BOX_SIDE', 'the other sits beside you')
 local lp = car2.paths[lead.id]
 T.eq(lp.slotX, 0, 'the lead is right in front'); T.eq(lp.slotY, P.HALF_LENGTH + P.BOX_AHEAD, 'a few metres ahead')
-p2:steer(500)
+p2:steer(boxed + 0.1)
+T.check(car2.paths[lead.id].speed >= car2.me.speed, 'gathering: the lead runs at your speed while the other gets alongside')
+local squeezed
+for t = boxed + 0.5, boxed + P.GATHER_SECONDS + 1, 0.5 do
+  if p2:step(t) == P.LINES.squeeze then squeezed = t break end
+end
+T.check(squeezed ~= nil and squeezed - boxed < P.GATHER_SECONDS, 'once the other is alongside, they squeeze')
+p2:steer(squeezed + 0.3)
 T.near(car2.paths[lead.id].speed, car2.me.speed * P.BOX_SLOW, 0.01, 'and slower than you')
+T.near(car2.paths[side.id].speed, car2.me.speed * P.BOX_SLOW, 1.0, 'both of them together')
+boxed = squeezed
 car2.me.speed = 0
 lines = run(p2, boxed + 0.5, P.BOXED_SECONDS + 1)
 T.check(has(lines, P.LINES.boxed), 'stopped, you are boxed in')
@@ -214,6 +223,48 @@ car2.cars[lead.id].y, car2.cars[side.id].y = 401, 401
 run(p2, 101, 0.5)
 T.eq(#p2.hoons, 0, 'and are given back once you are more than 400 m away')
 car2.frozen = nil
+
+-- A team box: with four Hoons, one leads in front, one on each side and one behind, and they
+-- keep the box going if one is lost.
+local car5 = fakeCar()
+coin = 0.1
+local p5 = P.new(car5, random)
+for _ = 1, 4 do p5:add(0) end
+local teamLine
+for t = 0.5, 20, 0.5 do
+  local l = p5:step(t)
+  if l == P.LINES.teamBox(4) then teamLine = t break end
+end
+T.check(teamLine ~= nil, 'four Hoons work together to box you in')
+local roles = {}
+for _, o in ipairs(p5.hoons) do roles[o.state] = (roles[o.state] or 0) + 1 end
+T.eq(roles.BOXING, 1, 'one leads in front'); T.eq(roles.BOX_SIDE, 2, 'two beside you')
+T.eq(roles.BOX_REAR, 1, 'one behind you')
+local sides = {}
+for _, o in ipairs(p5.hoons) do if o.state == 'BOX_SIDE' then sides[o.side] = true end end
+T.check(sides[1] and sides[-1], 'one on each side')
+local leader
+for _, o in ipairs(p5.hoons) do if o.state == 'BOXING' then leader = o end end
+local squeezedAt
+for t = teamLine + 0.5, teamLine + P.GATHER_SECONDS + 1, 0.5 do
+  if p5:step(t) == P.LINES.squeeze then squeezedAt = t break end
+end
+T.check(squeezedAt ~= nil, 'they squeeze together')
+p5:shot(leader.id); p5:shot(leader.id); p5:shot(leader.id); p5:shot(leader.id)
+T.eq(leader.state, 'DOWN', 'you shoot the lead down')
+local newLead, still = nil, 0
+for _, o in ipairs(p5.hoons) do
+  if o.state == 'BOXING' then newLead = o end
+  if o.state == 'BOX_SIDE' or o.state == 'BOX_REAR' then still = still + 1 end
+end
+T.check(newLead ~= nil and newLead ~= leader, 'a helper takes over the lead')
+T.eq(newLead.squeeze, true, 'and keeps squeezing'); T.eq(still, 2, 'the rest stay in the box')
+p5:step(squeezedAt + 1)
+for _, o in ipairs(p5.hoons) do if o.lead then T.eq(o.lead, newLead, 'following the new lead') end end
+local onlyOne = P.new(fakeCar(), random)
+onlyOne:add(0)
+for t = 0.5, 20, 0.5 do onlyOne:step(t) end
+T.check(onlyOne.hoons[1].state ~= 'BOXING', 'a Hoon on its own never boxes, it swipes')
 
 -- Stuck while you drive: down. Getting away: lost. Gone: forgotten. Full: no more.
 local car3 = fakeCar()
