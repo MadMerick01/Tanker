@@ -23,11 +23,16 @@ M.MAX = 4
 M.NEAR_SIDE, M.FAR_SIDE, M.FAR_BEYOND, M.HALF_LENGTH = 10, 60, 10, 3
 -- A Hoon is at a far slot within this many metres of it, at a near slot within NEAR_ARRIVE.
 M.FAR_ARRIVE, M.NEAR_ARRIVE = 15, 6
--- How much faster than you a Hoon closes on its slot, in metres a second, and the shortest
--- time it is given to get there, in seconds.
-M.CATCH_UP_MPS, M.MIN_LEG_SECONDS = 12, 2
--- How often a Hoon's path to its slot is worked out again, in seconds.
-M.REPLAN_SECONDS = 1
+-- Driving to a slot uses BeamNG's own "drive at this point at this speed" AI (slotTraffic), fed
+-- a new point and speed every STEER_SECONDS (the AI stops if it gets none for half a second).
+-- The speed is yours, plus GAIN metres a second for every metre the Hoon is behind its slot
+-- along your heading (less if it is ahead), plus SIDE_GAIN for every metre it is out to the
+-- side, but never more than CATCH_UP_MPS faster than you. The point is LEAD_SECONDS of your
+-- speed beyond the slot (between MIN_LEAD and MAX_LEAD metres), so the Hoon runs alongside you
+-- instead of turning in at the slot.
+M.STEER_SECONDS = 0.2
+M.GAIN, M.SIDE_GAIN, M.CATCH_UP_MPS = 0.6, 0.15, 15
+M.LEAD_SECONDS, M.MIN_LEAD, M.MAX_LEAD = 1, 6, 25
 -- Crossing in front of or behind you from one side to the other, a Hoon swings this many metres
 -- further out ahead or behind, so it doesn't cut across your nose.
 M.CROSS_METRES = 30
@@ -155,37 +160,33 @@ function M.new(car, random)
     return right, ahead, 1
   end
 
-  -- Sends the Hoon its path: from where it is, maybe round the front or back, to its slot, then
-  -- on beside you at your speed, so it keeps pace once there.
-  local function drive(h, me, st, clock)
-    if h.replanAt and clock < h.replanAt then return end
-    h.replanAt = clock + M.REPLAN_SECONDS
-    local right, ahead, slow = target(h)
-    local speed = (me.speed or 0) * slow
-    local tx, ty = M.at(me, right, ahead, 0, speed)
-    local leg = math.max(M.MIN_LEG_SECONDS, distance2d(st.x, st.y, tx, ty) / M.CATCH_UP_MPS)
-    local points = { { x = st.x, y = st.y, z = st.z, t = 0 } }
-    local function add(r, a, t)
-      local x, y = M.at(me, r, a, t, speed)
-      points[#points + 1] = { x = x, y = y, z = car:ground(x, y, me.z) or me.z, t = t }
-    end
-    -- Crossing to the other side: swing out further ahead or behind, halfway there.
-    local hr, ha = st.right or 0, st.ahead or 0
-    if hr * right < 0 and math.abs(hr) > M.NEAR_SIDE and math.abs(right) > M.NEAR_SIDE then
-      local sign = (ahead + ha) >= 0 and 1 or -1
-      add(0, sign * (math.max(math.abs(ahead), math.abs(ha)) + M.CROSS_METRES), leg / 2)
-    end
-    add(right, ahead, leg)
-    add(right, ahead, leg + 3)
-    add(right, ahead, leg + 6)
-    car:goTo(h.id, points)
-  end
-
   -- Where the Hoon is from you: metres to your right and ahead.
   local function relative(me, st)
     local x, y = st.x - me.x, st.y - me.y
     st.ahead = x * me.dx + y * me.dy
     st.right = x * me.dy - y * me.dx
+  end
+
+  -- Tells the Hoon where to drive now and how fast: its slot, or round the front or back of you
+  -- first when it is crossing to your other side.
+  local function drive(h, me, st, clock)
+    if h.replanAt and clock < h.replanAt then return end
+    h.replanAt = clock + M.STEER_SECONDS
+    relative(me, st)
+    local right, ahead, slow = target(h)
+    local mine = me.speed or 0
+    local aimRight, aimAhead = right, ahead
+    local hr, ha = st.right, st.ahead
+    if hr * right < 0 and math.abs(hr) > M.NEAR_SIDE and math.abs(right) > M.NEAR_SIDE then
+      local sign = (ahead + ha) >= 0 and 1 or -1
+      aimRight, aimAhead = 0, sign * (math.max(math.abs(ahead), math.abs(ha)) + M.CROSS_METRES)
+    end
+    local speed = mine * slow + M.GAIN * (aimAhead - ha) + M.SIDE_GAIN * math.abs(aimRight - hr)
+    speed = math.max(0, math.min(speed, mine + M.CATCH_UP_MPS))
+    local lead = math.max(M.MIN_LEAD, math.min(M.MAX_LEAD, mine * M.LEAD_SECONDS))
+    local x, y = M.at(me, aimRight, aimAhead + lead, 0)
+    local sx, sy = M.at(me, right, ahead, 0)
+    car:goTo(h.id, { x = x, y = y, z = car:ground(x, y, me.z) or me.z, speed = speed, slotX = sx, slotY = sy })
   end
 
   local function arrived(h, me, st)
@@ -366,6 +367,19 @@ function M.new(car, random)
       end
     end
     return line
+  end
+
+  -- Called every frame: keeps each moving Hoon's point and speed fresh.
+  function p:steer(clock)
+    if #self.hoons == 0 then return end
+    local me = car:player()
+    if not me then return end
+    for _, h in ipairs(self.hoons) do
+      if h.state ~= 'SWIPE' and h.state ~= 'DOWN' then
+        local st = car:state(h.id)
+        if st then drive(h, me, st, clock) end
+      end
+    end
   end
 
   local function find(id)

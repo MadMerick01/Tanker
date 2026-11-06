@@ -49,6 +49,8 @@ if ai then
   pcall(ai.setAggression, 1)
   pcall(ai.setAvoidCars, 'off')
   pcall(ai.setSpeedMode, 'off')
+  -- With Rowan's smartAI mod installed, drive like a person on open roads.
+  if ai.setSmartProfile then pcall(ai.setSmartProfile, 'moonhawk_country') end
 end
 ]]
 local STOP = [[if ai then pcall(ai.setMode, 'disabled') end]]

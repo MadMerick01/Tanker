@@ -3,8 +3,8 @@
 -- place, which doesn't hitch. With no traffic car to take, the Hoon's own muscle car is loaded
 -- (once per extra Hoon; loading a car mid-drive hitches) and kept hidden for next time.
 --
--- Moving to a slot uses BeamNG's script AI, which drives a timed path anywhere, road or no road.
--- An attack uses BeamNG's chase AI aimed at you. Every game call is guarded: a missing or changed
+-- Moving to a slot uses BeamNG's slotTraffic AI, which drives at a point at a speed, road or no
+-- road. An attack uses BeamNG's chase AI aimed at you. Every game call is guarded: a missing or changed
 -- one means no Hoon, never an error.
 local M = {}
 
@@ -15,34 +15,18 @@ local function defaults()
   }
 end
 
--- Runs inside a Hoon's car: follow a timed path (x, y, z, t). The script is given both as a list
--- and as .path, since BeamNG versions have read it either way. With no script AI in the game, it
--- tells Tanker once.
-local FOLLOW = [[
-if ai and ai.startFollowing then
-  pcall(ai.setAvoidCars, 'off')
-  local path = %s
-  local script = { path = path, loopCount = 0, loopType = 'never' }
-  for i, p in ipairs(path) do script[i] = p end
-  local ok = pcall(ai.startFollowing, script, 0, 0, 'never')
-  if not ok and obj then obj:queueGameEngineLua('if tanker_core then tanker_core.packProblem(%d, "script_ai_failed") end') end
+-- Runs inside a Hoon's car: drive at this point at this speed, with BeamNG's slotTraffic AI.
+-- It must hear again within half a second or it slows to a stop. With no such AI in the game, it
+-- tells Tanker (once is enough; Tanker logs each problem once).
+local SLOT = [[
+if ai and ai.setSlotTrafficTarget then
+  pcall(ai.setSlotTrafficTarget, %.2f, %.2f, %.2f, %.2f)
 elseif obj then
-  obj:queueGameEngineLua('if tanker_core then tanker_core.packProblem(%d, "no_script_ai") end')
+  obj:queueGameEngineLua('if tanker_core then tanker_core.packProblem(%d, "no_slot_traffic_ai") end')
 end
 ]]
 
 local function finite(n) return type(n) == 'number' and n == n and n > -math.huge and n < math.huge end
-
--- The path as Lua source, for the command above.
-function M.pathSource(points)
-  local parts = {}
-  for _, p in ipairs(points) do
-    if finite(p.x) and finite(p.y) and finite(p.z) and finite(p.t) then
-      parts[#parts + 1] = string.format('{x=%.2f,y=%.2f,z=%.2f,t=%.2f}', p.x, p.y, p.z, p.t)
-    end
-  end
-  return '{' .. table.concat(parts, ',') .. '}'
-end
 
 -- hc is hoonCar: the player, the ground, and switching a car on, off, placing and hunting.
 function M.new(hc, environment)
@@ -100,10 +84,11 @@ function M.new(hc, environment)
     return id, 'own'
   end
 
-  function p:goTo(id, points)
+  -- aim: x, y, z to drive at and speed in metres a second.
+  function p:goTo(id, aim)
     local c = car(id)
-    if not c then return false end
-    return (pcall(function() c:queueLuaCommand(string.format(FOLLOW, M.pathSource(points), id, id)) end))
+    if not (c and aim and finite(aim.x) and finite(aim.y) and finite(aim.z) and finite(aim.speed)) then return false end
+    return (pcall(function() c:queueLuaCommand(string.format(SLOT, aim.x, aim.y, aim.z, aim.speed, id)) end))
   end
 
   -- Gives a traffic car back to traffic (which moves it on once you are out of sight), or hides

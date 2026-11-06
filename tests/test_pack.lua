@@ -34,12 +34,10 @@ local function fakeCar()
     return self.next, source
   end
   function car:place(id, px, py, pz) self.cars[id] = { x = px, y = py, z = pz, speed = 20 }; return true end
-  function car:goTo(id, points)
-    self.paths[id] = points
-    local p = points[#points - 2]
-    -- Where that point is now: the path runs ahead with you.
-    local go = self.me.speed * p.t
-    if not self.frozen then self.cars[id].x, self.cars[id].y = p.x - self.me.dx * go, p.y - self.me.dy * go end
+  -- Pretend the Hoon gets to its slot at once.
+  function car:goTo(id, aim)
+    self.paths[id] = aim
+    if not self.frozen then self.cars[id].x, self.cars[id].y = aim.slotX, aim.slotY end
     return true
   end
   function car:strike(id, target)
@@ -87,11 +85,27 @@ local farSeen = 0
 for s in pairs(seen) do if P.SLOTS[s].far then farSeen = farSeen + 1 end end
 T.eq(farSeen, P.CIRCLES[1] + 1, 'moved round the far slots like a hyena')
 T.eq(h.state, 'CLOSING', 'then closes in'); T.eq(P.SLOTS[h.slot].far, nil, 'to a near slot')
--- Every path ends level with the slot and keeps going at your speed.
-local path = car.paths[h.id]
+-- It drives at its slot, and once there keeps pace with you, aiming a little beyond the slot.
+local aim = car.paths[h.id]
 local nx, ny = slotAt(h.slot)
-T.eq(path[#path - 2].x, nx, 'the path goes to the slot'); T.eq(path[#path - 2].y, ny + car.me.speed * path[#path - 2].t, 'where it will be by then')
-T.near(path[#path].y - path[#path - 1].y, 3 * car.me.speed, 0.01, 'then keeps pace with you')
+T.eq(aim.slotX, nx, 'it drives to the slot'); T.eq(aim.slotY, ny, 'level with your front or back')
+p:steer(1000)
+aim = car.paths[h.id]
+T.near(aim.speed, car.me.speed, 0.01, 'at the slot it keeps pace with you')
+T.eq(aim.x, nx, 'running alongside'); T.near(aim.y, ny + car.me.speed * P.LEAD_SECONDS, 0.01, 'aiming a little ahead')
+car.cars[h.id].y = ny - 20
+p:steer(1001)
+T.near(car.paths[h.id].speed, car.me.speed + 20 * P.GAIN, 0.01, 'behind its slot it speeds up')
+car.cars[h.id].y = ny - 200
+p:steer(1002)
+T.eq(car.paths[h.id].speed, car.me.speed + P.CATCH_UP_MPS, 'but only so much faster than you')
+car.cars[h.id].y = ny + 50
+p:steer(1003)
+T.eq(car.paths[h.id].speed, 0, 'far past it, it lets you catch up')
+car.cars[h.id].y = ny
+p:steer(1003.1)
+T.near(car.paths[h.id].speed, 0, 0.01, 'and is only steered every few frames')
+p:steer(1004)
 
 -- At the near slot it waits, lines up (edging in), then swipes with the chase AI.
 local function runUntil(pp, from, state, limit)
@@ -106,7 +120,7 @@ local function runUntil(pp, from, state, limit)
 end
 local lines, t = runUntil(p, 30.5, function() return h.state == 'WINDUP' end)
 T.eq(h.state, 'WINDUP', 'lines up'); T.check(has(lines, P.LINES.windup(h.slot)), 'and you are told')
-T.eq(math.abs(car.paths[h.id][#car.paths[h.id] - 2].x), P.WINDUP_SIDE, 'edging in to 6 m')
+T.eq(math.abs(car.paths[h.id].slotX), P.WINDUP_SIDE, 'edging in to 6 m')
 T.eq(#car.strikes, 0, 'not striking yet')
 car.hitOnStrike = true
 lines, t = runUntil(p, t + 0.5, function() return h.state == 'CIRCLING' end)
@@ -147,8 +161,9 @@ local lead = a.state == 'BOXING' and a or b
 local side = lead == a and b or a
 T.eq(lead.state, 'BOXING', 'one Hoon leads'); T.eq(side.state, 'BOX_SIDE', 'the other sits beside you')
 local lp = car2.paths[lead.id]
-T.eq(lp[#lp - 2].x, 0, 'the lead is right in front'); T.near(lp[#lp - 2].y - car2.me.speed * P.BOX_SLOW * lp[#lp - 2].t, P.HALF_LENGTH + P.BOX_AHEAD, 0.01, 'a few metres ahead')
-T.near(lp[#lp].y - lp[#lp - 1].y, 3 * car2.me.speed * P.BOX_SLOW, 0.01, 'and slower than you')
+T.eq(lp.slotX, 0, 'the lead is right in front'); T.eq(lp.slotY, P.HALF_LENGTH + P.BOX_AHEAD, 'a few metres ahead')
+p2:steer(500)
+T.near(car2.paths[lead.id].speed, car2.me.speed * P.BOX_SLOW, 0.01, 'and slower than you')
 car2.me.speed = 0
 lines = run(p2, boxed + 0.5, P.BOXED_SECONDS + 1)
 T.check(has(lines, P.LINES.boxed), 'stopped, you are boxed in')
@@ -222,7 +237,7 @@ c:packProblem(101, 'no_script_ai'); c:packProblem(101, 'no_script_ai')
 c:shutdown()
 T.eq(car4.removedAll, true, 'the cars go with Tanker')
 
--- The game's side: a traffic car is taken, the path is sent, and it goes back to traffic.
+-- The game's side: a traffic car is taken, its point is sent, and it goes back to traffic.
 local v3 = function(px, py, pz) return { x = px, y = py, z = pz } end
 local commands, removed, inserted = {}, {}, {}
 local game = {
@@ -249,9 +264,9 @@ id = pc:take(hc.player())
 T.eq(id, 20, 'then the next one, never the same twice')
 id, source = pc:take(hc.player())
 T.eq(id, 50, 'with traffic used up, the Hoon\'s own car is loaded'); T.eq(source, 'own', 'its own')
-T.eq(pc:goTo(21, { { x = 1, y = 2, z = 3, t = 0 }, { x = 4, y = 5, z = 6, t = 2.5 } }), true, 'path sent')
-T.check(commands[#commands]:find('ai.startFollowing', 1, true) ~= nil, 'with the script AI')
-T.check(commands[#commands]:find('{x=4.00,y=5.00,z=6.00,t=2.50}', 1, true) ~= nil, 'carrying the path')
+T.eq(pc:goTo(21, { x = 4, y = 5, z = 6, speed = 22.5 }), true, 'point sent')
+T.check(commands[#commands]:find('ai.setSlotTrafficTarget, 4.00, 5.00, 6.00, 22.50', 1, true) ~= nil, 'to the slotTraffic AI')
+T.eq(pc:goTo(21, { x = 0 / 0, y = 5, z = 6, speed = 1 }), false, 'a broken point is not sent')
 local chunk = (loadstring or load)(commands[#commands])
 T.check(chunk ~= nil, 'the command is valid Lua')
 T.eq(pc:release(21, 'traffic'), true, 'given back'); T.eq(inserted[1], 21, 'to traffic')

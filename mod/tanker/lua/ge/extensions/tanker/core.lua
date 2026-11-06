@@ -736,6 +736,7 @@ function M.new(env)
       self:sample()
       self:publish()
     end
+    if self.pack and self.state == 'RUNNING' then self.pack:steer(self.clock) end
     if self.watchCamera then self:watchCamera() end
     self:drawWrist()
   end
