@@ -4,8 +4,11 @@
 -- means no Hoon, never an error.
 local M = {}
 
--- Vanilla muscle cars tried for the Hoon, in order; the first one the game has is used.
+-- The Hoon's car: Rowan's HoonOld1, a rusty Barstow (I6, welded diff, rollcage, offroad tyres),
+-- shipped in the mod under vehicles/barstow. If the game has no Barstow, a plain one of the
+-- other vanilla muscle cars, in order, is used instead.
 M.MODELS = { 'barstow', 'moonhawk', 'burnside' }
+M.CONFIGS = { barstow = 'vehicles/barstow/hoonold1.pc' }
 -- How high above the player the car waits while hidden, in metres.
 M.HIDE_LIFT = 2000
 -- A road point counts as solid when the ground under it is within this many metres of it.
@@ -115,7 +118,8 @@ function M.new(environment)
       return nil, 'spawn_unavailable'
     end
     local okPos, pos = pcall(env.vec3, me.x, me.y, me.z + M.HIDE_LIFT)
-    local ok, c = pcall(vehicles.spawnNewVehicle, name, { pos = okPos and pos or nil, autoEnterVehicle = false })
+    local ok, c = pcall(vehicles.spawnNewVehicle, name,
+      { config = M.CONFIGS[name], pos = okPos and pos or nil, autoEnterVehicle = false })
     if not ok or not c then return nil, 'spawn_failed', tostring(c) end
     local okId, id = pcall(function() return c:getID() end)
     if not okId or type(id) ~= 'number' then return nil, 'spawn_failed' end

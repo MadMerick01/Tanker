@@ -271,7 +271,7 @@ function M.new(env)
     return line ~= nil
   end
 
-  -- The Spawn a Hoon button: one more desert Hoon, from traffic, at a far slot. Pressing again
+  -- The Spawn a Hoon button: one more desert Hoon, in a HoonOld1, at a far slot. Pressing again
   -- while Hoons are out adds another, up to pack.MAX.
   function c:addHoon()
     if self.state ~= 'RUNNING' or not self.pack then return false end

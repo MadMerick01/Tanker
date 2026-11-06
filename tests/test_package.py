@@ -54,6 +54,19 @@ class PackageTest(unittest.TestCase):
         self.assertTrue(thumbnail.startswith(b'\xff\xd8'))
         self.assertIn(b"'vehicles/pickup/tankerstarter.pc'", module)
 
+    def test_hoon_car_is_packaged(self):
+        prefix = 'vehicles/barstow/'
+        with ZipFile(self.output) as archive:
+            config = json.loads(archive.read(prefix + 'hoonold1.pc'))
+            info = json.loads(archive.read(prefix + 'info_hoonold1.json'))
+            thumbnail = archive.read(prefix + 'hoonold1.jpg')
+            module = archive.read('lua/ge/extensions/tanker/hoonCar.lua')
+        self.assertEqual(config['model'], 'barstow')
+        self.assertEqual(config['parts']['barstow_rollcage'], 'barstow_rollcage')
+        self.assertEqual(info['Configuration'], config['Configuration'])
+        self.assertTrue(thumbnail.startswith(b'\xff\xd8'))
+        self.assertIn(b"'vehicles/barstow/hoonold1.pc'", module)
+
     def test_build_is_deterministic(self):
         again = build(Path(self.temp.name) / 'again.zip')
         self.assertEqual(self.output.read_bytes(), again.read_bytes())

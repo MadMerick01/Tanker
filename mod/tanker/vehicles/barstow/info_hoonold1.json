@@ -1,0 +1,12 @@
+{
+  "Config Type":"Custom",
+  "Configuration":"HoonOld1",
+  "Population":20,
+  "defaultMultiPaintSetup":{
+    "name":"hoonold1 Multi Paint Setup",
+    "paint1":"Matte Black",
+    "paint2":"Fire Red",
+    "paint3":"Gray"
+  },
+  "vehicleSelectorSubGroup":"vehiclesData.autobello.150_rally.vehicleSelectorSubGroup"
+}

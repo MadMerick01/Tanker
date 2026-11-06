@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Every Hoon now drives the HoonOld1**, a rusty old Barstow with a rollcage, a cut hood, a tube bumper and offroad tyres. That includes the Hoon that comes for you on the road and the ones from **Spawn a Hoon** on the Rig tab, which no longer borrows a car from traffic. The car comes with the mod, so you need nothing else, and you can also pick it in the vehicle menu as the Barstow's HoonOld1. Your save still works.
+
 ## Build 22 · 6 Nov 2026
 
 - **A new run now starts at Rowan's chosen spot by Kulgera** (25.85141 S, 133.27493 E), about 2.5 km south-west of the roadhouse, instead of at the roadhouse itself. **Start the run** and **Start a new game** take you there. A run you already have going carries on from where it was saved, and the drive to Pine Gap is still about 270 km.

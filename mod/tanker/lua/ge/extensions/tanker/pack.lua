@@ -233,7 +233,7 @@ function M.new(car, random)
     h.since = clock
   end
 
-  -- Gives the car back (to traffic, or hidden for next time) and forgets the Hoon.
+  -- Hides the car for next time and forgets the Hoon.
   local function release(h)
     car:release(h.id, h.source)
     for i, other in ipairs(p.hoons) do
@@ -290,7 +290,7 @@ function M.new(car, random)
     return want == 'road' and LINES.roadMode or LINES.desertMode
   end
 
-  -- Brings in one more Hoon at a free far slot, from traffic or the Hoon's own car. Returns the
+  -- Brings in one more Hoon at a free far slot, in a HoonOld1 (a hidden one, or a new one loaded). Returns the
   -- line to show, or nil and why not.
   function p:add(clock)
     if #self.hoons >= M.MAX then return nil, 'full' end

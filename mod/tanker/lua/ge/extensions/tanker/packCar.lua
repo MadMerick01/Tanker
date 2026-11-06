@@ -1,7 +1,6 @@
--- The game's side of the Hoon pack (pack.lua). A Hoon's car comes from BeamNG's own traffic when
--- traffic is running: a traffic car, the furthest from you, is taken out of traffic and moved into
--- place, which doesn't hitch. With no traffic car to take, the Hoon's own muscle car is loaded
--- (once per extra Hoon; loading a car mid-drive hitches) and kept hidden for next time.
+-- The game's side of the Hoon pack (pack.lua). Every Hoon drives Rowan's HoonOld1, a rusty Barstow
+-- shipped in the mod. Its car is loaded once per extra Hoon (loading a car mid-drive hitches) and
+-- kept hidden for next time, so a later Hoon reuses it at once.
 --
 -- Moving to a slot uses Tanker's own desert driver (tankerDriver.lua, in the car), which drives at
 -- a point at a speed, road or no road, for moving between slots and for attacks alike. Every game call is guarded: a missing or changed
@@ -11,7 +10,6 @@ local M = {}
 local function defaults()
   return {
     byId = function(id) return be and be:getObjectByID(id) end,
-    traffic = function() return rawget(_G, 'gameplay_traffic') or (extensions and extensions.gameplay_traffic) end,
   }
 end
 
@@ -39,16 +37,11 @@ local function finite(n) return type(n) == 'number' and n == n and n > -math.hug
 function M.new(hc, environment)
   local env = environment or defaults()
   local p = {}
-  local fromTraffic = {} -- id -> true while a traffic car is a Hoon
-  local spares, loaded = {}, {} -- our own hidden muscle cars, and every one we loaded
+  local spares, loaded = {}, {} -- our own hidden HoonOld1 cars, and every one we loaded
 
   local function car(id)
     local ok, c = pcall(env.byId, id)
     return ok and c or nil
-  end
-  local function traffic()
-    local ok, t = pcall(env.traffic)
-    if ok and type(t) == 'table' then return t end
   end
 
   function p:player() return hc:player() end
@@ -64,32 +57,12 @@ function M.new(hc, environment)
   -- Road mode: the Hoon's own driver hunts targetId along the roads.
   function p:chase(id, targetId) return hc:hunt(id, targetId) end
 
-  -- The traffic car furthest from you, taken out of traffic, or nil.
-  local function takeTraffic(me)
-    local t = traffic()
-    if not (t and type(t.getTrafficData) == 'function' and type(t.removeTraffic) == 'function') then return nil end
-    local ok, data = pcall(t.getTrafficData)
-    if not ok or type(data) ~= 'table' then return nil end
-    local best, bestMetres
-    for id in pairs(data) do
-      if type(id) == 'number' and id ~= me.id and not fromTraffic[id] then
-        local s = hc:state(id)
-        local metres = s and math.sqrt((s.x - me.x) ^ 2 + (s.y - me.y) ^ 2) or -1
-        if s and (not bestMetres or metres > bestMetres) then best, bestMetres = id, metres end
-      end
-    end
-    if not best or not pcall(t.removeTraffic, best) then return nil end
-    fromTraffic[best] = true
-    return best
-  end
-
-  -- A car for a new Hoon: from traffic, else a hidden one of ours, else a new one loaded.
-  -- Returns its id and where it came from ('traffic' or 'own'), or nil and why.
-  function p:take(me)
-    local id = takeTraffic(me)
-    if id then return id, 'traffic' end
-    id = table.remove(spares)
-    if id and car(id) then return id, 'own' end
+  -- A car for a new Hoon: a hidden one of ours, else a new one loaded (HoonOld1, see hoonCar.lua).
+  -- Returns its id and where it came from ('own'), or nil and why.
+  function p:take()
+    local id = table.remove(spares)
+    while id and not car(id) do id = table.remove(spares) end
+    if id then return id, 'own' end
     local why, detail
     id, why, detail = hc:load()
     if not id then return nil, tostring(why) .. (detail and (': ' .. detail) or '') end
@@ -104,17 +77,10 @@ function M.new(hc, environment)
     return (pcall(function() c:queueLuaCommand(string.format(SLOT, aim.x, aim.y, aim.z, aim.speed, aim.x, aim.y, aim.z, aim.speed, id, id)) end))
   end
 
-  -- Gives a traffic car back to traffic (which moves it on once you are out of sight), or hides
-  -- one of ours for the next Hoon.
-  function p:release(id, source)
+  -- Hides the Hoon's car for the next Hoon.
+  function p:release(id)
     letGo(id)
     hc:calm(id)
-    if source == 'traffic' then
-      fromTraffic[id] = nil
-      local t = traffic()
-      if t and type(t.insertTraffic) == 'function' and pcall(t.insertTraffic, id) then return true end
-      return false
-    end
     if car(id) then
       hc:hide(id)
       spares[#spares + 1] = id
