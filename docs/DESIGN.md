@@ -108,6 +108,18 @@ Each downed Hoon carries a little loot: some fuel, some ammo, sometimes a part.
 
 The chase code is not in Earth Freight. It is the CarKov hostiles in Earth Enduro, which will be copied over and given rat rods. **❓ OPEN — Q5:** which vanilla configs count as rat rods, and which of the later Hoon types comes first.
 
+### Desert mode: the slots (6 Nov)
+
+Rowan decided on 6 Nov that Hoons have **two modes, desert and roads**, each with its own AI. Desert mode is for when there are no roads around, and works with **eight slots** around the player's truck, named L or R (left or right), F or R (front or rear), then N or F (near or far): RFF is right, front, far; LRN is left, rear, near.
+
+- **Near** slots are 10 m out to the side, level with the front or back of the truck.
+- **Far** slots are 60 m out to the side and 10 m beyond the front or back.
+- **Sizing up.** A new Hoon moves through the far slots like a hyena circling prey. Some move in closer sooner.
+- **Attacks.** Hoons want to stop you for your fuel. Some attacks swipe you and drive back out to a far slot; others try to box you in.
+- **The test button.** Spawn a Hoon on the Rig tab takes a car from BeamNG's traffic (or loads the Hoon's own car when there is none) and puts it at a random free far slot. Pressing again while Hoons are out adds another, up to four, so the attacks can be tested and improved.
+
+How it's built for now (`pack.lua`, `packCar.lua`): moving between slots uses BeamNG's script AI, which follows a timed path anywhere, road or no road, re-planned every second so the slot moves with you. A swipe uses BeamNG's chase AI aimed at you, after the Hoon edges in to 6 m for 1.5 s so you can see it coming. A box sends one Hoon 8 m in front of you at 60% of your speed while a second sits 4 m off your side. Only one Hoon attacks at a time and each slot holds one Hoon. Every distance and time is a one-line setting at the top of `pack.lua`. **❓ OPEN:** whether script AI copes on BeamNG.Earth's desert terrain, and the roads mode's own behaviour.
+
 ## Tankers
 
 Other tankers drive the highway, alone or in convoys with escorts. When they see you coming they run, using BeamNG's AI in flee mode. You stop them by shooting out their tyres or forcing them off the road.

@@ -5,7 +5,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   var kept = { tab: 'road', open: true, start: false, startShown: false }
   // The commands the HUD may send, each only while Lua says it is allowed.
   var COMMANDS = { startRun: 'startAllowed', goToSave: 'goToSaveAllowed', save: 'saveAllowed', rocksOn: 'rocksAllowed', rocksOff: 'rocksAllowed',
-    siphonStart: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed', spawnTanker: 'tankerSpawnAllowed',
+    siphonStart: 'siphonAllowed', siphonStop: 'siphonStopAllowed', sendHoon: 'hoonTestAllowed', addHoon: 'addHoonAllowed', clearHoons: 'clearHoonsAllowed', spawnTanker: 'tankerSpawnAllowed',
     pumpToTruck: 'pumpAllowed', pumpToBed: 'pumpAllowed', pumpStop: 'pumpStopAllowed',
     payParts: 'payPartsAllowed', payPartsBill: 'payPartsAllowed', undoParts: 'undoPartsAllowed', newGame: 'newGameAllowed',
     toggleRevolver: 'revolverAllowed', reloadRevolver: 'reloadAllowed' }
