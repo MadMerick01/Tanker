@@ -81,9 +81,15 @@ T.check(th > 0, 'then drives forward again')
 for _ = 2, D.STUCK_TRIES do frames(s, car(0), D.STUCK_SECONDS + D.BACK_SECONDS + 0.5) end
 T.eq(s.tries, D.STUCK_TRIES, 'tries a few times')
 st, th, br, pk = frames(s, car(0), 1)
-T.eq(th, 0, 'then gives up'); T.eq(pk, 1, 'and holds still')
-st, th = frames(s, car(5), 0.2)
-T.check(th > 0, 'until it is moving again')
+T.eq(th, 0, 'then rests'); T.eq(pk, 1, 'holding still')
+local pushed = false
+for _ = 1, math.floor(D.REST_SECONDS * 60) + 2 do
+  s.age = 0
+  local _, t = D.control(s, car(0), 1 / 60)
+  if t > 0 then pushed = true; break end
+end
+T.check(pushed, 'and tries again within a rest, it never gives up')
+T.check(s.tries < D.STUCK_TRIES, 'starting its tries afresh')
 
 -- Stopping the car: asked for nought, it holds the brake once stopped.
 s = D.newState(); aim(s, 0, 10, 0)

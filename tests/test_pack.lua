@@ -98,10 +98,22 @@ p:steer(1002)
 T.eq(car.paths[h.id].speed, car.me.speed + P.CATCH_UP_MPS, 'but only so much faster than you')
 car.cars[h.id].y = ny + 50
 p:steer(1003)
-T.eq(car.paths[h.id].speed, 0, 'far past it, it lets you catch up')
+T.eq(car.paths[h.id].speed, P.MIN_MPS, 'far past it, it never stops: it drives back to its point')
+T.eq(car.paths[h.id].x, nx, 'still aiming along its slot')
 car.cars[h.id].y = ny
 p:steer(1003.1)
-T.near(car.paths[h.id].speed, 0, 0.01, 'and is only steered every few frames')
+T.eq(car.paths[h.id].speed, P.MIN_MPS, 'and is only steered every few frames')
+-- You stop beside it: it circles its point instead of parking.
+local mySpeed = car.me.speed
+car.me.speed = 0
+local sx, sy = P.at(car.me, P.offset(h.slot))
+car.cars[h.id].x, car.cars[h.id].y = sx + 5, sy
+p:steer(1004)
+local o = car.paths[h.id]
+T.eq(o.speed, P.MIN_MPS, 'you stopped: it keeps moving')
+T.near(math.sqrt((o.x - sx) ^ 2 + (o.y - sy) ^ 2), P.ORBIT_METRES, 0.01, 'round its point')
+T.check(o.y ~= sy, 'aiming further round, not at the point')
+car.me.speed = mySpeed
 p:steer(1004)
 
 -- At the near slot it waits, lines up (edging in), then swipes with the chase AI.

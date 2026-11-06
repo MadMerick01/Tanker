@@ -120,4 +120,19 @@ T.eq(slow:loading(), true, 'waiting')
 slow:step(TP.WAIT_SECONDS)
 T.eq(slow:loading(), false, 'after the wait, Hoons load their own car')
 
+-- No parked cars in Tanker: the game's are deleted and parking is switched off.
+local parked, parkingOn, deletedParked = { 401, 402 }, true, 0
+local withParking = TP.new({ traffic = function() return game end, byId = function(i) return cars[i] end,
+  parking = function() return {
+    getParkedCarsList = function() return parked end,
+    getState = function() return parkingOn end,
+    setState = function(on) parkingOn = on end,
+    deleteVehicles = function() deletedParked = deletedParked + #parked; parked = {} end,
+  } end })
+line = withParking:step(0)
+T.eq(deletedParked, 2, 'parked cars are deleted'); T.eq(parkingOn, false, 'and parking is switched off')
+T.check(line:find('removed 2 parked cars', 1, true) ~= nil, 'and logged')
+parked = { 403 }
+T.eq(withParking:step(1), 'removed 1 parked cars', 'parked cars that turn up later go too')
+
 T.done('traffic')

@@ -4,7 +4,8 @@
 -- normal traffic turns up later (from the game's own menu, say) it is replaced by Tanker's again.
 -- Traffic drives the pooled cars around and keeps the ones it doesn't need hidden, so when a Hoon
 -- or a TankerMob is wanted, one is taken out of traffic and put into place, which doesn't hitch.
--- Every game call is guarded: a missing or changed one means no pool, never an error.
+-- Parked cars aren't wanted either (Rowan, 6 Nov): any the game parked are deleted and parking is
+-- switched off. Every game call is guarded: a missing or changed one means no pool, never an error.
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
@@ -24,6 +25,7 @@ local function defaults()
   return {
     traffic = function() return rawget(_G, 'gameplay_traffic') or (extensions and extensions.gameplay_traffic) end,
     byId = function(id) return be and be:getObjectByID(id) end,
+    parking = function() return rawget(_G, 'gameplay_parking') or (extensions and extensions.gameplay_parking) end,
   }
 end
 
@@ -81,6 +83,23 @@ function M.new(environment)
     return mine, other
   end
 
+  -- Deletes the game's parked cars and switches parking off. Returns how many went.
+  local function noParking()
+    local okP, parking = pcall(env.parking or function() end)
+    if not (okP and type(parking) == 'table') then return 0 end
+    local n = 0
+    if type(parking.getParkedCarsList) == 'function' then
+      local ok, list = pcall(parking.getParkedCarsList)
+      if ok and type(list) == 'table' then n = #list end
+    end
+    if type(parking.getState) == 'function' then
+      local ok, on = pcall(parking.getState)
+      if ok and on and type(parking.setState) == 'function' then pcall(parking.setState, false) end
+    end
+    if n > 0 and type(parking.deleteVehicles) == 'function' then pcall(parking.deleteVehicles) end
+    return n
+  end
+
   local function setUp(t, clock)
     local group = M.group()
     local ok, started = pcall(t.setupTraffic, #group, 0, { vehGroup = group, activeAmount = M.ACTIVE })
@@ -100,10 +119,13 @@ function M.new(environment)
       self.state = 'UNAVAILABLE'
       return 'no traffic in this game'
     end
+    local parked = noParking()
+    local parkedLine = parked > 0 and ('removed ' .. parked .. ' parked cars') or nil
     if self.state == 'NONE' then
       self.nextCheck = clock + M.CHECK_SECONDS
-      return setUp(t, clock) or ('loading ' .. #M.group() .. ' cars into traffic')
+      return setUp(t, clock) or ('loading ' .. #M.group() .. ' cars into traffic' .. (parkedLine and ('; ' .. parkedLine) or ''))
     end
+    if parkedLine then return parkedLine end
     local d = data(t)
     if self.state == 'LOADING' then
       local mine = d and count(d) or 0
