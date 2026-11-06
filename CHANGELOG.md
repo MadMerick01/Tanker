@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 29 · 6 Nov 2026
+
 - **Hoons in the desert no longer touch the brakes.** When a Hoon changes spot around you, lines up or swipes you, it never brakes. When it needs to slow down, it lifts off the throttle and asks for no more than a little under your speed. So it moves round you sideways or forwards and no longer drops back behind you. Hoons still brake when they box you in, or when they pull up to rob you.
 - From inside your truck beside a car, the siphon window and the Road tab now say "Get out and connect the pump to siphon fuel to your tanks."
 - **A Hoon's sideswipe now matches your speed and turns into you suddenly**, without braking or slowing for the turn, instead of speeding up into you.
