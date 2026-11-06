@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **Free vehicle and part changes for now, while we test.** Changing parts in the game's parts menu no longer brings up a parts bill: your new parts are yours straight away, with no fuel to pay, and driving off doesn't put the old ones back. You can also pick any vehicle in BeamNG's vehicle menu and it becomes your truck instead of being sent back. The **Garage** tab says changes are free while testing. Your save still works, and it keeps whichever vehicle and parts you last had.
+
 ## Build 18 · 6 Nov 2026
 
 - **Fixed: Reload on a flat screen sometimes never finished.** Pressing **Reload**, or clicking with an empty cylinder, could stay stuck on **Reloading** and never give your rounds back whenever the game briefly lost track of where your truck was. A reload now always finishes after a second and a half and fills the cylinder back up to six from your spares.

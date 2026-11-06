@@ -161,7 +161,8 @@
       <div><span class="mm-k">Your fuel is worth</span> <span class="mm-v" style="font-size:18px;color:#f2c94c;">${{whole(data.fuelWorth)}}</span></div>
       <div class="mm-k">Fuel is money: ${{whole(data.fuelPrice)}} a litre, for the truck's tank and the bed tank together. Every litre you spend is a litre you can't drive on.</div>
       <button type="button" class="mm-btn" ng-disabled="!data.buyPartsAllowed" ng-click="openPartsMenu()">Buy parts</button>
-      <div class="mm-k" style="margin-top:4px;">Change parts in the game's parts menu. The bill shows up here, paid in fuel from the bed tank first.</div>
+      <div ng-if="!data.freeChanges" class="mm-k" style="margin-top:4px;">Change parts in the game's parts menu. The bill shows up here, paid in fuel from the bed tank first.</div>
+      <div ng-if="data.freeChanges" style="margin-top:4px;color:#f2c94c;">Free while testing: change parts, or pick any vehicle in the game's vehicle menu, and it's yours at no cost.</div>
       <div ng-if="data.bill" ng-style="{borderColor: data.bill.short ? '#eb5757' : '#f2c94c'}" style="margin-top:10px;padding:10px;border:2px solid #f2c94c;border-radius:6px;">
         <div class="mm-v">Parts bill: {{data.bill.total}} = {{data.bill.litresText}}</div>
         <div ng-repeat="l in data.bill.lines" style="display:flex;gap:8px;"><span style="flex:1;">{{l.label}}</span><span>{{l.amount}}</span></div>
