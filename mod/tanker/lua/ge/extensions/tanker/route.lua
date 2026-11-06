@@ -3,17 +3,16 @@ local location = require('tanker/location')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
--- Kulgera Roadhouse, NT, on the Stuart Highway just north of the South Australian border:
--- Rowan's pick for where the run starts (2 Nov), the first stop in the desert south of Alice
--- Springs. Moved on 6 Nov to Rowan's exact spot, about 2.5 km south-west of the roadhouse.
--- config.json's start moves it.
-M.START = { latitude = -25.85141, longitude = 133.27493 }
-M.START_NAME = 'Kulgera Roadhouse'
+-- By Kati Thanda-Lake Eyre, outback South Australia: Rowan's pick for where the run starts
+-- (6 Nov), about 680 km south-east of Pine Gap in a straight line. It used to be Kulgera
+-- Roadhouse, just north of the SA border. config.json's start moves it.
+M.START = { latitude = -28.8807093, longitude = 137.6024985 }
+M.START_NAME = 'Lake Eyre'
 -- Pine Gap, outside Alice Springs. Everything about it in the game is fiction.
 M.GOAL = { latitude = -23.7990, longitude = 133.7370 }
 M.GOAL_NAME = 'Pine Gap'
--- Roads are longer than the straight line. 1.18 puts Kulgera to Pine Gap at about 270 km,
--- close to the real drive up the Stuart Highway.
+-- Roads are longer than the straight line. 1.18 puts Lake Eyre to Pine Gap at about 800 km;
+-- the real drive up the Oodnadatta Track and the Stuart Highway is probably a bit longer.
 M.ROAD_FACTOR = 1.18
 -- A new run starts once the truck is this close to the start, after the teleport there.
 M.START_RADIUS_METRES = 5000

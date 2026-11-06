@@ -1,6 +1,6 @@
 -- The Tanker controller: ties the Earth position, the save, the fuel and the pistol together,
--- builds the HUD's state, and draws the wrist HUD. For now a run is: go to the start at Kulgera
--- Roadhouse, drive north, fight off the Hoons, siphon fuel from cars you find, and save on the way.
+-- builds the HUD's state, and draws the wrist HUD. For now a run is: go to the start at Lake
+-- Eyre, drive north, fight off the Hoons, siphon fuel from cars you find, and save on the way.
 -- Tankers and looting come next.
 local location = require('tanker/location')
 local config = require('tanker/config')
@@ -44,8 +44,8 @@ M.TELEPORT_WAIT_SECONDS = TELEPORT_WAIT_SECONDS
 local SPAWN_WAIT_SECONDS = 10
 M.SPAWN_WAIT_SECONDS = SPAWN_WAIT_SECONDS
 -- The fuel a new run starts with, in litres, about 200 km in the starter truck all told: a little
--- in the truck's own tank and the rest in the bed tank, to pump across. Kulgera to Pine Gap is
--- about 270 km, so you have to find fuel on the way.
+-- in the truck's own tank and the rest in the bed tank, to pump across. Lake Eyre to Pine Gap is
+-- about 800 km, so you have to find fuel on the way.
 local START_FUEL_LITRES, START_BED_LITRES = 15, 25
 M.START_FUEL_LITRES, M.START_BED_LITRES = START_FUEL_LITRES, START_BED_LITRES
 -- How often the bed tank's weight is updated while the pump runs, and its size asked for.

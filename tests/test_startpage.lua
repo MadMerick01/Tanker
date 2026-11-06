@@ -30,7 +30,7 @@ T.eq(c.state, 'RUNNING', 'still on the road'); T.check(c.profile ~= nil, 'with i
 adapter.refuse = nil
 T.eq(c:newGame(), true, 'new game')
 T.eq(c.state, 'TO_START', 'heading back to the start')
-T.eq(adapter.teleports[#adapter.teleports].name, R.START_NAME, 'to Kulgera')
+T.eq(adapter.teleports[#adapter.teleports].name, R.START_NAME, 'to Lake Eyre')
 adapter:put(R.START.latitude, R.START.longitude); run(c, 1)
 c:vehicleSpawned(7); run(c, 0.5)
 T.eq(c.state, 'RUNNING', 'the new run is on')
