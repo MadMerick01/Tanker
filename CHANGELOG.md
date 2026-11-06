@@ -12,6 +12,9 @@ Changes that are finished but not in a download yet. They move into a numbered b
 - **The strip at the top of the HUD now shows how far the nearest Hoon is,** for example "Hoon 85 m" in red beside the threat light, and it updates as you drive. The **Rig** tab lists every spawned Hoon with its distance under the **Spawn a Hoon** button too.
 - **Fixed: spawned Hoons now drive to their spots around you instead of standing still.** Tanker now has its own desert driver for them, built from Rowan's recorded driving. It corners at up to about 0.9 g, brakes at 0.65 g and accelerates at 0.45 g, less on loose ground, and turns the wheel smoothly instead of flicking it. A Hoon speeds up when it's behind its spot, slows down when it's ahead, and runs alongside you once it's there. If it gets stuck, it backs up and tries again a few times. The same driver does the attacks too: a swipe turns in hard at the corner of your truck by the Hoon's spot, a little faster than you, so you can brake or steer away from it. A Hoon that was slow to reach its spot also no longer counts as down: a spawned Hoon only counts as down for being stopped once it has hit you.
 - A spawned Hoon that gets more than 400 m away from you is now gone straight away, instead of following you from a long way back. A downed Hoon also goes once you're 400 m from it, so siphon it before you drive off. Your save still works.
+## Build 19 · 6 Nov 2026
+
+- **Free vehicle and part changes for now, while we test.** Changing parts in the game's parts menu no longer brings up a parts bill: your new parts are yours straight away, with no fuel to pay, and driving off doesn't put the old ones back. You can also pick any vehicle in BeamNG's vehicle menu and it becomes your truck instead of being sent back. The **Garage** tab says changes are free while testing. Your save still works, and it keeps whichever vehicle and parts you last had.
 
 ## Build 18 · 6 Nov 2026
 

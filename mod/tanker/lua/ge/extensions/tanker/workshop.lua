@@ -14,6 +14,9 @@ M.DRIVE_OFF_METRES = 25
 M.SERIAL_BASE = 2000000
 -- After paying on the parts bill box, how long until the camera is checked once more.
 M.CAMERA_CHECK_SECONDS = 0.5
+-- While testing (Rowan, 6 Nov): any vehicle or part change is free and becomes your truck, with no
+-- bill and nothing put back. Set to false to pay for parts in fuel again.
+M.FREE_CHANGES = true
 
 local function dollars(n) return pricing.dollars(math.max(0, math.floor((n or 0) + 0.5))) end
 
@@ -42,6 +45,16 @@ function M.attach(c)
     if not snapshot then return false end
     local owned = self.ownedParts
     if not owned then
+      self:adoptParts(snapshot)
+      return true
+    end
+    if M.FREE_CHANGES then
+      self.pendingParts = nil
+      if snapshot.model ~= owned.model then
+        self.feedback = 'Free while testing: this vehicle is now your truck.'
+      elseif pricing.partsDiff(owned, snapshot) then
+        self.feedback = 'Free while testing: your new parts are yours, nothing to pay.'
+      end
       self:adoptParts(snapshot)
       return true
     end
@@ -174,6 +187,7 @@ function M.attach(c)
     v.fuelWorth = pricing.worth(self:carriedLitres())
     v.fuelPrice = pricing.FUEL_PRICE
     v.buyPartsAllowed = self.state == 'RUNNING' and self.ownedParts ~= nil
+    v.freeChanges = M.FREE_CHANGES
     local bill = self.pendingParts
     if not bill then return end
     local lines = {}

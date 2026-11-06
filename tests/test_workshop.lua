@@ -3,6 +3,8 @@ local F = require('fixtures')
 local Pr = require('tanker/pricing')
 local Pa = require('tanker/parts')
 local R = require('tanker/route')
+local W = require('tanker/workshop')
+W.FREE_CHANGES = false -- the paid parts bill first; free changes are tested at the end
 
 T.eq(Pr.litresFor(Pr.FUEL_PRICE * 3), 3, 'dollars to litres'); T.eq(Pr.worth(2), 2 * Pr.FUEL_PRICE, 'litres to dollars')
 T.eq(Pr.litresFor(-5), 0, 'nothing for nothing')
@@ -119,3 +121,23 @@ T.eq(game:inspect().damage, 120, 'reads the damage')
 T.eq(game:restore(snap.config, 'pickup'), true, 'puts parts back')
 T.eq(Pa.new({}):parts(), nil, 'no game, no parts')
 T.done('workshop')
+
+-- While testing, every change is free: no bill, nothing put back, and another vehicle is yours.
+W.FREE_CHANGES = true
+local fadapter = F.adapter(-31.0, 140.0)
+local fparts = fakeParts()
+local fc = F.controller(fadapter, { parts = fparts, bed = F.bed(), vehicles = F.vehicles() })
+local function frun(seconds) for _ = 1, math.floor(seconds * 2) do fc:tick(0.5) end end
+frun(1); fc:startRun(); fadapter:put(R.START.latitude, R.START.longitude); frun(1)
+fc:vehicleSpawned(7); fc:bedRead(7, 800); fc:fuelReading(7, 15, 80); frun(0.5)
+T.eq(fc:view().freeChanges, true, 'the Garage tab says changes are free')
+fparts.snap.parts.tyres = 'new'
+fc:vehicleSpawned(7); frun(0.5)
+T.eq(fc:view().bill, nil, 'free parts: no bill'); T.eq(fc.ownedParts.parts.tyres, 'new', 'the new parts are yours')
+T.check(fc.feedback:find('Free while testing'), 'and says so')
+frun(30); T.eq(fparts.restores, 0, 'driving off puts nothing back')
+fparts.snap.model = 'semi'
+fc:vehicleSpawned(7); frun(0.5)
+T.eq(fparts.restores, 0, 'another vehicle is not sent back'); T.eq(fc.ownedParts.model, 'semi', 'it is now your truck')
+fc:manualSave()
+T.eq(fc.profile.vehicle.model, 'semi', 'and the save keeps it')
