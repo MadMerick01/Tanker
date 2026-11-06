@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 34 · 6 Nov 2026
+
 - **New Aim up 1° and Aim down 1° buttons for the VR revolver.** On the Rig tab, next to the VR revolver, the HUD now shows how far the gun is tilted from your controller (for example -10°, negative is down) with two buttons that tilt it up or down one degree. Use them with the red laser on to line the gun up with BeamNG's black pointer line, instead of typing the setting into the console. The VR revolver remembers the tilt between sessions. The buttons only appear when the BeamNG VR Controller Poses mod is installed and new enough to have the aim setting.
 - Your save still works, and there's nothing to do except download the new tanker.zip.
 
