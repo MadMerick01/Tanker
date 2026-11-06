@@ -33,7 +33,7 @@ Pine Gap is a real facility. Everything about it in the game is fiction.
 
 ## The route
 
-The first goal is **Kulgera Roadhouse** (25.8406 S, 133.2966 E, on the Stuart Highway just north of the SA border, Rowan, 2 Nov) to Pine Gap: about 270 km by road. Starting with about 200 km of fuel means you have to take fuel on the way. The run used to start at Yorkeys Crossing, Port Augusta, about 1,230 km out; saves from there still work and carry on from where they were saved.
+The first goal is **Kulgera Roadhouse** (25.85141 S, 133.27493 E, near the Stuart Highway just north of the SA border; Rowan picked Kulgera on 2 Nov and this exact spot on 6 Nov) to Pine Gap: about 270 km by road. Starting with about 200 km of fuel means you have to take fuel on the way. The run used to start at Yorkeys Crossing, Port Augusta, about 1,230 km out; saves from there still work and carry on from where they were saved.
 
 | Leg | From → to | Roughly | Character |
 |---|---|---|---|

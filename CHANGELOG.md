@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **A new run now starts at Rowan's chosen spot by Kulgera** (25.85141 S, 133.27493 E), about 2.5 km south-west of the roadhouse, instead of at the roadhouse itself. **Start the run** and **Start a new game** take you there. A run you already have going carries on from where it was saved, and the drive to Pine Gap is still about 270 km.
+
 ## Build 21 · 6 Nov 2026
 
 - **Hoons now have a road mode and a desert mode.** Once you've been on a road for 5 seconds, the Hoons you spawn switch to road attacks. Once you've been off road for 5 seconds, they go back to circling you out in the desert. The **Rig** tab shows which mode they're in, and a Hoon spawned while you're on a road comes up the road about 80 m behind you.
