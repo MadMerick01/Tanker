@@ -6,6 +6,7 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- **You can siphon a downed Hoon more than once.** Siphon some of its fuel, drive off, then come back, stop beside it and press **Siphon fuel** again, as many times as you like until its tank is dry. A downed Hoon is now taken away once you're more than 400 m from it (it was 600 m), and after that it's gone and can't be siphoned. Your save still works.
 ## Build 19 · 6 Nov 2026
 
 - **Free vehicle and part changes for now, while we test.** Changing parts in the game's parts menu no longer brings up a parts bill: your new parts are yours straight away, with no fuel to pay, and driving off doesn't put the old ones back. You can also pick any vehicle in BeamNG's vehicle menu and it becomes your truck instead of being sent back. The **Garage** tab says changes are free while testing. Your save still works, and it keeps whichever vehicle and parts you last had.
