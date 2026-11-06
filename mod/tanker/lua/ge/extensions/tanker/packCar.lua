@@ -52,6 +52,7 @@ function M.new(hc, environment)
 
   function p:player() return hc:player() end
   function p:ground(x, y, z) return hc:ground(x, y, z) end
+  function p:camera() return hc.camera and hc:camera() end
   function p:state(id) return hc:state(id) end
   local function letGo(id)
     local c = car(id)

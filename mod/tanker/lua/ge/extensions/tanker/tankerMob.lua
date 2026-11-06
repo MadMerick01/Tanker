@@ -1,14 +1,15 @@
 -- The TankerMob: Rowan's fuel tanker truck (vehicles/us_semi/tankermob.pc). For now it comes from
--- the spawn button on the Rig tab: it appears ahead of you, road or no road, and drives off away
+-- the spawn button on the Rig tab: it appears behind the camera, out of sight, road or no road, and drives off away
 -- from you (tankers flee). Stop it and siphon its tank. One at a time: pressing the button again
--- puts the same truck back in front of you. Every game call is guarded: a missing or changed one
+-- puts the same truck back behind the camera. Every game call is guarded: a missing or changed one
 -- means no tanker, never an error.
 local M = {}
+local behind = require('tanker/behind')
 
 -- One-line settings. Tune these after testing in game.
 M.MODEL = 'us_semi'
 M.CONFIG = 'vehicles/us_semi/tankermob.pc'
--- How far ahead of you it appears, in metres.
+-- How far behind the camera it appears, in metres.
 M.SPAWN_METRES = 60
 -- How high above the ground it is put down, so it drops onto its wheels.
 M.DROP_METRES = 0.5
@@ -44,14 +45,19 @@ function M.new(car, environment)
     t.id = nil
   end
 
-  -- Puts the TankerMob ahead of you facing away, and sets it fleeing. Returns true, or false and why.
+  -- Puts the TankerMob behind the camera facing away from you, and sets it fleeing. Returns true, or false and why.
   function t:spawn()
     local me = car:player()
     if not me then return false, 'vehicle_required' end
-    local x, y = me.x + me.dx * M.SPAWN_METRES, me.y + me.dy * M.SPAWN_METRES
+    -- Out of sight (Rowan, 6 Nov): straight behind the camera, facing away from you.
+    local view = behind.view(car, me)
+    local x, y = behind.point(view, M.SPAWN_METRES)
+    local fx, fy = x - me.x, y - me.y
+    local flen = math.sqrt(fx * fx + fy * fy)
+    if flen > 1e-6 then fx, fy = fx / flen, fy / flen else fx, fy = -me.dx, -me.dy end
     local z = (car.ground and car:ground(x, y, me.z) or me.z) + M.DROP_METRES
     local okPos, pos = pcall(env.vec3, x, y, z)
-    local okDir, dir = pcall(env.vec3, me.dx, me.dy, 0)
+    local okDir, dir = pcall(env.vec3, fx, fy, 0)
     local okUp, up = pcall(env.vec3, 0, 0, 1)
     local okRot, rot = false, nil
     if okDir and okUp then okRot, rot = pcall(env.quatFromDir, dir, up) end

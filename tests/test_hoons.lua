@@ -62,11 +62,23 @@ car.hoon.speed = 30; car.hoon.y = car.me.y - 2000
 T.eq(steps(h, 41, H.ESCAPE_SECONDS, 20), H.LINES.escaped, 'outrun it and it gives up')
 T.eq(h.state, 'HIDDEN', 'back in hiding')
 
--- No solid road behind: it comes from ahead instead.
+-- No solid road behind: it never comes into view from ahead (Rowan, 6 Nov: only behind the camera).
 car.holeBehind = true
 h:putAway(20)
-T.eq(h:step(60, 40), H.LINES.ahead, 'comes from ahead when the road behind is not solid')
+local before = #car.attacks
+T.eq(h:step(60, 40), nil, 'no solid road behind, and ahead is in view: no Hoon yet')
+T.eq(#car.attacks, before, 'nothing put down in front of you')
+-- Looking back over your shoulder, ahead of the truck is behind the camera: it comes from there.
+function car:camera() return { x = self.me.x, y = self.me.y, dx = 0, dy = -1 } end
+T.eq(h:step(60 + H.RETRY_SECONDS + 1, 40), H.LINES.ahead, 'comes from ahead, out of sight, when you look back')
 T.eq(car.attacks[#car.attacks].y, car.me.y + H.PLACE_METRES, 'put on the road ahead')
+-- Looking off to your right, it comes from straight behind the camera: off to your left.
+car.holeBehind = nil
+h:putAway(20)
+function car:camera() return { x = self.me.x, y = self.me.y, dx = 1, dy = 0 } end
+h:step(80, 40)
+T.eq(car.attacks[#car.attacks].x, car.me.x - H.PLACE_METRES, 'behind the camera, wherever it looks')
+car.camera = nil
 car.holeBehind = nil
 h:putAway(20)
 

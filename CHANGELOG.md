@@ -7,6 +7,7 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
 - **The rogue AI now watches the roads, and sends drones.** Stay on a road for more than 30 seconds and a drone hits you: you hear it coming for the last 5 seconds, then an explosion beside your truck damages it and may burst a tyre. A banner at the top of the screen counts down once you've been on a road for 5 seconds, so crossing a road is safe. Stay on the road and another drone comes 20 seconds later. Get off the road before it arrives and it misses. Stay off the road for 5 seconds and the AI loses you, and the count starts again. Tanker is meant to be played off road, so build a truck that can handle it and navigate by compass.
+- **Hoons and tankers no longer appear where you can see them.** A new Hoon or tanker is now always put somewhere in the half of the world behind your camera, so nothing pops into view in front of you. If you look back over your shoulder, it can come from up ahead instead. This covers the Hoons from Spawn a Hoon, the Hoon that comes up the road every few km and the tanker from the spawn button.
 - Your save still works, and there's nothing to do except download the new tanker.zip.
 
 ## Build 30 · 6 Nov 2026

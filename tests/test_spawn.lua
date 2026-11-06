@@ -22,7 +22,7 @@ T.eq(select(2, h:send(0)), 'off_road', 'on its own, a Hoon never comes off road'
 T.eq(h:send(0, true), H.LINES.coming, 'the spawn button sends it anyway')
 T.eq(car.attacks[1].y, -H.SPAWN_METRES, 'behind you'); T.eq(car.attacks[1].z, 3, 'on the ground')
 
--- The TankerMob: spawned once ahead of you facing away, then moved back in front on the next press.
+-- The TankerMob: spawned once behind the camera (here, with no camera, behind your truck) facing away, then moved back there on the next press.
 local V = {}
 local function vec(x, y, z) return { x = x, y = y, z = z } end
 local spawned, queued, teleports = {}, {}, 0
@@ -36,10 +36,10 @@ local mob = M.new(car, {
 })
 T.eq(mob:spawn(), true, 'spawned')
 T.eq(spawned[1].model, 'us_semi', 'the us_semi'); T.eq(spawned[1].opts.config, M.CONFIG, 'with Rowan\'s TankerMob config')
-T.eq(spawned[1].opts.pos.y, M.SPAWN_METRES, 'ahead of you'); T.eq(spawned[1].opts.pos.z, 3 + M.DROP_METRES, 'dropped onto the ground')
+T.eq(spawned[1].opts.pos.y, -M.SPAWN_METRES, 'behind you, out of sight'); T.eq(spawned[1].opts.pos.z, 3 + M.DROP_METRES, 'dropped onto the ground')
 T.eq(spawned[1].opts.autoEnterVehicle, false, 'you stay in your truck')
 T.check(queued[1]:find("'flee'") and queued[1]:find('setTargetObjectID, 7'), 'it runs from you')
-T.eq(mob:spawn(), true, 'again'); T.eq(#spawned, 1, 'the same truck'); T.eq(teleports, 1, 'moved back in front of you')
+T.eq(mob:spawn(), true, 'again'); T.eq(#spawned, 1, 'the same truck'); T.eq(teleports, 1, 'moved back behind you')
 mob:remove(); T.eq(truck.deleted, true, 'removed when Tanker goes')
 
 -- The buttons, through the controller.

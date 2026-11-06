@@ -14,6 +14,7 @@
 -- a time; Hoons not in it hold their slots and wait.
 -- This is the logic only; packCar.lua does the game's side.
 local M = {}
+local behind = require('tanker/behind')
 
 -- One-line settings. Tune these after testing in game.
 -- At most this many pack Hoons at once.
@@ -130,6 +131,9 @@ M.FLEE_MPS, M.FLEE_AIM_METRES = 30, 120
 -- it catches up along the roads, overtakes you, cuts in front and brake-checks. A Hoon that
 -- turns up in road mode is put on the road ROAD_START_METRES behind you.
 M.ROAD_METRES, M.MODE_SECONDS, M.ROAD_START_METRES = 30, 5, 80
+-- A new Hoon starts at a free far slot behind the camera (tanker/behind.lua). With none free
+-- there, it starts this many metres straight behind the camera and drives to its slot.
+M.HIDDEN_METRES = 60
 
 -- side: -1 left, 1 right. ahead: 1 front, -1 rear.
 M.SLOTS = {
@@ -478,16 +482,26 @@ function M.new(car, random)
     if not me then return nil, 'no_player' end
     local free = freeFar()
     if #free == 0 then return nil, 'full' end
-    local slot = free[math.min(#free, math.floor(random(1, #free + 1)))]
+    -- Out of sight (Rowan, 6 Nov): only a slot behind the camera, else straight behind it.
+    local view = behind.view(car, me)
+    local hidden = {}
+    for _, s in ipairs(free) do
+      local sx, sy = M.at(me, M.offset(s))
+      if behind.isBehind(view, sx, sy) then hidden[#hidden + 1] = s end
+    end
+    local pickFrom = #hidden > 0 and hidden or free
+    local slot = pickFrom[math.min(#pickFrom, math.floor(random(1, #pickFrom + 1)))]
     self.mode = self.mode or (self:onRoad(me) and 'road' or 'desert')
     local id, source = car:take(me)
     if not id then return nil, source or 'no_car' end
     local right, ahead = M.offset(slot)
     local x, y = M.at(me, right, ahead, 0)
+    if #hidden == 0 then x, y = behind.point(view, M.HIDDEN_METRES) end
     if self.mode == 'road' then
       x, y = M.at(me, 0, -M.ROAD_START_METRES, 0)
+      if not behind.isBehind(view, x, y) then x, y = behind.point(view, M.ROAD_START_METRES) end
       local r = car.road and car:road(x, y, me.z)
-      if r and r.metres <= M.ROAD_METRES then x, y = r.x, r.y end
+      if r and r.metres <= M.ROAD_METRES and behind.isBehind(view, r.x, r.y) then x, y = r.x, r.y end
     end
     local z = car:ground(x, y, me.z) or me.z
     local ok, why = car:place(id, x, y, z, me.dx, me.dy)

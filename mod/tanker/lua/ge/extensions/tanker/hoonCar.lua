@@ -3,6 +3,7 @@
 -- one mid-drive hitches the frame rate. Every game call is guarded: a missing or changed one
 -- means no Hoon, never an error.
 local M = {}
+local behind = require('tanker/behind')
 
 -- The Hoon's car: one of Rowan's Barstows, shipped in the mod under vehicles/barstow, each
 -- equally likely (Rowan, 6 Nov): HoonOld1 (rusty, I6, welded diff, rollcage, offroad tyres) and
@@ -25,6 +26,15 @@ local function defaults()
     spawn = function() return rawget(_G, 'spawn') end,
     vec3 = function(x, y, z) return vec3(x, y, z) end,
     quatFromDir = function(dir, up) return quatFromDir(dir, up) end,
+    -- Where the camera is and which way it looks (tanker/behind.lua keeps spawns out of its view).
+    cameraPosition = function()
+      if type(getCameraPosition) == 'function' then return getCameraPosition() end
+      if core_camera and core_camera.getPosition then return core_camera.getPosition() end
+    end,
+    cameraForward = function()
+      if type(getCameraForward) == 'function' then return getCameraForward() end
+      if core_camera and core_camera.getForward then return core_camera.getForward() end
+    end,
     -- The height of whatever is solid under x, y, from a few metres above z.
     ground = function(x, y, z)
       if be and be.getSurfaceHeightBelow then
@@ -214,6 +224,9 @@ function M.new(environment, pool)
   end
 
   -- The height of the ground under x, y (looking from a few metres above z), or nil.
+  -- The camera: { x, y, dx, dy } flat, or nil.
+  function h:camera() return behind.camera(env) end
+
   function h:ground(x, y, z)
     local ok, g = pcall(env.ground, x, y, z)
     if ok and finite(g) then return g end
