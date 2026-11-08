@@ -1,4 +1,4 @@
--- Rowan's VR revolver (BeamngVRcontrollerPoses), a separate mod Tanker needs installed. This
+-- MadMerick's VR revolver (BeamngVRcontrollerPoses), a separate mod Tanker needs installed. This
 -- reads it (whether it is there, whether it is drawn, its ammo once the pistol has ammo, and its
 -- aim tilt) and nudges the aim tilt up or down for the HUD's Aim buttons.
 -- Every call is guarded, so a missing pistol or a changed function means nothing is shown, never an error.

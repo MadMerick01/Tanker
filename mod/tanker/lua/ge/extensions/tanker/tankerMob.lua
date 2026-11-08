@@ -1,4 +1,4 @@
--- The TankerMob: Rowan's fuel tanker truck (vehicles/us_semi/tankermob.pc). For now it comes from
+-- The TankerMob: MadMerick's fuel tanker truck (vehicles/us_semi/tankermob.pc). For now it comes from
 -- the spawn button on the Rig tab: it appears behind the camera, out of sight, road or no road, and drives off away
 -- from you (tankers flee). Stop it and siphon its tank. One at a time: pressing the button again
 -- puts the same truck back behind the camera. Every game call is guarded: a missing or changed one
@@ -13,7 +13,7 @@ M.CONFIG = 'vehicles/us_semi/tankermob.pc'
 M.SPAWN_METRES = 60
 -- How high above the ground it is put down, so it drops onto its wheels.
 M.DROP_METRES = 0.5
--- Caught on a bush out of sight (Rowan, 6 Nov): slower than STUCK_MPS for UNSTICK_SECONDS, at
+-- Caught on a bush out of sight (MadMerick, 6 Nov): slower than STUCK_MPS for UNSTICK_SECONDS, at
 -- least UNSTICK_METRES from you and behind the camera, it is lifted UNSTICK_HOP metres on, away
 -- from you, landing behind the camera too. At most UNSTICK_TRIES times before it gets going again.
 M.STUCK_MPS, M.UNSTICK_SECONDS, M.UNSTICK_METRES, M.UNSTICK_HOP, M.UNSTICK_TRIES = 1, 5, 50, 8, 2
@@ -53,7 +53,7 @@ function M.new(car, environment)
   function t:spawn()
     local me = car:player()
     if not me then return false, 'vehicle_required' end
-    -- Out of sight (Rowan, 6 Nov): straight behind the camera, facing away from you.
+    -- Out of sight (MadMerick, 6 Nov): straight behind the camera, facing away from you.
     local view = behind.view(car, me)
     local x, y = behind.point(view, M.SPAWN_METRES)
     local fx, fy = x - me.x, y - me.y

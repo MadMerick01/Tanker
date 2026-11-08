@@ -1,5 +1,5 @@
 -- The Hoon pack, desert mode: Hoons that come for you off road. Each Hoon moves between eight
--- slots around your truck, named as on Rowan's diagram: L or R (your left or right), F or R
+-- slots around your truck, named as on MadMerick's diagram: L or R (your left or right), F or R
 -- (front or rear), then N or F (near or far). RFF is right, front, far; LRN is left, rear, near.
 --
 --   LFF . . . . . . . . RFF       far: 60 m out to the side, 10 m beyond your front or back
@@ -25,7 +25,7 @@ M.MAX = 4
 M.NEAR_SIDE, M.FAR_SIDE, M.FAR_BEYOND, M.HALF_LENGTH = 10, 60, 10, 3
 -- Half your truck's width, in metres.
 M.HALF_WIDTH = 1.3
--- The rear far slots (LRF, RRF) sit only this far out, so a Hoon behind you stays close (Rowan,
+-- The rear far slots (LRF, RRF) sit only this far out, so a Hoon behind you stays close (MadMerick,
 -- 6 Nov): about 30 m from you.
 M.REAR_FAR_SIDE = 30
 -- A Hoon is at a far slot within this many metres of it, at a near slot within NEAR_ARRIVE.
@@ -45,16 +45,16 @@ M.LEAD_SECONDS, M.MIN_LEAD, M.MAX_LEAD = 1, 6, 25
 M.CROSS_METRES = 30
 -- How long a Hoon waits at a far slot, then at a near slot, in seconds (picked between the two).
 M.HOLD_FAR, M.HOLD_NEAR = { 2, 5 }, { 1.5, 3 }
--- A Hoon never stops (Rowan, 6 Nov): it always drives at MIN_MPS at least. One that would go
+-- A Hoon never stops (MadMerick, 6 Nov): it always drives at MIN_MPS at least. One that would go
 -- slower, because it is at its point or past it (you stopped, or you are chasing it), circles
 -- the point ORBIT_METRES out instead, aiming ORBIT_STEP radians further round, like a hyena
 -- pacing. Only a box parks in front of you on purpose.
 M.MIN_MPS, M.ORBIT_METRES, M.ORBIT_STEP = 8, 20, 0.8
--- Changing spot is done by speeding up, not braking (Rowan, 6 Nov): circling only ever moves
+-- Changing spot is done by speeding up, not braking (MadMerick, 6 Nov): circling only ever moves
 -- forward (a rear slot to the front slot on its side, a front slot round your nose to the other
 -- front slot), and a Hoon getting into place never asks for more than DROP_MPS below your
 -- speed, so it drops back by easing off, not on the brakes. A Hoon getting into place, lining up
--- or swiping never uses its brakes at all (Rowan, 6 Nov): its driver lifts off instead, and it
+-- or swiping never uses its brakes at all (MadMerick, 6 Nov): its driver lifts off instead, and it
 -- asks for at most DROP_MPS less than your speed, so it moves round you sideways or forwards,
 -- and only ever eases back slowly.
 M.DROP_MPS = 1
@@ -67,12 +67,12 @@ M.WINDUP_SIDE, M.WINDUP_SECONDS = 6, 1.5
 -- A swipe is Tanker's own driver aimed into the corner of your truck by its slot: SWIPE_INTO
 -- metres from your middle on that side (inside your bodywork, so it hits), level with your
 -- front or back, only STRIKE_LEAD metres ahead of that point so it turns in hard. It matches
--- your speed and turns in suddenly, with no brake (Rowan, 6 Nov). It lasts up to
+-- your speed and turns in suddenly, with no brake (MadMerick, 6 Nov). It lasts up to
 -- SWIPE_SECONDS; within CONTACT_METRES it has hit you, and it peels off AFTER_CONTACT_SECONDS
 -- later.
 M.SWIPE_INTO, M.STRIKE_LEAD = 0.5, 2
 M.SWIPE_SECONDS, M.CONTACT_METRES, M.AFTER_CONTACT_SECONDS = 4, 5, 1
--- The PIT (Rowan, 6 Nov): a Hoon at one of your rear near slots goes for your back wheel instead
+-- The PIT (MadMerick, 6 Nov): a Hoon at one of your rear near slots goes for your back wheel instead
 -- of swiping, PIT_CHANCE of the time (PIT_GUN_CHANCE while your revolver is drawn, since your
 -- back corners are hardest to shoot at). It lines up PIT_SIDE metres off your back corner, then
 -- matches your speed plus PIT_PUSH and steers its nose through your back wheel, PIT_WHEEL metres
@@ -80,12 +80,12 @@ M.SWIPE_SECONDS, M.CONTACT_METRES, M.AFTER_CONTACT_SECONDS = 4, 5, 1
 -- sideways and you spin. No brake, as in a swipe.
 M.PIT_CHANCE, M.PIT_GUN_CHANCE = 0.5, 0.8
 M.PIT_SIDE, M.PIT_PUSH, M.PIT_WHEEL, M.PIT_INTO = 3, 2, 1.5, 1
--- Aiming where you'll be (Rowan, 6 Nov): while you turn faster than TURN_RAD_S (radians a
+-- Aiming where you'll be (MadMerick, 6 Nov): while you turn faster than TURN_RAD_S (radians a
 -- second), a Hoon aims at its spot around where you will be, following your turn, up to
 -- PREDICT_SECONDS ahead (the time it needs to get there), so it cuts inside your turn instead
 -- of chasing round the outside. Your turn rate is smoothed by TURN_SMOOTH each reading.
 M.TURN_RAD_S, M.PREDICT_SECONDS, M.TURN_SMOOTH = 0.05, 2.5, 0.5
--- Respecting your revolver (Rowan, 6 Nov): while it is drawn, Hoons getting into place weave
+-- Respecting your revolver (MadMerick, 6 Nov): while it is drawn, Hoons getting into place weave
 -- WEAVE_METRES side to side every WEAVE_SECONDS, Hoons at your rear slots stay there instead of
 -- moving up to your front, and more attacks are PITs. A Hoon you hit but don't stop drops back:
 -- for SHY_SECONDS it peels off to a far slot, keeps further out (SHY_SIDE times the usual), may
@@ -98,7 +98,7 @@ M.SHY_SECONDS, M.SHY_SIDE, M.SHY_DROP_MPS = 6, 1.5, 4
 -- BOXED_SECONDS and you are boxed in; they hold you there for BOX_HOLD_SECONDS, then peel off.
 M.BOX_CHANCE, M.BOX_AHEAD, M.BOX_SLOW, M.BOX_SIDE = 0.35, 8, 0.6, 4
 M.BOX_SECONDS, M.STOPPED_MPS, M.BOXED_SECONDS, M.BOX_HOLD_SECONDS = 15, 2, 3, 5
--- A box is teamwork (Rowan, 6 Nov): it needs at least one other Hoon, and every free Hoon joins.
+-- A box is teamwork (MadMerick, 6 Nov): it needs at least one other Hoon, and every free Hoon joins.
 -- The first takes the side it is already on, the next the other side, a third sits BOX_AHEAD
 -- behind you, so with three or four Hoons you are boxed in on both sides. With two or more
 -- helpers free, a box is TEAM_BOX_CHANCE of attacks. First they gather: the lead runs in front
@@ -112,7 +112,7 @@ M.TEAM_BOX_CHANCE, M.BOX_ARRIVE, M.GATHER_SECONDS = 0.6, 8, 8
 -- Hoons wait when you stop. One that hasn't hit you yet is never down for being slow: after
 -- STALL_SECONDS its path is sent again and the stall is logged, to find out why.
 M.STUCK_MPS, M.DOWN_SECONDS, M.DRIVING_MPS, M.STALL_SECONDS = 1, 12, 3, 5
--- Caught on a bush out of sight (Rowan, 6 Nov): a Hoon slower than STUCK_MPS for UNSTICK_SECONDS
+-- Caught on a bush out of sight (MadMerick, 6 Nov): a Hoon slower than STUCK_MPS for UNSTICK_SECONDS
 -- while you drive, at least UNSTICK_METRES from you and behind the camera (tanker/behind.lua), is
 -- lifted UNSTICK_HOP metres on towards where it was heading, past what it is caught on. It lands
 -- behind the camera too, so you never see it jump. At most UNSTICK_TRIES times before it gets
@@ -125,13 +125,13 @@ M.LEAVE_METRES = 400
 -- This many hits from your revolver stop a Hoon.
 M.SHOTS_TO_STOP = 4
 
--- Robbing you when you can't move (Rowan, 6 Nov; robbery.lua decides when): the Hoon drives to
+-- Robbing you when you can't move (MadMerick, 6 Nov; robbery.lua decides when): the Hoon drives to
 -- ROB_SIDE metres off your side at up to ROB_MPS, slowing as it gets there, and stops beside you.
 -- Then it speeds off at FLEE_MPS, away from you and the way you face, and is gone at 400 m.
 M.ROB_SIDE, M.ROB_MPS, M.ROB_STOP_METRES = 4, 12, 2
 M.FLEE_MPS, M.FLEE_AIM_METRES = 30, 120
 
--- Two modes (Rowan, 6 Nov): desert, the slots above, once you have been more than ROAD_METRES
+-- Two modes (MadMerick, 6 Nov): desert, the slots above, once you have been more than ROAD_METRES
 -- from the nearest road for MODE_SECONDS; and road, once you have been within ROAD_METRES of a
 -- road for MODE_SECONDS. In road mode each Hoon drives itself in the car (tankerDriver.chase):
 -- it catches up along the roads, overtakes you, cuts in front and brake-checks. A Hoon that
@@ -490,7 +490,7 @@ function M.new(car, random)
     if not me then return nil, 'no_player' end
     local free = freeFar()
     if #free == 0 then return nil, 'full' end
-    -- Out of sight (Rowan, 6 Nov): only a slot behind the camera, else straight behind it.
+    -- Out of sight (MadMerick, 6 Nov): only a slot behind the camera, else straight behind it.
     local view = behind.view(car, me)
     local hidden = {}
     for _, s in ipairs(free) do

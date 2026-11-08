@@ -3,7 +3,7 @@ local location = require('tanker/location')
 local M = {}
 
 -- One-line settings. Tune these after testing in game.
--- By Kati Thanda-Lake Eyre, outback South Australia: Rowan's pick for where the run starts
+-- By Kati Thanda-Lake Eyre, outback South Australia: MadMerick's pick for where the run starts
 -- (6 Nov), about 680 km south-east of Pine Gap in a straight line. It used to be Kulgera
 -- Roadhouse, just north of the SA border. config.json's start moves it.
 M.START = { latitude = -28.8807093, longitude = 137.6024985 }

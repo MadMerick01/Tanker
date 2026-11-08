@@ -1,4 +1,4 @@
--- Drone strikes on roads (Rowan, 6 Nov): the rogue AI watches the world's road network. Stay on a
+-- Drone strikes on roads (MadMerick, 6 Nov): the rogue AI watches the world's road network. Stay on a
 -- road for ROAD_SECONDS and it sends a drone: you hear it coming for INBOUND_SECONDS, then it
 -- hits you, with an explosion beside your truck that damages it. Still on the road, the next one
 -- comes AGAIN_SECONDS later. Off the road when it arrives, it misses. Off the road for

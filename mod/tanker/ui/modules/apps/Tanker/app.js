@@ -72,7 +72,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
   var whole = function (n) {
     return typeof n === 'number' && isFinite(n) ? Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '–'
   }
-  // The centre window (Rowan, 6 Nov): everything about siphoning, in the middle of the screen on
+  // The centre window (MadMerick, 6 Nov): everything about siphoning, in the middle of the screen on
   // the page itself, so it sits over everything. Stopped beside a car, it offers the siphon and,
   // with a bed tank fitted, asks where the fuel goes. While fuel flows it shows the tanks and a
   // Stop button, then the result for a few seconds. A Hoon robbing you takes it over. Red when
@@ -186,7 +186,7 @@ angular.module('beamng.apps').directive('tankerHud', [function () {
     box = next
     boxKey = key
   }
-  // Drone strikes on roads (Rowan, 6 Nov): a red banner at the top of the screen counts down while
+  // Drone strikes on roads (MadMerick, 6 Nov): a red banner at the top of the screen counts down while
   // you are on a road, and the drone is heard coming, then the blast. The sounds play in the page,
   // from the mod's own files.
   var SOUNDS = '/ui/modules/apps/Tanker/sounds/'

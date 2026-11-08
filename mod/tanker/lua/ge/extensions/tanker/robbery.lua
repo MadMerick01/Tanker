@@ -1,4 +1,4 @@
--- Hoons rob you when you can't move (Rowan, 6 Nov). Stand still for STUCK_SECONDS with a Hoon up
+-- Hoons rob you when you can't move (MadMerick, 6 Nov). Stand still for STUCK_SECONDS with a Hoon up
 -- and one pulls up beside you, stops, and siphons your fuel: the bed tank first, then your
 -- truck's tank, always leaving you KEEP_LITRES. Once it has taken what it can (you are down to
 -- KEEP_LITRES, or its own tank is full) it speeds off, and is gone once it is 400 m away. With

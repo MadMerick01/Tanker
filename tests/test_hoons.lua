@@ -62,7 +62,7 @@ car.hoon.speed = 30; car.hoon.y = car.me.y - 2000
 T.eq(steps(h, 41, H.ESCAPE_SECONDS, 20), H.LINES.escaped, 'outrun it and it gives up')
 T.eq(h.state, 'HIDDEN', 'back in hiding')
 
--- No solid road behind: it never comes into view from ahead (Rowan, 6 Nov: only behind the camera).
+-- No solid road behind: it never comes into view from ahead (MadMerick, 6 Nov: only behind the camera).
 car.holeBehind = true
 h:putAway(20)
 local before = #car.attacks
@@ -204,7 +204,7 @@ local barstowGame = HC.new({
 })
 local _, barstow = barstowGame:load()
 T.eq(barstow, 'barstow', 'with a Barstow in the game, the Hoon is a Barstow')
-T.eq(spawned[#spawned].opts.config, 'vehicles/barstow/hoonold1.pc', 'in Rowan\'s HoonOld1 config on a low roll')
+T.eq(spawned[#spawned].opts.config, 'vehicles/barstow/hoonold1.pc', 'in MadMerick\'s HoonOld1 config on a low roll')
 local fastGame = HC.new({
   player = function() return player end, byId = function(i) return cars[i] end, vec3 = v3,
   random = function() return 0.7 end,

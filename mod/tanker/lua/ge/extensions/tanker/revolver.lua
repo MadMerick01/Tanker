@@ -1,4 +1,4 @@
--- The flatscreen revolver: Tanker's own six-shooter for playing without VR (in VR, Rowan's VR
+-- The flatscreen revolver: Tanker's own six-shooter for playing without VR (in VR, MadMerick's VR
 -- revolver mod does the shooting). This is the logic only: drawn or holstered, the six-round
 -- cylinder, spare rounds, the time between shots and reloading. aim.lua does the game's side.
 local M = {}
@@ -10,7 +10,7 @@ M.START_SPARE = 12
 -- Seconds between shots, and how long a reload takes: the VR revolver's.
 M.SHOT_SECONDS, M.RELOAD_SECONDS = 0.12, 1.5
 M.MAX_SPARE = 999
--- While testing (Rowan, 6 Nov): reloads never use up spare rounds. Set to false for real ammo.
+-- While testing (MadMerick, 6 Nov): reloads never use up spare rounds. Set to false for real ammo.
 M.INFINITE = true
 
 local function count(n, most)
