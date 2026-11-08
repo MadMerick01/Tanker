@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+## Build 35 · 8 Nov 2026
+
 - No changes in the game. The notes and changelog now name the author as MadMerick.
 
 ## Build 34 · 6 Nov 2026
