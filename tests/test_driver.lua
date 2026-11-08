@@ -98,7 +98,7 @@ T.eq(th, 0, 'lifts off'); T.eq(br, 0, 'without touching the brakes')
 s = D.newState(); aim(s, 0, 40, 10)
 st, th, br = D.control(s, car(20), 1 / 60)
 T.check(br > 0, 'a lot slower wanted, it brakes')
--- A desert Hoon getting into place (Rowan, 6 Nov): never the brakes, however much slower it is asked.
+-- A desert Hoon getting into place (MadMerick, 6 Nov): never the brakes, however much slower it is asked.
 s = D.newState(); aim(s, 0, 40, 10); s.target.mode = 'coast'
 st, th, br = D.control(s, car(20), 1 / 60)
 T.eq(br, 0, 'coasting: no brake'); T.eq(th, 0, 'it lifts off instead')

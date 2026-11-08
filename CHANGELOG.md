@@ -6,6 +6,8 @@ Every change to Tanker, in plain English, newest first. Each build is a new down
 
 Changes that are finished but not in a download yet. They move into a numbered build as soon as it's published.
 
+- No changes in the game. The notes and changelog now name the author as MadMerick.
+
 ## Build 34 · 6 Nov 2026
 
 - **New Aim up 1° and Aim down 1° buttons for the VR revolver.** On the Rig tab, next to the VR revolver, the HUD now shows how far the gun is tilted from your controller (for example -10°, negative is down) with two buttons that tilt it up or down one degree. Use them with the red laser on to line the gun up with BeamNG's black pointer line, instead of typing the setting into the console. The VR revolver remembers the tilt between sessions. The buttons only appear when the BeamNG VR Controller Poses mod is installed and new enough to have the aim setting.
@@ -76,14 +78,14 @@ Changes that are finished but not in a download yet. They move into a numbered b
 
 ## Build 22 · 6 Nov 2026
 
-- **A new run now starts at Rowan's chosen spot by Kulgera** (25.85141 S, 133.27493 E), about 2.5 km south-west of the roadhouse, instead of at the roadhouse itself. **Start the run** and **Start a new game** take you there. A run you already have going carries on from where it was saved, and the drive to Pine Gap is still about 270 km.
+- **A new run now starts at MadMerick's chosen spot by Kulgera** (25.85141 S, 133.27493 E), about 2.5 km south-west of the roadhouse, instead of at the roadhouse itself. **Start the run** and **Start a new game** take you there. A run you already have going carries on from where it was saved, and the drive to Pine Gap is still about 270 km.
 
 ## Build 21 · 6 Nov 2026
 
 - **Hoons now have a road mode and a desert mode.** Once you've been on a road for 5 seconds, the Hoons you spawn switch to road attacks. Once you've been off road for 5 seconds, they go back to circling you out in the desert. The **Rig** tab shows which mode they're in, and a Hoon spawned while you're on a road comes up the road about 80 m behind you.
-- **On the road, Hoons don't just ram you any more.** A Hoon catches up along the roads, overtakes you on the right, cuts in front of you and brake-checks you hard. Then it pulls ahead and does it again, or overtakes again if you get past it. If you stop, it parks in front of you to block you in. The **Road** and **Rig** tabs say what each Hoon is doing, for example "overtaking you" or "brake-checking you". The Hoons that come by themselves on the road drive this way too. Tanker's own driver handles all of this, planning its speed for each bend from Rowan's recorded country driving, so it shouldn't fly off the road on a corner.
+- **On the road, Hoons don't just ram you any more.** A Hoon catches up along the roads, overtakes you on the right, cuts in front of you and brake-checks you hard. Then it pulls ahead and does it again, or overtakes again if you get past it. If you stop, it parks in front of you to block you in. The **Road** and **Rig** tabs say what each Hoon is doing, for example "overtaking you" or "brake-checking you". The Hoons that come by themselves on the road drive this way too. Tanker's own driver handles all of this, planning its speed for each bend from MadMerick's recorded country driving, so it shouldn't fly off the road on a corner.
 - **The strip at the top of the HUD now shows how far the nearest Hoon is,** for example "Hoon 85 m" in red beside the threat light, and it updates as you drive. The **Rig** tab lists every spawned Hoon with its distance under the **Spawn a Hoon** button too.
-- **Fixed: spawned Hoons now drive to their spots around you instead of standing still.** Tanker now has its own desert driver for them, built from Rowan's recorded driving. It corners at up to about 0.9 g, brakes at 0.65 g and accelerates at 0.45 g, less on loose ground, and turns the wheel smoothly instead of flicking it. A Hoon speeds up when it's behind its spot, slows down when it's ahead, and runs alongside you once it's there. If it gets stuck, it backs up and tries again a few times. The same driver does the attacks too: a swipe turns in hard at the corner of your truck by the Hoon's spot, a little faster than you, so you can brake or steer away from it. A Hoon that was slow to reach its spot also no longer counts as down: a spawned Hoon only counts as down for being stopped once it has hit you.
+- **Fixed: spawned Hoons now drive to their spots around you instead of standing still.** Tanker now has its own desert driver for them, built from MadMerick's recorded driving. It corners at up to about 0.9 g, brakes at 0.65 g and accelerates at 0.45 g, less on loose ground, and turns the wheel smoothly instead of flicking it. A Hoon speeds up when it's behind its spot, slows down when it's ahead, and runs alongside you once it's there. If it gets stuck, it backs up and tries again a few times. The same driver does the attacks too: a swipe turns in hard at the corner of your truck by the Hoon's spot, a little faster than you, so you can brake or steer away from it. A Hoon that was slow to reach its spot also no longer counts as down: a spawned Hoon only counts as down for being stopped once it has hit you.
 - A spawned Hoon that gets more than 400 m away from you is now gone straight away, instead of following you from a long way back. A downed Hoon also goes once you're 400 m from it, so siphon it before you drive off. Your save still works.
 
 ## Build 20 · 6 Nov 2026
@@ -120,7 +122,7 @@ Changes that are finished but not in a download yet. They move into a numbered b
 
 ## Build 13 · 3 Nov 2026
 
-- **New: the TankerMob,** Rowan's fuel tanker truck. For now it comes from a spawn button: **Spawn the TankerMob** on the **Rig** tab puts it about 60 m ahead of you, and it drives off away from you. Catch it, stop it and siphon its tank. Pressing the button again puts the same truck back in front of you. It's also in BeamNG's vehicle menu under the truck.
+- **New: the TankerMob,** MadMerick's fuel tanker truck. For now it comes from a spawn button: **Spawn the TankerMob** on the **Rig** tab puts it about 60 m ahead of you, and it drives off away from you. Catch it, stop it and siphon its tank. Pressing the button again puts the same truck back in front of you. It's also in BeamNG's vehicle menu under the truck.
 - **Spawn a Hoon** on the **Rig** tab (it was called "Send a Hoon now (testing)") now works anywhere, road or no road. Off road, the Hoon appears on the ground about 40 m behind you. Hoons that come by themselves still only come while you're on a road.
 - **Fixed: pumping now changes the bed tank.** Pumping between the bed tank and the truck moved fuel in and out of the truck's own tank, but the bed tank's litres stayed the same. The bed tank now goes down as you pump into the truck and up as you pump back. The same fault could make siphoning stop straight away with "There is no fuel to siphon in that car" while still taking a litre, and that's fixed too. Your save still works.
 - The starter truck has a new picture, on the start page's **Your truck** card and in BeamNG's vehicle menu.

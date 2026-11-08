@@ -1,5 +1,5 @@
 -- The game's side of the flatscreen revolver: aiming with the mouse, the crosshair and the shot.
--- The mouse and crosshair come from Rowan's Bolides The Cut (FirstPersonShoot.lua). The shot is
+-- The mouse and crosshair come from MadMerick's Bolides The Cut (FirstPersonShoot.lua). The shot is
 -- the VR revolver's own (BeamngVRcontrollerPoses), so a hit is exactly the same as in VR: the
 -- bullet must pass within 0.3 m of the car's body, walls stop it, it shoves and dents the car,
 -- flattens a tyre it hits near the hub, and a shot through the driver switches the car's AI off.

@@ -1,4 +1,4 @@
--- Out of sight (Rowan, 6 Nov): Hoons and tankers never appear where you can see them. Each new
+-- Out of sight (MadMerick, 6 Nov): Hoons and tankers never appear where you can see them. Each new
 -- one is put somewhere in the half of the world behind the camera, the 180 degrees you are not
 -- looking at. With no camera to read, the truck's facing stands in for it.
 local M = {}

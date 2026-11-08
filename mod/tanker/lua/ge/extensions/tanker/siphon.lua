@@ -1,7 +1,7 @@
 -- Siphoning: moving fuel from another car's tank into yours, a litre a second, while you stand
 -- still beside it. Each step takes a litre from their tank, waits for their car to say how much
 -- really came out, then puts exactly that into yours, so fuel is never made or lost.
--- The fuel goes into your truck's tank, or into the bed tank when you choose it (Rowan, 6 Nov).
+-- The fuel goes into your truck's tank, or into the bed tank when you choose it (MadMerick, 6 Nov).
 -- The bed tank's litres are Tanker's own number, so they go in as soon as their car answers.
 -- This is the logic only; the controller feeds it the clock, the distance and the answers.
 local M = {}

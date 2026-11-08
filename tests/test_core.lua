@@ -145,7 +145,7 @@ io7.files['/settings/tanker/config.json'] = { wrist = 'maybe' }
 local c7 = F.controller(F.adapter(-31.0, 140.0), { io = io7 })
 run(c7, 1)
 T.eq(c7.state, 'ERROR', 'invalid config stops the run')
--- The starter truck: arriving at the start swaps in Rowan's truck, and the run starts once it is there.
+-- The starter truck: arriving at the start swaps in MadMerick's truck, and the run starts once it is there.
 local adapter8 = F.adapter(-31.0, 140.0)
 local c8, env8 = F.controller(adapter8, { vehicles = F.vehicles() })
 run(c8, 1)

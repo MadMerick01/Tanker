@@ -1,4 +1,4 @@
--- The starter truck: Rowan's white D15 longbed dually with the i6 4.1, a 5-speed manual, a
+-- The starter truck: MadMerick's white D15 longbed dually with the i6 4.1, a 5-speed manual, a
 -- bullbar and an XL tank in the bed (vehicles/pickup/tankerstarter.pc). This swaps the player's
 -- vehicle for it where it stands, the way Earth Freight gives the player its starter car. Every
 -- game call is guarded: a missing or changed one means no swap, never an error.
@@ -27,7 +27,7 @@ function M.new(environment)
   local env = environment or defaults()
   local v = {}
 
-  -- Asks the game to put the starter truck where the player's vehicle is: Rowan's config, or a
+  -- Asks the game to put the starter truck where the player's vehicle is: MadMerick's config, or a
   -- saved config (the parts paid for) of the saved model. Returns true once the game took the
   -- request; the new truck arrives a moment later (the game's onVehicleSpawned).
   function v:spawnStarter(config, model)

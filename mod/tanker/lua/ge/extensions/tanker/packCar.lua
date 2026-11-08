@@ -1,4 +1,4 @@
--- The game's side of the Hoon pack (pack.lua). Every Hoon drives Rowan's HoonOld1, a rusty Barstow
+-- The game's side of the Hoon pack (pack.lua). Every Hoon drives MadMerick's HoonOld1, a rusty Barstow
 -- shipped in the mod. Its car is taken out of Tanker's traffic pool (trafficPool.lua), which loaded
 -- it with the rest of traffic, so it doesn't hitch; only with none left is one loaded. Once a Hoon
 -- is done its car is kept hidden, so a later Hoon reuses it at once.

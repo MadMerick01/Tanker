@@ -4,7 +4,7 @@ local B = require('tanker/behind')
 local P = require('tanker/pack')
 local TM = require('tanker/tankerMob')
 
--- Out of sight (Rowan, 6 Nov): Hoons and tankers only appear in the 180 degrees behind the camera.
+-- Out of sight (MadMerick, 6 Nov): Hoons and tankers only appear in the 180 degrees behind the camera.
 local look = { x = 0, y = 0, dx = 0, dy = 1 }
 T.eq(B.isBehind(look, 0, -40), true, 'straight behind the camera')
 T.eq(B.isBehind(look, 100, -B.MARGIN_METRES), true, 'off to the side, just behind it')

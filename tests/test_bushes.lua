@@ -5,7 +5,7 @@ local P = require('tanker/pack')
 local B = require('tanker/behind')
 local TM = require('tanker/tankerMob')
 
--- Hoons and the TankerMob in the bushes (Rowan, 6 Nov).
+-- Hoons and the TankerMob in the bushes (MadMerick, 6 Nov).
 
 -- 1. The Hoon driver steers round solid bushes.
 local D = dofile(dir .. '/../mod/tanker/lua/vehicle/extensions/tankerDriver.lua')

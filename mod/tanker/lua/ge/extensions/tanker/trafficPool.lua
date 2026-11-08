@@ -1,11 +1,11 @@
--- Tanker's traffic: BeamNG's own traffic, but holding only Tanker's cars (Rowan, 6 Nov). Once the
+-- Tanker's traffic: BeamNG's own traffic, but holding only Tanker's cars (MadMerick, 6 Nov). Once the
 -- run is on the road, traffic is set up with a pool of HoonOld1s and TankerMobs and nothing else,
 -- which loads them all in one go, once. Any normal traffic already running is cleared first. A
 -- normal traffic car that turns up later (from the game's own menu, say) is deleted on its own:
 -- traffic is never set up a second time, since that loads every car again and the game stutters.
 -- Traffic drives the pooled cars around and keeps the ones it doesn't need hidden, so when a Hoon
 -- or a TankerMob is wanted, one is taken out of traffic and put into place, which doesn't hitch.
--- Parked cars aren't wanted either (Rowan, 6 Nov): any the game parked are deleted and parking is
+-- Parked cars aren't wanted either (MadMerick, 6 Nov): any the game parked are deleted and parking is
 -- switched off. Every game call is guarded: a missing or changed one means no pool, never an error.
 local M = {}
 

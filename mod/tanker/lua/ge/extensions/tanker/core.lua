@@ -52,7 +52,7 @@ local START_FUEL_LITRES, START_BED_LITRES = 15, 25
 M.START_FUEL_LITRES, M.START_BED_LITRES = START_FUEL_LITRES, START_BED_LITRES
 -- How often the bed tank's weight is updated while the pump runs, and its size asked for.
 local BED_APPLY_SECONDS, BED_READ_SECONDS = 2, 5
--- Siphoning is done on foot (Rowan, 6 Nov), with your truck parked within this many metres of you.
+-- Siphoning is done on foot (MadMerick, 6 Nov), with your truck parked within this many metres of you.
 local TRUCK_METRES = 15
 M.TRUCK_METRES = TRUCK_METRES
 
@@ -225,7 +225,7 @@ function M.new(env)
   end
 
   -- Siphoning: offered while you stand still on foot beside another car on the road, with your
-  -- truck parked close by. Hoons nearby don't stop it (Rowan, 6 Nov).
+  -- truck parked close by. Hoons nearby don't stop it (MadMerick, 6 Nov).
   function c:siphonBlocked()
     if self.state ~= 'RUNNING' then return 'not_running' end
     if self.siphon:active() then return 'siphoning' end
@@ -784,7 +784,7 @@ function M.new(env)
     v.onFoot = self.foot == true
     v.siphon = self.siphon:view(self.clock, self:siphonTank())
     -- The centre window's offer: stopped beside a car, choose where its fuel goes.
-    -- In your truck, or too far from it, it says so instead (Rowan, 6 Nov).
+    -- In your truck, or too far from it, it says so instead (MadMerick, 6 Nov).
     local waiting = (blocked == 'in_vehicle' or blocked == 'truck_far') and self.near.speed <= siphon.STILL_MPS
     if (v.siphonAllowed or waiting) and not v.siphon then
       v.siphonOffer = { metres = self.near.metres, bed = self:hasBed(), blocked = v.siphonAllowed and nil or blocked,

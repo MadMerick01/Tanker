@@ -1,5 +1,5 @@
 -- The Hoons: when they come, how they hunt, and when it is over. For now there is one Hoon, a
--- HoonOld1 (Rowan's rusty Barstow, see hoonCar.lua) whose car is loaded once when the run is on the road and then kept hidden. Every few
+-- HoonOld1 (MadMerick's rusty Barstow, see hoonCar.lua) whose car is loaded once when the run is on the road and then kept hidden. Every few
 -- km of driving near a road it is put on the road behind you and hunts you, ramming. It is over
 -- when the Hoon is down (stuck or wrecked, so its tank is yours to siphon) or when you get away.
 -- This is the logic only; hoonCar.lua does the game's side.
@@ -86,7 +86,7 @@ function M.new(car, random)
     local near = car:road(me.x, me.y, me.z)
     if not anywhere and (not near or near.metres > M.ROAD_METRES) then return nil, 'off_road' end
     -- Behind first, then ahead: a road point near the spot, far enough away, with solid ground.
-    -- Out of sight (Rowan, 6 Nov): only a spot behind the camera. Straight behind the camera
+    -- Out of sight (MadMerick, 6 Nov): only a spot behind the camera. Straight behind the camera
     -- first, then behind and ahead of the truck, if the camera faces that way.
     local view = behind.view(car, me)
     local road, line

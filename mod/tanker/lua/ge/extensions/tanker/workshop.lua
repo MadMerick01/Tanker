@@ -14,7 +14,7 @@ M.DRIVE_OFF_METRES = 25
 M.SERIAL_BASE = 2000000
 -- After paying on the parts bill box, how long until the camera is checked once more.
 M.CAMERA_CHECK_SECONDS = 0.5
--- While testing (Rowan, 6 Nov): any vehicle or part change is free and becomes your truck, with no
+-- While testing (MadMerick, 6 Nov): any vehicle or part change is free and becomes your truck, with no
 -- bill and nothing put back. Set to false to pay for parts in fuel again.
 M.FREE_CHANGES = true
 

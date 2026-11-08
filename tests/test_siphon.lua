@@ -63,7 +63,7 @@ T.eq(c:startSiphon(), false, 'no siphon before the run')
 c:startRun(); adapter:put(R.START.latitude, R.START.longitude); run(1)
 T.eq(c.state, 'RUNNING', 'on the road')
 c:fuelReading(7, 50, 300)
--- In your truck: only on foot (Rowan, 6 Nov), and the centre window says so.
+-- In your truck: only on foot (MadMerick, 6 Nov), and the centre window says so.
 local inTruck = c:view()
 T.eq(inTruck.siphonAllowed, false, 'not from inside your truck'); T.eq(inTruck.siphonNear.needsFoot, true, 'the panel says get out')
 T.eq(inTruck.siphonOffer.blocked, 'in_vehicle', 'so does the centre window'); T.eq(c:startSiphon(), false, 'no siphon')
@@ -178,7 +178,7 @@ local plain, on, off = #W.build({}), #W.build({ siphon = { active = true, blink 
 T.eq(on, plain + 2, 'a pip while siphoning')
 T.eq(off[5][7], W.COLOURS.empty, 'it blinks off')
 T.eq(#W.build({ siphon = { active = false } }), plain, 'no pip once it stops')
--- Into the bed tank (Rowan, 6 Nov): their litres go straight into the bed tank's own number.
+-- Into the bed tank (MadMerick, 6 Nov): their litres go straight into the bed tank's own number.
 local askedB, bedL = {}, 190
 local sb = S.new(function(litres, serial, id) askedB[#askedB + 1] = { litres = litres, serial = serial, id = id }; return true end,
   function(litres) local before = bedL; bedL = math.min(200, bedL + litres); return bedL - before, bedL, 200 end)

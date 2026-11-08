@@ -5,8 +5,8 @@
 local M = {}
 local behind = require('tanker/behind')
 
--- The Hoon's car: one of Rowan's Barstows, shipped in the mod under vehicles/barstow, each
--- equally likely (Rowan, 6 Nov): HoonOld1 (rusty, I6, welded diff, rollcage, offroad tyres) and
+-- The Hoon's car: one of MadMerick's Barstows, shipped in the mod under vehicles/barstow, each
+-- equally likely (MadMerick, 6 Nov): HoonOld1 (rusty, I6, welded diff, rollcage, offroad tyres) and
 -- HoonFast2 (supercharged V8, cowl hood, rollcage). If the game has no Barstow, a plain one of
 -- the other vanilla muscle cars, in order, is used instead.
 M.MODELS = { 'barstow', 'moonhawk', 'burnside' }
@@ -57,7 +57,7 @@ local function xyz(p)
 end
 
 -- Runs inside the Hoon's car: hunt the player with Tanker's own driver, which follows the roads
--- to you with Rowan's country driving limits and rams once close (tankerDriver.lua). If that
+-- to you with MadMerick's country driving limits and rams once close (tankerDriver.lua). If that
 -- can't be loaded, BeamNG's chase AI does it instead, flat out and not avoiding anyone.
 local HUNT = [[
 if extensions and not extensions.tankerDriver then pcall(extensions.load, 'tankerDriver') end
@@ -69,7 +69,7 @@ elseif ai then
   pcall(ai.setAggression, 1)
   pcall(ai.setAvoidCars, 'off')
   pcall(ai.setSpeedMode, 'off')
-  -- With Rowan's smartAI mod installed, drive like a person on open roads.
+  -- With MadMerick's smartAI mod installed, drive like a person on open roads.
   if ai.setSmartProfile then pcall(ai.setSmartProfile, 'moonhawk_country') end
 end
 ]]
@@ -83,7 +83,7 @@ function M.new(environment, pool)
   local env = environment or defaults()
   local h = { pool = pool }
 
-  -- The player's own vehicle is never a Hoon (Rowan, 6 Nov): if the game ever puts you in a Hoon's
+  -- The player's own vehicle is never a Hoon (MadMerick, 6 Nov): if the game ever puts you in a Hoon's
   -- car, Tanker stops commanding it at once, and the Hoon is forgotten as if its car had gone.
   local function playerId()
     local ok, c = pcall(env.player)

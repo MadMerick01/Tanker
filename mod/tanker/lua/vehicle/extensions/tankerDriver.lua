@@ -5,7 +5,7 @@
 -- throttle and brake itself and drives the car with them, the way BeamNG's AI does. It takes over
 -- from BeamNG's AI while it drives (the AI is switched off) and hands back on stop().
 --
--- Its limits come from Rowan's logged driving (BeamngAdvancedSelfDriving, smartAI's
+-- Its limits come from MadMerick's logged driving (BeamngAdvancedSelfDriving, smartAI's
 -- moonhawk_country profile): about 0.9 g cornering, 0.65 g braking and 0.45 g accelerating, all
 -- capped by the grip of the ground under the car.
 --
@@ -19,7 +19,7 @@ local M = {}
 
 -- One-line settings. Tune these after testing in game.
 local G = 9.81
--- Cornering, braking and accelerating limits, in g (Rowan's country driving).
+-- Cornering, braking and accelerating limits, in g (MadMerick's country driving).
 M.LAT_G, M.BRAKE_G, M.ACCEL_G = 0.9, 0.65, 0.45
 -- The front wheels' full lock, in radians, used to turn a wheel angle into a steering input.
 M.STEER_LOCK = 0.6
@@ -33,7 +33,7 @@ M.SPEED_TAU = 0.8
 M.SPIN_SHARE = 0.25
 -- Pushing for STUCK_SECONDS at under 1 m/s, it reverses (steering the other way) for
 -- BACK_SECONDS; after STUCK_TRIES of those it rests REST_SECONDS and starts again: a Hoon never
--- gives up while it can still drive (Rowan, 6 Nov).
+-- gives up while it can still drive (MadMerick, 6 Nov).
 M.STUCK_SECONDS, M.BACK_SECONDS, M.STUCK_TRIES, M.REST_SECONDS = 2.5, 2.5, 4, 3
 -- With no new point for this long, it brakes to a stop.
 M.STALE_SECONDS = 0.6
@@ -41,7 +41,7 @@ M.STALE_SECONDS = 0.6
 M.COAST_MPS = 3
 -- A point behind the car is turned towards at this speed at most, in m/s.
 M.TURN_MPS = 6
--- Steering round solid bushes, rocks and trees (Rowan, 6 Nov). Five feelers: straight ahead,
+-- Steering round solid bushes, rocks and trees (MadMerick, 6 Nov). Five feelers: straight ahead,
 -- FEEL_ANGLE radians either side, and two straight ahead along the car's edges (EDGE_METRES out
 -- from its middle) so it doesn't squeeze into a gap narrower than itself. They look FEEL_SECONDS
 -- of its speed ahead (FEEL_MIN to FEEL_MAX metres) every FEEL_EVERY seconds, starting
@@ -97,7 +97,7 @@ end
 -- One frame. s is the state, car what the car senses now:
 --   x, y (centre), fx, fy (facing, unit), rx, ry (right, unit), speed (m/s, forward positive),
 --   yawRate (rad/s, right turn positive), wheelSpeed (m/s), mu (ground grip), wheelBase (m)
--- s.target is { x, y, speed, mode }. mode 'coast' never brakes (Rowan, 6 Nov): it lifts off
+-- s.target is { x, y, speed, mode }. mode 'coast' never brakes (MadMerick, 6 Nov): it lifts off
 -- instead, so a desert Hoon never drops back on the brakes. mode 'swipe' never brakes either and
 -- turns in as hard as it asks, without slowing for the arc. Returns steering (-1 left .. 1 right), throttle, brake and
 -- parking brake (0 .. 1). In BeamNG's arcade gearbox the brake held at a standstill drives
@@ -199,14 +199,14 @@ end
 
 -- ------------------------------------------------------------ road mode ---
 -- Chasing you on the roads, like BeamNG's chase mode: a route along the road map to you, driven
--- with a speed plan from Rowan's country limits, then a ram once it is close. The road maths is
+-- with a speed plan from MadMerick's country limits, then a ram once it is close. The road maths is
 -- here; the route itself comes from the game's road map (in the car, below).
 
--- Rowan's country cornering limit by speed (smartAI moonhawk_country): {km/h, g}.
+-- MadMerick's country cornering limit by speed (smartAI moonhawk_country): {km/h, g}.
 M.LAT_TABLE = { { 0, 0.9 }, { 40, 0.95 }, { 200, 0.95 } }
 -- How far along the route it aims: LOOK_SECONDS of its speed, between LOOK_MIN and LOOK_MAX m.
 M.LOOK_SECONDS, M.LOOK_MIN, M.LOOK_MAX = 0.8, 6, 30
--- The road attack (Rowan, 6 Nov): no ramming. Further than ENGAGE_METRES it catches up along the
+-- The road attack (MadMerick, 6 Nov): no ramming. Further than ENGAGE_METRES it catches up along the
 -- route. Closer, it overtakes in the lane PASS_SIDE metres to your right (Australia drives on the
 -- left), PASS_MPS faster than you; once CUT_AHEAD metres clear of your front it cuts in front of
 -- you, settles for SETTLE_SECONDS, then brake-checks: down to BRAKE_SHARE of your speed for

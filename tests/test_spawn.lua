@@ -35,7 +35,7 @@ local mob = M.new(car, {
   spawn = function() return { safeTeleport = function() teleports = teleports + 1 end } end,
 })
 T.eq(mob:spawn(), true, 'spawned')
-T.eq(spawned[1].model, 'us_semi', 'the us_semi'); T.eq(spawned[1].opts.config, M.CONFIG, 'with Rowan\'s TankerMob config')
+T.eq(spawned[1].model, 'us_semi', 'the us_semi'); T.eq(spawned[1].opts.config, M.CONFIG, 'with MadMerick\'s TankerMob config')
 T.eq(spawned[1].opts.pos.y, -M.SPAWN_METRES, 'behind you, out of sight'); T.eq(spawned[1].opts.pos.z, 3 + M.DROP_METRES, 'dropped onto the ground')
 T.eq(spawned[1].opts.autoEnterVehicle, false, 'you stay in your truck')
 T.check(queued[1]:find("'flee'") and queued[1]:find('setTargetObjectID, 7'), 'it runs from you')
